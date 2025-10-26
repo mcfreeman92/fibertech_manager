@@ -41,8 +41,8 @@ const LoginScreen = ({ navigation }) => {
   const { control, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(loginSchema),
     defaultValues: {
-      username: '',
-      password: ''
+      username: 'admin',
+      password: '123456'
     }
   });
 

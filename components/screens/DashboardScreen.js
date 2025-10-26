@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
-  Alert, 
-  Image, 
-  RefreshControl 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  Image,
+  RefreshControl,
+  Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from '../hooks/useTranslation';
@@ -43,15 +44,12 @@ const DashboardScreen = ({ navigation, theme }) => {
     }
   };
 
-  // Función para cargar todos los datos
   const loadAllData = async () => {
     try {
       setRefreshing(true);
       await Promise.all([
         loadExistingProjects(),
         loadExistingMaps(),
-        // Aquí puedes agregar más funciones de carga de datos si es necesario
-        // Por ejemplo: loadUserData(), loadStatistics(), etc.
       ]);
     } catch (error) {
       console.log('Error loading all data:', error);
@@ -64,7 +62,7 @@ const DashboardScreen = ({ navigation, theme }) => {
     loadAllData();
   }, []);
 
-  const handleLogout =  () => {
+  const handleLogout = () => {
     Alert.alert(
       t('confirmLogout'),
       t('confirmLogoutMessage'),
@@ -75,9 +73,9 @@ const DashboardScreen = ({ navigation, theme }) => {
         },
         {
           text: t('logout1'),
-          onPress:  () => {
+          onPress: () => {
             try {
-               logout();
+              logout();
             } catch (error) {
               console.error('Error during logout:', error);
               Alert.alert(t('error'), t('logoutError'));
@@ -89,7 +87,6 @@ const DashboardScreen = ({ navigation, theme }) => {
     );
   };
 
-  // Función para manejar el pull-to-refresh
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadAllData();
@@ -151,42 +148,31 @@ const DashboardScreen = ({ navigation, theme }) => {
       title: t('logout1'),
       icon: 'log-out-outline',
       color: '#7f8c8d',
-      onPress: () => {
-        console.log("handleLogout");
-         handleLogout();
-      }
+      onPress: () => handleLogout()
     }
   ];
 
   return (
-    <View style={[stylesFull.screen, isDarkMode && styles.darkContainer, { paddingBottom: bottomInset}]}>
+    <View style={[stylesFull.screen, isDarkMode && styles.darkContainer, { paddingBottom: bottomInset }]}>
       {/* Header */}
-      <View style={[styles.header, isDarkMode && styles.darkContainer, {paddingTop: topInset - 15}]}>
-        {/* <View style={styles.logoContainer}> */}
-          <Image 
-            source={require('../../assets/images/logo2.png')}
-            style={[
-              styles.logo,
-              isSmall && { width: '60%', height: 60 },
-              isTablet && { width: '40%', height: 100 }
-            ]}
-            resizeMode="contain"
-          />
-        {/* </View> */}
+      <View style={[styles.header, isDarkMode && styles.darkContainer, { paddingTop: topInset - 15 }]}>
+        <Image
+          source={require('../../assets/images/logo2.png')}
+          style={[
+            styles.logo,
+            isSmall && { width: '60%', height: 60 },
+            isTablet && { width: '40%', height: 100 }
+          ]}
+          resizeMode="contain"
+        />
       </View>
 
       {/* Main Content */}
-      <ScrollView 
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.scrollContent,
-          {
-            paddingTop: topInset,
-            paddingBottom: bottomInset,
-            backgroundColor: isDarkMode ? '#121212' : '#f8f9fa',
-          },
-        ]}
+      <ScrollView
+        scrollEnabled={true}
+        nestedScrollEnabled={Platform.OS !== 'web'}
+        removeClippedSubviews={Platform.OS === 'web' ? false : true}
+        showsVerticalScrollIndicator={true}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -197,8 +183,13 @@ const DashboardScreen = ({ navigation, theme }) => {
             titleColor={isDarkMode ? '#ffffff' : '#7f8c8d'}
           />
         }
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+        }}
       >
-        {/* Refresh Indicator (opcional) */}
+        {/* Refresh Indicator */}
         {refreshing && (
           <View style={styles.refreshIndicator}>
             <Ionicons name="refresh" size={20} color="#3498db" />
@@ -211,7 +202,7 @@ const DashboardScreen = ({ navigation, theme }) => {
         <Text style={[styles.sectionTitle, isDarkMode && styles.darkText]}>
           {t('mainMenu')}
         </Text>
-        
+
         <View style={styles.gridContainer}>
           {menuOptions.map((item) => (
             <TouchableOpacity
@@ -288,15 +279,10 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#ffffff',
     alignItems: 'center',
+    justifyContent: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#ecf0f1',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
+    boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.05)',
     elevation: 2,
   },
   darkHeader: {
@@ -311,13 +297,6 @@ const styles = StyleSheet.create({
   },
   darkText: {
     color: '#ffffff',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 30,
   },
   refreshIndicator: {
     flexDirection: 'row',
@@ -351,19 +330,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 16,
     borderLeftWidth: 4,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.1)',
     elevation: 2,
   },
   darkCard: {
     backgroundColor: '#1e1e1e',
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
+    boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.3)',
   },
   iconContainer: {
     width: 40,
@@ -398,13 +370,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 12,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.1)',
     elevation: 1,
   },
   statNumber: {
@@ -422,6 +388,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 16,
     padding: 10,
+    marginBottom: 20,
   },
   lastUpdateText: {
     fontSize: 12,
