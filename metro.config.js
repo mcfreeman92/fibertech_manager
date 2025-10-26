@@ -12,4 +12,14 @@ config.transformer.minifierConfig = {
   }
 };
 
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (platform === 'web' && moduleName === 'react-native-maps') {
+    // Devuelve un módulo vacío para web
+    return {
+      type: 'empty',
+    };
+  }
+  return context.resolveRequest(context, moduleName, platform);
+};
+
 module.exports = config;

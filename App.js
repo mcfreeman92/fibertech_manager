@@ -7,6 +7,7 @@ import { withResponsive } from './components/hoc/withResponsive';
 import AppNavigator from './components/navigation/AppNavigator'; // tu stack
 import { StatusBar } from 'react-native';
 import { DeviceProvider } from './components/context/DeviceContext';
+import { Platform } from 'react-native';
 
 const Stack = createNativeStackNavigator();
 
@@ -15,7 +16,7 @@ const screens = [
   { name: 'Dashboard', component: require('./components/screens/DashboardScreen').default },
   { name: 'CreateProject', component: require('./components/screens/CreateProject').default },
   { name: 'CreateMaintenance', component: require('./components/screens/CreateMaintenance').default },
-  { name: 'ViewOnMap', component: require('./components/screens/ViewOnMap').default },
+  // { name: 'ViewOnMap', component: require('./components/screens/ViewOnMap').default },
   { name: 'Tools', component: require('./components/screens/Tools').default },
   { name: 'Settings', component: require('./components/screens/Settings').default },
   { name: 'UserProfile', component: require('./components/screens/UserProfile').default },

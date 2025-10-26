@@ -33,6 +33,7 @@
     "expo-status-bar": "^3.0.8",
     "expo-system-ui": "~6.0.7",
     "native-base": "^3.4.28",
+    "normalize-css-color": "^1.0.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.62.0",
@@ -47,6 +48,7 @@
     "react-native-svg": "15.12.1",
     "react-native-vector-icons": "^10.3.0",
     "react-native-view-shot": "4.0.3",
+    "react-native-web": "~0.21.0",
     "react-native-worklets": "^0.5.1",
     "yup": "^1.7.0"
   },

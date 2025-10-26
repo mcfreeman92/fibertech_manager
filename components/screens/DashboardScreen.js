@@ -64,7 +64,7 @@ const DashboardScreen = ({ navigation, theme }) => {
     loadAllData();
   }, []);
 
-  const handleLogout = async () => {
+  const handleLogout =  () => {
     Alert.alert(
       t('confirmLogout'),
       t('confirmLogoutMessage'),
@@ -75,9 +75,9 @@ const DashboardScreen = ({ navigation, theme }) => {
         },
         {
           text: t('logout1'),
-          onPress: async () => {
+          onPress:  () => {
             try {
-              await logout();
+               logout();
             } catch (error) {
               console.error('Error during logout:', error);
               Alert.alert(t('error'), t('logoutError'));
@@ -151,7 +151,10 @@ const DashboardScreen = ({ navigation, theme }) => {
       title: t('logout1'),
       icon: 'log-out-outline',
       color: '#7f8c8d',
-      onPress: handleLogout
+      onPress: () => {
+        console.log("handleLogout");
+         handleLogout();
+      }
     }
   ];
 
