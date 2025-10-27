@@ -8,7 +8,7 @@ import AppNavigator from './components/navigation/AppNavigator'; // tu stack
 import { StatusBar } from 'react-native';
 import { DeviceProvider } from './components/context/DeviceContext';
 import { Platform } from 'react-native';
-import { DatabaseProvider } from './api/contexts/DatabaseContext'
+// import { DatabaseProvider } from './api/contexts/DatabaseContext'
 
 const Stack = createNativeStackNavigator();
 
