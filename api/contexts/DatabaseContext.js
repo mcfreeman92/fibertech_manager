@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Platform, ActivityIndicator, View, Text, StyleSheet } from 'react-native';
-import { getAdapterInitializator, getAdapter } from '../config/dataSource';
+import { AdapterInitializator, getAdapter } from '../config/dataSource';
 
 const DatabaseContext = createContext();
 
@@ -12,7 +12,8 @@ export const DatabaseProvider = ({ children }) => {
     const setupDatabase = async () => {
       try {
         console.log(`🔧 Initializing database for platform: ${Platform.OS}`);
-        await initDatabase();
+        const Initializator = AdapterInitializator();
+        await Initializator.init();
         console.log('✅ Database initialized successfully');
         setIsReady(true);
       } catch (err) {
@@ -64,3 +65,7 @@ export const useDatabase = () => {
   }
   return context;
 };
+
+export const useAdapter = () =>{
+  return getAdapter;
+}

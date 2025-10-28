@@ -8,7 +8,7 @@ import AppNavigator from './components/navigation/AppNavigator'; // tu stack
 import { StatusBar } from 'react-native';
 import { DeviceProvider } from './components/context/DeviceContext';
 import { Platform } from 'react-native';
-// import { DatabaseProvider } from './api/contexts/DatabaseContext'
+import { DatabaseProvider } from './api/contexts/DatabaseContext'
 
 const Stack = createNativeStackNavigator();
 
@@ -38,17 +38,20 @@ const wrappedScreens = screens.map((s) => ({
 export default function App() {
 
   return (
-    <SafeAreaProvider>
-      <DeviceProvider>
-      <AppProvider>
-        <NativeBaseProvider>
-          <NavigationContainer>
-            <StatusBar barStyle="dark-content" />
-            <AppNavigator />
-          </NavigationContainer>
-        </NativeBaseProvider>
-      </AppProvider>
-      </DeviceProvider>
-    </SafeAreaProvider>
+    <DatabaseProvider>
+      <SafeAreaProvider>
+        <DeviceProvider>
+          <AppProvider>
+            <NativeBaseProvider>
+              <NavigationContainer>
+                <StatusBar barStyle="dark-content" />
+                <AppNavigator />
+              </NavigationContainer>
+            </NativeBaseProvider>
+          </AppProvider>
+        </DeviceProvider>
+      </SafeAreaProvider>
+    </DatabaseProvider>
+
   );
 }

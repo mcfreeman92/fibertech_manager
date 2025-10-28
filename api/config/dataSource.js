@@ -10,7 +10,8 @@ const BuildHandler = (h) => {
   }
 }
 
-export const getAdapterInitializator = () => {
+export const AdapterInitializator = () => {
+
   if (DATA_SOURCE === 'rest') {
     return BuildHandler(undefined);
   } else   if (DATA_SOURCE === 'web') {

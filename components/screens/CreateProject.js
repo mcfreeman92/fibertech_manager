@@ -21,6 +21,9 @@ import { ProjectService, UnitsService, ProjectTypeService, NodeService, FileServ
 import { useTranslation } from '../hooks/useTranslation';
 import { useApp } from '../context/AppContext';
 import { useDevice } from '../context/DeviceContext';
+
+import { useDatabase, useAdapter } from '@/api/contexts/DatabaseContext';
+
 // import ViewShot from 'react-native-view-shot';
 // import CameraRoll from '@react-native-cameraroll/cameraroll';
 import * as MediaLibrary from 'expo-media-library';
@@ -31,6 +34,7 @@ const CreateProject = ({ navigation, route, theme }) => {
   const isEditMode = !!projectId;
   const qrRef = useRef();
   const [qrData, setQrData] = useState(null);
+  const { createProject } = useAdapter()();
 
   // const viewShotRef = useRef();
   const { t } = useTranslation();
@@ -83,7 +87,7 @@ const CreateProject = ({ navigation, route, theme }) => {
 
   useEffect(() => {
     loadExistingProjects();
-    
+
     if (isEditMode) {
       loadProjectData();
     }
@@ -103,7 +107,7 @@ const CreateProject = ({ navigation, route, theme }) => {
     try {
       const projects = await ProjectService.getProjects();
       setExistingProjects(projects);
-      
+
     } catch (error) {
       console.log('Error loading projects:', error);
     }
@@ -112,7 +116,7 @@ const CreateProject = ({ navigation, route, theme }) => {
   const loadProjectData = async () => {
     try {
       setSaving(true);
-      
+
       // Cargar datos del proyecto
       const project = await ProjectService.getProjectById(projectId);
       if (project) {
@@ -155,25 +159,25 @@ const CreateProject = ({ navigation, route, theme }) => {
     }
   };
 
-//   const saveQRCodeToGalleryComplete = async () => {
-//   try {
-//     const { status } = await MediaLibrary.requestPermissionsAsync();
-//     if (status !== 'granted') {
-//       Alert.alert(t('permissionDenied'), t('galleryPermissionMessage'));
-//       return;
-//     }
+  //   const saveQRCodeToGalleryComplete = async () => {
+  //   try {
+  //     const { status } = await MediaLibrary.requestPermissionsAsync();
+  //     if (status !== 'granted') {
+  //       Alert.alert(t('permissionDenied'), t('galleryPermissionMessage'));
+  //       return;
+  //     }
 
-//     const uri = await captureRef(viewShotRef, {
-//       format: 'png',
-//       quality: 1.0
-//     });
+  //     const uri = await captureRef(viewShotRef, {
+  //       format: 'png',
+  //       quality: 1.0
+  //     });
 
-//     await MediaLibrary.saveToLibraryAsync(uri);
-//     Alert.alert(t('success'), t('qrSavedSuccess'));
-//   } catch (error) {
-//     Alert.alert(t('error'), t('failedToSaveQR'));
-//   }
-// };
+  //     await MediaLibrary.saveToLibraryAsync(uri);
+  //     Alert.alert(t('success'), t('qrSavedSuccess'));
+  //   } catch (error) {
+  //     Alert.alert(t('error'), t('failedToSaveQR'));
+  //   }
+  // };
 
   const selectProjectToEdit = (project) => {
     setProjectSelectorVisible(false);
@@ -235,27 +239,27 @@ const CreateProject = ({ navigation, route, theme }) => {
   // };
 
   const attachFile = async () => {
-  try {
-    const result = await DocumentPicker.getDocumentAsync({
-      type: '*/*',
-      copyToCacheDirectory: true
-    });
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true
+      });
 
-    if (result.type === 'success') {
-      const fileInfo = {
-        name: result.name,
-        uri: result.uri, // Guardamos la URI/ruta del archivo
-        size: result.size,
-        type: result.mimeType,
-        lastModified: result.lastModified
-      };
-      setAttachedFiles(prev => [...prev, fileInfo]);
-      Alert.alert(t('success'), t('fileAttachedSuccess'));
+      if (result.type === 'success') {
+        const fileInfo = {
+          name: result.name,
+          uri: result.uri, // Guardamos la URI/ruta del archivo
+          size: result.size,
+          type: result.mimeType,
+          lastModified: result.lastModified
+        };
+        setAttachedFiles(prev => [...prev, fileInfo]);
+        Alert.alert(t('success'), t('fileAttachedSuccess'));
+      }
+    } catch (error) {
+      Alert.alert(t('error'), t('failedToAttachFile') + error.message);
     }
-  } catch (error) {
-    Alert.alert(t('error'), t('failedToAttachFile') + error.message);
-  }
-};
+  };
 
   const removeFile = (index) => {
     setAttachedFiles(prev => prev.filter((_, i) => i !== index));
@@ -265,30 +269,30 @@ const CreateProject = ({ navigation, route, theme }) => {
     const projectSummary = {
       projectId: projectId,
       project: {
-      ...projectData,
-      created: new Date().toISOString(),
-      status: 'draft'
-    },
-    units: {
-      ...unitsInfo,
-      total: calculateTotalUnits()
-    },
-    type: projectType,
-    files: attachedFiles.map(file => ({
-      name: file.name,
-      uri: file.uri, // Solo guardamos la URI/ruta del archivo
-      type: file.type,
-      size: file.size
-    })),
-    metadata: {
-      generated: new Date().toISOString(),
-      app: 'FTTH Project Manager',
-      version: '1.0'
-    }
-  };
-  // setQrData(projectSummary)
-  // console.log("SIIIII " + JSON.stringify(projectSummary))
-  return JSON.stringify(projectSummary);
+        ...projectData,
+        created: new Date().toISOString(),
+        status: 'draft'
+      },
+      units: {
+        ...unitsInfo,
+        total: calculateTotalUnits()
+      },
+      type: projectType,
+      files: attachedFiles.map(file => ({
+        name: file.name,
+        uri: file.uri, // Solo guardamos la URI/ruta del archivo
+        type: file.type,
+        size: file.size
+      })),
+      metadata: {
+        generated: new Date().toISOString(),
+        app: 'FTTH Project Manager',
+        version: '1.0'
+      }
+    };
+    // setQrData(projectSummary)
+    // console.log("SIIIII " + JSON.stringify(projectSummary))
+    return JSON.stringify(projectSummary);
   };
 
   const shareProject = async () => {
@@ -304,7 +308,7 @@ const CreateProject = ({ navigation, route, theme }) => {
 
   const saveProjectAndCreateGraph = async () => {
     if (saving) return;
-    
+
     setSaving(true);
     try {
       if (!projectData.name?.trim() || !projectData.address?.trim()) {
@@ -344,65 +348,74 @@ const CreateProject = ({ navigation, route, theme }) => {
         console.log('📋 Project updated with ID:', projectId);
       } else {
         // Modo creación: Crear nuevo proyecto
-        const project = await ProjectService.createProject({
+        let meta = await ProjectService.createProject({
           name: projectData.name.trim(),
           address: projectData.address.trim(),
           city: projectData.city || '',
           country: projectData.country || 'USA',
           state: projectData.state || '',
           description: projectData.description || '',
-          status: 'active'
+          status: 'active',
+          unitsInfo : {
+            living_unit: unitsInfo.living_unit || '0',
+            office_amenities: unitsInfo.office_amenities || '0',
+            commercial_unit: unitsInfo.commercial_unit || '0'
+          }
         });
+
+
+        const project = await createProject({
+          name : meta.name,
+          metadata : JSON.stringify(meta)
+        })
 
         targetProjectId = project.id; // Actualizar para modo creación
-        console.log('📋 Project saved with ID:', targetProjectId);
+        //console.log('📋 Project saved with ID:', targetProjectId);
 
-        await UnitsService.saveUnitsInfo(targetProjectId, {
-          living_unit: unitsInfo.living_unit || '0',
-          office_amenities: unitsInfo.office_amenities || '0',
-          commercial_unit: unitsInfo.commercial_unit || '0'
-        });
 
-        await ProjectTypeService.saveProjectType(targetProjectId, {
-          build_type: projectType.build_type || 'MDU',
-          job_type: projectType.job_type || 'Residential',
-          building_type: projectType.building_type || 'Garden Style'
-        });
 
-        if (attachedFiles.length > 0) {
-          for (const file of attachedFiles) {
-            await FileService.saveProjectFile(targetProjectId, file);
-          }
-        }
+        // await ProjectTypeService.saveProjectType(targetProjectId, {
+        //   build_type: projectType.build_type || 'MDU',
+        //   job_type: projectType.job_type || 'Residential',
+        //   building_type: projectType.building_type || 'Garden Style'
+        // });
 
-        const mdfNode = await NodeService.createNode({
-          project_id: targetProjectId,
-          name: 'MDF_Principal',
-          type: 'MDF',
-          description: 'Main Distribution Frame'
-        });
+        // if (attachedFiles.length > 0) {
+        //   for (const file of attachedFiles) {
+        //     await FileService.saveProjectFile(targetProjectId, file);
+        //   }
+        // }
 
-        console.log('🏗️ MDF created with ID:', mdfNode.id);
+        // const mdfNode = await NodeService.createNode({
+        //   project_id: targetProjectId,
+        //   name: 'MDF_Principal',
+        //   type: 'MDF',
+        //   description: 'Main Distribution Frame'
+        // });
 
-        const totalUnits = calculateTotalUnits();
-        if (totalUnits > 0) {
-          console.log('🔢 Creating', totalUnits, 'units...');
-          
-          for (let i = 1; i <= totalUnits; i++) {
-            await NodeService.createNode({
-              project_id: targetProjectId,
-              name: `Unit_${i}`,
-              type: 'unit',
-              description: `Living unit ${i}`,
-              parent_node_id: mdfNode.id
-            });
-          }
-        }
+        // console.log('🏗️ MDF created with ID:', mdfNode.id);
+
+        // const totalUnits = calculateTotalUnits();
+        // if (totalUnits > 0) {
+        //   console.log('🔢 Creating', totalUnits, 'units...');
+
+        //   for (let i = 1; i <= totalUnits; i++) {
+        //     await NodeService.createNode({
+        //       project_id: targetProjectId,
+        //       name: `Unit_${i}`,
+        //       type: 'unit',
+        //       description: `Living unit ${i}`,
+        //       parent_node_id: mdfNode.id
+        //     });
+        //   }
+        // }
       }
 
-      navigation.navigate('ConnectivityDevices', { 
-            projectId: targetProjectId 
-          })
+
+
+      navigation.navigate('ConnectivityDevices', {
+        projectId: targetProjectId
+      })
 
       // Alert.alert('✅ ' + t('success'), t(isEditMode ? 'projectUpdated' : 'projectCreated'), [
       //   {
@@ -460,165 +473,165 @@ const CreateProject = ({ navigation, route, theme }) => {
   };
 
   // Añade estas funciones después de la función generateProjectQR
-// const saveQRCodeToGallery = async () => {
-//   try {
-//     Alert.alert(
-//       t('saveQR'),
-//       t('saveQRMessage'),
-//       [
-//         {
-//           text: t('cancel'),
-//           style: 'cancel'
-//         },
-//         {
-//           text: t('save'),
-//           onPress: async () => {
-//             // En una implementación real, aquí usarías react-native-view-shot
-//             // para capturar el QR y guardarlo en la galería
-//             Alert.alert(t('info'), t('saveQRInfo'));
-//           }
-//         }
-//       ]
-//     );
-//   } catch (error) {
-//     Alert.alert(t('error'), t('failedToSaveQR'));
-//   }
-// };
-// const saveQRCodeToGallery = async () => {
-//   try {
-//     // Solicitar permisos
-//     const { status } = await MediaLibrary.requestPermissionsAsync();
-    
-//     if (status !== 'granted') {
-//       Alert.alert(t('permissionDenied'), t('galleryPermissionMessage'));
-//       return;
-//     }
+  // const saveQRCodeToGallery = async () => {
+  //   try {
+  //     Alert.alert(
+  //       t('saveQR'),
+  //       t('saveQRMessage'),
+  //       [
+  //         {
+  //           text: t('cancel'),
+  //           style: 'cancel'
+  //         },
+  //         {
+  //           text: t('save'),
+  //           onPress: async () => {
+  //             // En una implementación real, aquí usarías react-native-view-shot
+  //             // para capturar el QR y guardarlo en la galería
+  //             Alert.alert(t('info'), t('saveQRInfo'));
+  //           }
+  //         }
+  //       ]
+  //     );
+  //   } catch (error) {
+  //     Alert.alert(t('error'), t('failedToSaveQR'));
+  //   }
+  // };
+  // const saveQRCodeToGallery = async () => {
+  //   try {
+  //     // Solicitar permisos
+  //     const { status } = await MediaLibrary.requestPermissionsAsync();
 
-//     // Crear el QR como imagen (usando una aproximación)
-//     // Nota: Para una implementación real necesitarías react-native-view-shot
-//     Alert.alert(
-//       t('saveQR'),
-//       t('saveQRMessage'),
-//       [
-//         {
-//           text: t('cancel'),
-//           style: 'cancel'
-//         },
-//         {
-//           text: t('save'),
-//           onPress: async () => {
-//             try {
-//               // En una implementación real, aquí usarías react-native-view-shot
-//               // Para este ejemplo, mostraremos un mensaje informativo
-//               Alert.alert(
-//                 t('info'), 
-//                 t('saveQRInfo') + '\n\n' + t('qrDataCopied')
-//               );
-              
-//               // Copiar los datos del QR al portapapeles como alternativa
-//               const qrData = generateProjectQR();
-//               Clipboard.setString(qrData);
-//             } catch (error) {
-//               Alert.alert(t('error'), t('failedToSaveQR'));
-//             }
-//           }
-//         }
-//       ]
-//     );
-//   } catch (error) {
-//     Alert.alert(t('error'), t('failedToSaveQR'));
-//   }
-// };
-const saveQRCodeToGallery = async () => {
-  Alert.alert(
-    t('saveQR'),
-    t('saveQRMessage'),
-    [
-      {
-        text: t('cancel'),
-        style: 'cancel'
-      },
-      {
-        text: t('copyData'),
-        onPress: async () => {
-          try {
-            const qrData = generateProjectQR();
-            Clipboard.setString(qrData);
-            Alert.alert(t('success'), t('qrDataCopied'));
-          } catch (error) {
-            Alert.alert(t('error'), t('failedToSaveQR'));
+  //     if (status !== 'granted') {
+  //       Alert.alert(t('permissionDenied'), t('galleryPermissionMessage'));
+  //       return;
+  //     }
+
+  //     // Crear el QR como imagen (usando una aproximación)
+  //     // Nota: Para una implementación real necesitarías react-native-view-shot
+  //     Alert.alert(
+  //       t('saveQR'),
+  //       t('saveQRMessage'),
+  //       [
+  //         {
+  //           text: t('cancel'),
+  //           style: 'cancel'
+  //         },
+  //         {
+  //           text: t('save'),
+  //           onPress: async () => {
+  //             try {
+  //               // En una implementación real, aquí usarías react-native-view-shot
+  //               // Para este ejemplo, mostraremos un mensaje informativo
+  //               Alert.alert(
+  //                 t('info'), 
+  //                 t('saveQRInfo') + '\n\n' + t('qrDataCopied')
+  //               );
+
+  //               // Copiar los datos del QR al portapapeles como alternativa
+  //               const qrData = generateProjectQR();
+  //               Clipboard.setString(qrData);
+  //             } catch (error) {
+  //               Alert.alert(t('error'), t('failedToSaveQR'));
+  //             }
+  //           }
+  //         }
+  //       ]
+  //     );
+  //   } catch (error) {
+  //     Alert.alert(t('error'), t('failedToSaveQR'));
+  //   }
+  // };
+  const saveQRCodeToGallery = async () => {
+    Alert.alert(
+      t('saveQR'),
+      t('saveQRMessage'),
+      [
+        {
+          text: t('cancel'),
+          style: 'cancel'
+        },
+        {
+          text: t('copyData'),
+          onPress: async () => {
+            try {
+              const qrData = generateProjectQR();
+              Clipboard.setString(qrData);
+              Alert.alert(t('success'), t('qrDataCopied'));
+            } catch (error) {
+              Alert.alert(t('error'), t('failedToSaveQR'));
+            }
+          }
+        },
+        {
+          text: t('takeScreenshot'),
+          onPress: () => {
+            Alert.alert(t('info'), t('screenshotInstructions'));
           }
         }
-      },
-      {
-        text: t('takeScreenshot'),
-        onPress: () => {
-          Alert.alert(t('info'), t('screenshotInstructions'));
-        }
-      }
-    ]
-  );
-};
+      ]
+    );
+  };
 
-// const shareQRCodeAsImage = async () => {
-//   try {
-//     Alert.alert(
-//       t('shareQR'),
-//       t('shareQRImageMessage'),
-//       [
-//         {
-//           text: t('cancel'),
-//           style: 'cancel'
-//         },
-//         {
-//           text: t('share'),
-//           onPress: async () => {
-//             // En una implementación real, aquí capturarías el QR como imagen
-//             // y lo compartirías usando Share.share
-//             const qrData = generateProjectQR();
-//             Share.share({
-//               message: `${t('ftthProject')}: ${projectData.name}\n${t('qrData')}: ${qrData}`,
-//               title: t('projectQRCode')
-//             });
-//           }
-//         }
-//       ]
-//     );
-//   } catch (error) {
-//     Alert.alert(t('error'), t('failedToShareQR'));
-//   }
-// };
+  // const shareQRCodeAsImage = async () => {
+  //   try {
+  //     Alert.alert(
+  //       t('shareQR'),
+  //       t('shareQRImageMessage'),
+  //       [
+  //         {
+  //           text: t('cancel'),
+  //           style: 'cancel'
+  //         },
+  //         {
+  //           text: t('share'),
+  //           onPress: async () => {
+  //             // En una implementación real, aquí capturarías el QR como imagen
+  //             // y lo compartirías usando Share.share
+  //             const qrData = generateProjectQR();
+  //             Share.share({
+  //               message: `${t('ftthProject')}: ${projectData.name}\n${t('qrData')}: ${qrData}`,
+  //               title: t('projectQRCode')
+  //             });
+  //           }
+  //         }
+  //       ]
+  //     );
+  //   } catch (error) {
+  //     Alert.alert(t('error'), t('failedToShareQR'));
+  //   }
+  // };
 
-// const shareQRCodeAsImage = async () => {
-//   try {
-//     const qrData = generateProjectQR();
-    
-//     Share.share({
-//       message: `${t('ftthProject')}: ${projectData.name}\n${t('address')}: ${projectData.address}\n\n${t('qrData')}:\n${qrData.substring(0, 100)}...`,
-//       title: t('projectQRCode')
-//     });
-//   } catch (error) {
-//     Alert.alert(t('error'), t('failedToShareQR'));
-//   }
-// };
+  // const shareQRCodeAsImage = async () => {
+  //   try {
+  //     const qrData = generateProjectQR();
 
-// const shareQRDataAsJson = async () => {
-//   try {
-//     const qrData = generateProjectQR();
-//     Share.share({
-//       message: qrData,
-//       title: t('projectData')
-//     });
-//   } catch (error) {
-//     Alert.alert(t('error'), t('failedToShareData'));
-//   }
-// };
+  //     Share.share({
+  //       message: `${t('ftthProject')}: ${projectData.name}\n${t('address')}: ${projectData.address}\n\n${t('qrData')}:\n${qrData.substring(0, 100)}...`,
+  //       title: t('projectQRCode')
+  //     });
+  //   } catch (error) {
+  //     Alert.alert(t('error'), t('failedToShareQR'));
+  //   }
+  // };
+
+  // const shareQRDataAsJson = async () => {
+  //   try {
+  //     const qrData = generateProjectQR();
+  //     Share.share({
+  //       message: qrData,
+  //       title: t('projectData')
+  //     });
+  //   } catch (error) {
+  //     Alert.alert(t('error'), t('failedToShareData'));
+  //   }
+  // };
 
   // Estilos dinámicos que responden al tema
 
-const handleSave = async () => {
+  const handleSave = async () => {
     if (saving) return;
-    
+
     Alert.alert(
       t('saveQRCode'),
       t('confirmSaveQR'),
@@ -641,13 +654,13 @@ const handleSave = async () => {
   //       if (!qrRef.current) {
   //         throw new Error('QR reference not found');
   //       }
-  
+
   //       // Use file URI instead of data URI to avoid extension issues
   //       const uri = await captureRef(qrRef, {
   //         format: 'png',
   //         quality: 1,
   //       });
-  
+
   //       return uri;
   //     } catch (error) {
   //       console.error('Error capturing QR code:', error);
@@ -655,57 +668,57 @@ const handleSave = async () => {
   //     }
   //   };
 
-//   const captureQRCode = async () => {
-//   try {
-//     if (!qrRef.current) {
-//       throw new Error('QR reference not found');
-//     }
+  //   const captureQRCode = async () => {
+  //   try {
+  //     if (!qrRef.current) {
+  //       throw new Error('QR reference not found');
+  //     }
 
-//     // Capturar el componente QR como imagen
-//     const uri = await captureRef(qrRef, {
-//       format: 'png',
-//       quality: 1,
-//     });
+  //     // Capturar el componente QR como imagen
+  //     const uri = await captureRef(qrRef, {
+  //       format: 'png',
+  //       quality: 1,
+  //     });
 
-//     return uri;
-//   } catch (error) {
-//     console.error('Error capturing QR code:', error);
-//     throw error;
-//   }
-// };
+  //     return uri;
+  //   } catch (error) {
+  //     console.error('Error capturing QR code:', error);
+  //     throw error;
+  //   }
+  // };
 
-const captureQRCode = async () => {
-  try {
-    // Asegúrate de que el QR esté renderizado antes de capturarlo
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Capturar el componente QR como imagen
-    const uri = await captureRef(qrRef, {
-      format: 'png',
-      quality: 1,
-    });
+  const captureQRCode = async () => {
+    try {
+      // Asegúrate de que el QR esté renderizado antes de capturarlo
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-    return uri;
-  } catch (error) {
-    console.error('Error capturing QR code:', error);
-    throw error;
-  }
-};
-  
+      // Capturar el componente QR como imagen
+      const uri = await captureRef(qrRef, {
+        format: 'png',
+        quality: 1,
+      });
+
+      return uri;
+    } catch (error) {
+      console.error('Error capturing QR code:', error);
+      throw error;
+    }
+  };
+
   // const shareQRCode = async () => {
   //     try {
   //       setSaving(true);
   //       const qrImageUri = await captureQRCode();
-        
+
   //       const shareOptions = {
   //         title: t('shareProjectQR'),
   //         message: t('shareProjectMessage', { projectName: project.name || project.id }),
   //         url: qrImageUri,
   //         type: 'image/png'
   //       };
-  
+
   //       const result = await Share.share(shareOptions);
-  
+
   //       if (result.action === Share.sharedAction) {
   //         Alert.alert(t('success'), t('qrSharedSuccessfully'));
   //       }
@@ -718,81 +731,81 @@ const captureQRCode = async () => {
   //   };
 
   const shareQRCode = async () => {
-  try {
-    setSaving(true);
-    const qrImageUri = await captureQRCode();
+    try {
+      setSaving(true);
+      const qrImageUri = await captureQRCode();
 
-    const projectName = projectData.name || 'Unnamed Project';
-    const message = t('shareProjectMessage').replace('{projectName}', projectName);
-    
-    const shareOptions = {
-      title: t('shareProjectQR'),
-      message: message,
-      url: qrImageUri,
-      type: 'image/png'
-    };
+      const projectName = projectData.name || 'Unnamed Project';
+      const message = t('shareProjectMessage').replace('{projectName}', projectName);
 
-    const result = await Share.share(shareOptions);
+      const shareOptions = {
+        title: t('shareProjectQR'),
+        message: message,
+        url: qrImageUri,
+        type: 'image/png'
+      };
 
-    if (result.action === Share.sharedAction) {
-      Alert.alert(t('success'), t('qrSharedSuccessfully'));
+      const result = await Share.share(shareOptions);
+
+      if (result.action === Share.sharedAction) {
+        Alert.alert(t('success'), t('qrSharedSuccessfully'));
+      }
+    } catch (error) {
+      console.error('Error sharing QR code:', error);
+      Alert.alert(t('error'), t('couldNotShareQR'));
+    } finally {
+      setSaving(false);
     }
-  } catch (error) {
-    console.error('Error sharing QR code:', error);
-    Alert.alert(t('error'), t('couldNotShareQR'));
-  } finally {
-    setSaving(false);
-  }
-};
-  
+  };
+
   const shareAsData = async () => {
-        try {
-          const projectName = projectData.name || 'Unnamed Project';
-          const message = t('shareProjectMessage').replace('{projectName}', projectName);
-          const qrData = generateProjectQR()
-          const shareOptions = {
-            title: t('shareProjectData'),
-            message: ` ${message} \n\n${qrData}`
-          };
-    
-          const result = await Share.share(shareOptions);
-    
-          if (result.action === Share.sharedAction) {
-            Alert.alert(t('success'), t('dataSharedSuccessfully'));
-          }
-        } catch (error) {
-          console.error('Error sharing data:', error);
-          Alert.alert(t('error'), t('couldNotShareData'));
-        }
+    try {
+      const projectName = projectData.name || 'Unnamed Project';
+      const message = t('shareProjectMessage').replace('{projectName}', projectName);
+      const qrData = generateProjectQR()
+      const shareOptions = {
+        title: t('shareProjectData'),
+        message: ` ${message} \n\n${qrData}`
       };
 
-    const handleShare = async () => {
-        if (saving) return;
-        
-        Alert.alert(
-          t('shareQRCode'),
-          t('chooseShareOption'),
-          [
-            {
-              text: t('cancel'),
-              style: 'cancel'
-            },
-            {
-              text: t('shareAsImage'),
-              onPress: shareQRCode
-            },
-            {
-              text: t('shareAsData'),
-              onPress: () => shareAsData()
-            }
-          ]
-        );
-      };
+      const result = await Share.share(shareOptions);
+
+      if (result.action === Share.sharedAction) {
+        Alert.alert(t('success'), t('dataSharedSuccessfully'));
+      }
+    } catch (error) {
+      console.error('Error sharing data:', error);
+      Alert.alert(t('error'), t('couldNotShareData'));
+    }
+  };
+
+  const handleShare = async () => {
+    if (saving) return;
+
+    Alert.alert(
+      t('shareQRCode'),
+      t('chooseShareOption'),
+      [
+        {
+          text: t('cancel'),
+          style: 'cancel'
+        },
+        {
+          text: t('shareAsImage'),
+          onPress: shareQRCode
+        },
+        {
+          text: t('shareAsData'),
+          onPress: () => shareAsData()
+        }
+      ]
+    );
+  };
 
   // const saveQRCode = async () => {
   //     try {
   //       setSaving(true);
-        
+
   //       // Solicitar permisos en Android
   //       if (Platform.OS === 'android') {
   //         const hasPermission = await requestStoragePermission();
@@ -801,23 +814,23 @@ const captureQRCode = async () => {
   //           return;
   //         }
   //       }
-  
+
   //       // Solicitar permisos para la galería
   //       const { status } = await MediaLibrary.requestPermissionsAsync();
   //       if (status !== 'granted') {
   //         Alert.alert(t('error'), t('photoLibraryPermissionDenied'));
   //         return;
   //       }
-  
+
   //       // console.log(generateProjectQR)
   //       // const qrData1 = generateProjectQR();
   //       const qrImageUri = generateProjectQR();
   //       // console.log(qrImageUri)
   //       // const qrImageUri = await captureQRCode();
-        
+
   //       // Guardar en la galería
   //       const asset = await MediaLibrary.createAssetAsync(qrImageUri);
-        
+
   //       // Crear álbum si no existe
   //       const album = await MediaLibrary.getAlbumAsync('FiberQR');
   //       if (album) {
@@ -825,7 +838,7 @@ const captureQRCode = async () => {
   //       } else {
   //         await MediaLibrary.createAlbumAsync('FiberQR', asset, false);
   //       }
-        
+
   //       Alert.alert(t('success'), t('qrSavedSuccessfully'));
   //     } catch (error) {
   //       console.error('Error saving QR code:', error);
@@ -836,69 +849,69 @@ const captureQRCode = async () => {
   //   };
 
   const requestStoragePermission = async () => {
-  if (Platform.OS === 'android') {
-    try {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-        {
-          title: 'Storage Permission',
-          message: 'App needs access to storage to save QR codes',
-          buttonNeutral: 'Ask Me Later',
-          buttonNegative: 'Cancel',
-          buttonPositive: 'OK',
-        }
-      );
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
-    } catch (err) {
-      console.warn(err);
-      return false;
-    }
-  }
-  return true; // iOS no necesita este permiso
-};
-
-  const saveQRCode = async () => {
-  try {
-    setSaving(true);
-    
-    // Solicitar permisos en Android
     if (Platform.OS === 'android') {
-      const hasPermission = await requestStoragePermission();
-      if (!hasPermission) {
-        Alert.alert(t('error'), t('storagePermissionDenied'));
-        return;
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+          {
+            title: 'Storage Permission',
+            message: 'App needs access to storage to save QR codes',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          }
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } catch (err) {
+        console.warn(err);
+        return false;
       }
     }
+    return true; // iOS no necesita este permiso
+  };
 
-    // Solicitar permisos para la galería
-    const { status } = await MediaLibrary.requestPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert(t('error'), t('photoLibraryPermissionDenied'));
-      return;
-    }
+  const saveQRCode = async () => {
+    try {
+      setSaving(true);
 
-    // Capturar el QR como imagen
-    const qrImageUri = await captureQRCode();
-    
-    // Guardar en la galería
-    const asset = await MediaLibrary.createAssetAsync(qrImageUri);
-    
-    // Crear álbum si no existe
-    const album = await MediaLibrary.getAlbumAsync('FiberQR');
-    if (album) {
-      await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
-    } else {
-      await MediaLibrary.createAlbumAsync('FiberQR', asset, false);
+      // Solicitar permisos en Android
+      if (Platform.OS === 'android') {
+        const hasPermission = await requestStoragePermission();
+        if (!hasPermission) {
+          Alert.alert(t('error'), t('storagePermissionDenied'));
+          return;
+        }
+      }
+
+      // Solicitar permisos para la galería
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(t('error'), t('photoLibraryPermissionDenied'));
+        return;
+      }
+
+      // Capturar el QR como imagen
+      const qrImageUri = await captureQRCode();
+
+      // Guardar en la galería
+      const asset = await MediaLibrary.createAssetAsync(qrImageUri);
+
+      // Crear álbum si no existe
+      const album = await MediaLibrary.getAlbumAsync('FiberQR');
+      if (album) {
+        await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
+      } else {
+        await MediaLibrary.createAlbumAsync('FiberQR', asset, false);
+      }
+
+      Alert.alert(t('success'), t('qrSavedSuccessfully'));
+    } catch (error) {
+      console.error('Error saving QR code:', error);
+      Alert.alert(t('error'), t('couldNotSaveQR'));
+    } finally {
+      setSaving(false);
     }
-    
-    Alert.alert(t('success'), t('qrSavedSuccessfully'));
-  } catch (error) {
-    console.error('Error saving QR code:', error);
-    Alert.alert(t('error'), t('couldNotSaveQR'));
-  } finally {
-    setSaving(false);
-  }
-};
+  };
 
   const dynamicStyles = StyleSheet.create({
     container: {
@@ -1095,10 +1108,10 @@ const captureQRCode = async () => {
   };
 
   return (
-    <View style={[stylesFull.screen,{ backgroundColor: colors.background}, { paddingBottom: bottomInset }]}>
+    <View style={[stylesFull.screen, { backgroundColor: colors.background }, { paddingBottom: bottomInset }]}>
       {/* Header */}
-      <View style={[combinedStyles.header, { paddingTop: topInset - 20}]}>
-        <TouchableOpacity 
+      <View style={[combinedStyles.header, { paddingTop: topInset - 20 }]}>
+        <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
@@ -1109,7 +1122,7 @@ const captureQRCode = async () => {
         </Text>
         <View style={styles.headerActions}>
           {isEditMode && (
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={clearForm}
               style={styles.clearButton}
               disabled={saving}
@@ -1117,7 +1130,7 @@ const captureQRCode = async () => {
               <Ionicons name="add" size={24} color={colors.primary} />
             </TouchableOpacity>
           )}
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => setProjectSelectorVisible(true)}
             style={styles.selectProjectButton}
             disabled={saving}
@@ -1125,16 +1138,16 @@ const captureQRCode = async () => {
             <Ionicons name="folder-open" size={24} color={colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity onPress={saveProjectAndCreateGraph} disabled={saving}>
-            <Ionicons 
-              name="save-outline" 
-              size={24} 
-              color={saving ? colors.secondaryText : colors.primary} 
+            <Ionicons
+              name="save-outline"
+              size={24}
+              color={saving ? colors.secondaryText : colors.primary}
             />
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={combinedStyles.scrollContent}
@@ -1142,7 +1155,7 @@ const captureQRCode = async () => {
         {/* Property Information */}
         <View style={combinedStyles.section}>
           <Text style={combinedStyles.sectionTitle}>{t('propertyInformation')}</Text>
-          
+
           <View style={combinedStyles.formCard}>
             <View style={{ flex: isTablet ? 1 : undefined }}>
               <Text style={[combinedStyles.label, { color: colors.text }]}>{t('propertyName')} *</Text>
@@ -1213,7 +1226,7 @@ const captureQRCode = async () => {
         {/* Unit Information */}
         <View style={combinedStyles.section}>
           <Text style={combinedStyles.sectionTitle}>{t('unitInformation')}</Text>
-          
+
           <View style={combinedStyles.formCard}>
             <View style={styles.row}>
               <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
@@ -1266,7 +1279,7 @@ const captureQRCode = async () => {
         {/* Project Type */}
         <View style={combinedStyles.section}>
           <Text style={combinedStyles.sectionTitle}>{t('projectType')}</Text>
-          
+
           <View style={combinedStyles.formCard}>
             <View style={styles.row}>
               <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
@@ -1328,9 +1341,9 @@ const captureQRCode = async () => {
         {/* Attachments */}
         <View style={combinedStyles.section}>
           <Text style={combinedStyles.sectionTitle}>{t('attachments')}</Text>
-          
+
           <View style={combinedStyles.formCard}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[combinedStyles.attachButton, saving && styles.buttonDisabled]}
               onPress={attachFile}
               disabled={saving}
@@ -1350,7 +1363,7 @@ const captureQRCode = async () => {
                         <Text style={combinedStyles.fileSize}>{formatFileSize(file.size)}</Text>
                       </View>
                     </View>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       onPress={() => removeFile(index)}
                       disabled={saving}
                     >
@@ -1366,7 +1379,7 @@ const captureQRCode = async () => {
         {/* Action Buttons */}
         <View style={combinedStyles.section}>
           <View style={styles.actionButtons}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.actionButton, styles.qrButton, saving && styles.buttonDisabled]}
               onPress={() => setQrModalVisible(true)}
               disabled={saving}
@@ -1384,7 +1397,7 @@ const captureQRCode = async () => {
               <Text style={styles.actionButtonText}>{t('share')}</Text>
             </TouchableOpacity> */}
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.actionButton, styles.saveButton, saving && styles.saveButtonDisabled]}
               onPress={saveProjectAndCreateGraph}
               disabled={saving}
@@ -1405,72 +1418,72 @@ const captureQRCode = async () => {
         </View>
       </ScrollView>
 
-{/* // QR Code Modal mejorado */}
-<Modal
-  animationType="fade"
-  transparent={true}
-  visible={qrModalVisible}
-  onRequestClose={() => setQrModalVisible(false)}
->
-  <View style={combinedStyles.modalOverlay}>
-    <View style={styles.modalContainer}>
-      <View style={combinedStyles.modalContent}>
-        <View style={styles.modalHeader}>
-          <Text style={combinedStyles.modalTitle}>{t('projectQRCode')}</Text>
-          <TouchableOpacity onPress={() => setQrModalVisible(false)}>
-            <Ionicons name="close" size={24} color={colors.text} />
-          </TouchableOpacity>
-        </View>
-        
-        <View style={combinedStyles.qrContainer}>
-          {/* <ViewShot ref={ref => (this.viewShot = ref)} options={{ format: 'png', quality: 0.9 }}> */}
-          <View ref={qrRef} collapsable={false} style={styles.qrWrapper}>
-            <QRCode
-            value={generateProjectQR()}
-            size={200}
-            color={colors.qrtext}
-            backgroundColor="white"
-          />
-          </View>
-             
-          {/* </ViewShot> */}
-         
-        </View>
-        
-        <Text style={combinedStyles.qrDescription}>
-          {t('scanQRDescription')}
-        </Text>
+      {/* // QR Code Modal mejorado */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={qrModalVisible}
+        onRequestClose={() => setQrModalVisible(false)}
+      >
+        <View style={combinedStyles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={combinedStyles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={combinedStyles.modalTitle}>{t('projectQRCode')}</Text>
+                <TouchableOpacity onPress={() => setQrModalVisible(false)}>
+                  <Ionicons name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
 
-        {/* Nuevos botones de acción para el QR */}
-        <View style={styles.qrActionButtons}>
-          <TouchableOpacity
-            style={[styles.qrActionButton, styles.saveQrButton]}
-            onPress={handleSave}
-          >
-            <Ionicons name="download-outline" size={20} color="white" />
-            <Text style={styles.qrActionButtonText}>{t('saveQR')}</Text>
-          </TouchableOpacity>
+              <View style={combinedStyles.qrContainer}>
+                {/* <ViewShot ref={ref => (this.viewShot = ref)} options={{ format: 'png', quality: 0.9 }}> */}
+                <View ref={qrRef} collapsable={false} style={styles.qrWrapper}>
+                  <QRCode
+                    value={generateProjectQR()}
+                    size={200}
+                    color={colors.qrtext}
+                    backgroundColor="white"
+                  />
+                </View>
 
-          <TouchableOpacity
-            style={[styles.qrActionButton, styles.shareQrButton]}
-            onPress={handleShare}
-          >
-            <Ionicons name="share-outline" size={20} color="white" />
-            <Text style={styles.qrActionButtonText}>{t('shareAsImage')}</Text>
-          </TouchableOpacity>
+                {/* </ViewShot> */}
 
-          {/* <TouchableOpacity
+              </View>
+
+              <Text style={combinedStyles.qrDescription}>
+                {t('scanQRDescription')}
+              </Text>
+
+              {/* Nuevos botones de acción para el QR */}
+              <View style={styles.qrActionButtons}>
+                <TouchableOpacity
+                  style={[styles.qrActionButton, styles.saveQrButton]}
+                  onPress={handleSave}
+                >
+                  <Ionicons name="download-outline" size={20} color="white" />
+                  <Text style={styles.qrActionButtonText}>{t('saveQR')}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.qrActionButton, styles.shareQrButton]}
+                  onPress={handleShare}
+                >
+                  <Ionicons name="share-outline" size={20} color="white" />
+                  <Text style={styles.qrActionButtonText}>{t('shareAsImage')}</Text>
+                </TouchableOpacity>
+
+                {/* <TouchableOpacity
             style={[styles.qrActionButton, styles.shareDataButton]}
             onPress={shareQRDataAsJson}
           >
             <Ionicons name="code-slash-outline" size={20} color="white" />
             <Text style={styles.qrActionButtonText}>{t('shareAsData')}</Text>
           </TouchableOpacity> */}
+              </View>
+            </View>
+          </View>
         </View>
-      </View>
-    </View>
-  </View>
-</Modal>
+      </Modal>
 
       {/* Project Selector Modal */}
       <Modal
@@ -1483,7 +1496,7 @@ const captureQRCode = async () => {
           <View style={[styles.modalContainer, styles.selectorModal]}>
             <View style={combinedStyles.modalContent}>
               <Text style={combinedStyles.modalTitle}>{t('selectProjectToEdit')}</Text>
-              
+
               <ScrollView style={styles.projectList}>
                 {existingProjects.map((project) => (
                   <TouchableOpacity
@@ -1499,12 +1512,12 @@ const captureQRCode = async () => {
                     <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
                   </TouchableOpacity>
                 ))}
-                
+
                 {existingProjects.length === 0 && (
                   <Text style={combinedStyles.noProjectsText}>{t('noProjectsFound')}</Text>
                 )}
               </ScrollView>
-              
+
               <TouchableOpacity
                 style={[styles.closeModalButton, styles.cancelButton]}
                 onPress={() => setProjectSelectorVisible(false)}
@@ -1636,43 +1649,43 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   // Añade estos estilos al objeto styles
-qrActionButtons: {
-  flexDirection: 'row',
-  flexWrap: 'wrap',
-  justifyContent: 'space-between',
-  gap: 10,
-  marginBottom: 20,
-},
-qrActionButton: {
-  flex: 1,
-  minWidth: '45%',
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'center',
-  borderRadius: 8,
-  padding: 12,
-  gap: 8,
-},
-saveQrButton: {
-  backgroundColor: '#3498db',
-},
-shareQrButton: {
-  backgroundColor: '#2ecc71',
-},
-shareDataButton: {
-  backgroundColor: '#9b59b6',
-},
-qrActionButtonText: {
-  color: 'white',
-  fontWeight: '600',
-  fontSize: 14,
-  textAlign: 'center',
-},
-qrWrapper: {
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: 10,
-},
+  qrActionButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 20,
+  },
+  qrActionButton: {
+    flex: 1,
+    minWidth: '45%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    padding: 12,
+    gap: 8,
+  },
+  saveQrButton: {
+    backgroundColor: '#3498db',
+  },
+  shareQrButton: {
+    backgroundColor: '#2ecc71',
+  },
+  shareDataButton: {
+    backgroundColor: '#9b59b6',
+  },
+  qrActionButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  qrWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+  },
 });
 
 export default CreateProject;

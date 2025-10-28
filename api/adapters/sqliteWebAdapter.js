@@ -5,7 +5,7 @@ const db = new Dexie('FiberDatabase');
 
 // Definir esquema de la base de datos
 db.version(1).stores({
-  projects: 'id, name, creation_date, modified_date, main_node_code, deleted',
+  projects: '++id, name, creation_date, modified_date, main_node_id, deleted, metadata',
   nodes_types: 'id, name, type',
   nodes: 'Id, Label, ProjectId, TypeId, Description, CreatedDate, ModifiedDate, Deleted',
   fibers: 'Id, Label, ProjectId, ParentId, CreatedDate, ModifiedDate, Deleted'
@@ -59,7 +59,8 @@ export const sqliteWebAdapter = {
         name: data.name,
         creation_date: now,
         modified_date: now,
-        main_node_code: data.main_node_code || null,
+        main_node_id: data.main_node_id || 0,
+        metadata: data.metadata || '',
         deleted: 0
       };
       

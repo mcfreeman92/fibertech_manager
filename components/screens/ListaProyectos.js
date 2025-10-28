@@ -17,6 +17,8 @@ import { useDevice } from '../context/DeviceContext';
 import { ProjectService } from '../../service/storage';
 import QRGeneratorModal from './QRGeneratorModal';
 
+import { useDatabase } from '@/api/contexts/DatabaseContext';
+
 const ListaProyectos = ({ navigation }) => {
   const { topInset, bottomInset, stylesFull } = useDevice();
   const { isDarkMode } = useApp();

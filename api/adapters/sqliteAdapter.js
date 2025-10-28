@@ -1,8 +1,10 @@
 import * as SQLite from 'expo-sqlite'; // O tu librería SQLite
 
-const db = SQLite.openDatabase('fiber.db');
+let db;
 
 export const initDatabase = () => {
+  db = SQLite.openDatabase('fiber.db');
+
   return new Promise((resolve, reject) => {
     db.transaction(tx => {
       // Projects
@@ -12,8 +14,9 @@ export const initDatabase = () => {
           name TEXT,
           creation_date TEXT,
           modified_date TEXT,
-          main_node_code TEXT,
-          deleted INTEGER DEFAULT 0
+          main_node_id TEXT,
+          deleted INTEGER DEFAULT 0,
+          metadata TEXT
         )`
       );
       
