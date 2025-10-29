@@ -17,19 +17,21 @@ import { useDevice } from '../context/DeviceContext';
 import { ProjectService } from '../../service/storage';
 import QRGeneratorModal from './QRGeneratorModal';
 
-import { useDatabase } from '@/api/contexts/DatabaseContext';
+import { useAdapter } from '@/api/contexts/DatabaseContext';
 
 const ListaProyectos = ({ navigation }) => {
   const { topInset, bottomInset, stylesFull } = useDevice();
   const { isDarkMode } = useApp();
   const { t } = useTranslation();
-  
+
   const [proyectos, setProyectos] = useState([]);
   const [filteredProyectos, setFilteredProyectos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
+
+  const { getProjects } = useAdapter()();
 
   const colors = {
     background: isDarkMode ? '#121212' : '#ffffff',
@@ -60,7 +62,8 @@ const ListaProyectos = ({ navigation }) => {
   const loadProyectos = async () => {
     try {
       setLoading(true);
-      const projects = await ProjectService.getProjects();
+      //const projects = await ProjectService.getProjects();
+      const projects = await getProjects();
       setProyectos(projects);
       setFilteredProyectos(projects);
     } catch (error) {
@@ -75,6 +78,12 @@ const ListaProyectos = ({ navigation }) => {
     setSelectedProject(proyecto);
     setQrModalVisible(true);
   };
+
+  const openProject = (proyecto) => {
+      navigation.navigate('CreateProject', {
+        projectId: proyecto.id
+      })
+  };  
 
   const deleteProyecto = async (proyecto) => {
     Alert.alert(
@@ -171,55 +180,65 @@ const ListaProyectos = ({ navigation }) => {
     // );
   };
 
-  const renderProyectoItem = ({ item }) => (
-    <TouchableOpacity 
-      style={[styles.proyectoItem, { backgroundColor: colors.card, borderColor: colors.border }]}
-      onPress={() => viewProjectDetails(item)}
-    >
-      <View style={styles.proyectoItemHeader}>
-        <Ionicons name="business" size={24} color="#3498db" />
-        <Text style={[styles.proyectoItemTitle, { color: colors.text }]}>
-          {getProjectDisplayName(item)}
-        </Text>
-        <TouchableOpacity 
+  const renderProyectoItem = ({ item }) => {
+    const meta = item.meta;
+    return (
+
+      <TouchableOpacity
+        style={[styles.proyectoItem, { backgroundColor: colors.card, borderColor: colors.border }]}
+        onPress={() => viewProjectDetails(item)}
+      >
+        <View style={styles.proyectoItemHeader}>
+          <Ionicons name="business" size={24} color="#3498db" />
+          <Text style={[styles.proyectoItemTitle, { color: colors.text }]}>
+            {getProjectDisplayName(item)}
+          </Text>
+          <TouchableOpacity
+            onPress={() => openProject(item)}
+            style={styles.qrButton}
+          >
+            <Ionicons name="folder-open" size={20} color="#3498db" />
+          </TouchableOpacity>
+          <TouchableOpacity
             onPress={() => generateQRCode(item)}
             style={styles.qrButton}
           >
-            <Ionicons name="qr-code" size={20} color="#3498db" />
+            <Ionicons name="qr-code" size={20} color="#3b3f42ff" />
           </TouchableOpacity>
-        <TouchableOpacity 
-          onPress={() => deleteProyecto(item)}
-          style={styles.deleteButton}
-        >
-          <Ionicons name="trash" size={20} color="#e74c3c" />
-        </TouchableOpacity>
-      </View>
-      
-      {item.description && (
-        <Text style={[styles.proyectoDescription, { color: colors.subText }]}>
-          {item.description}
-        </Text>
-      )}
-      
-      <View style={styles.proyectoItemDetails}>
-        <View style={styles.proyectoItemDetail}>
-          <Ionicons name="calendar" size={16} color="#7f8c8d" />
-          <Text style={[styles.proyectoItemText, { color: colors.subText }]}>
-            {formatDate(item.createdAt)}
-          </Text>
+          <TouchableOpacity
+            onPress={() => deleteProyecto(item)}
+            style={styles.deleteButton}
+          >
+            <Ionicons name="trash" size={20} color="#e74c3c" />
+          </TouchableOpacity>
         </View>
-        
-        {item.status && (
+
+        {meta.description && (
+          <Text style={[styles.proyectoDescription, { color: colors.subText }]}>
+            {meta.description}
+          </Text>
+        )}
+
+        <View style={styles.proyectoItemDetails}>
           <View style={styles.proyectoItemDetail}>
-            <Ionicons name="information-circle" size={16} color="#7f8c8d" />
+            <Ionicons name="calendar" size={16} color="#7f8c8d" />
             <Text style={[styles.proyectoItemText, { color: colors.subText }]}>
-              {item.status}
+              {formatDate(meta.createdAt)}
             </Text>
           </View>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
+
+          {meta.status && (
+            <View style={styles.proyectoItemDetail}>
+              <Ionicons name="information-circle" size={16} color="#7f8c8d" />
+              <Text style={[styles.proyectoItemText, { color: colors.subText }]}>
+                {meta.status}
+              </Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  }
 
   if (loading) {
     return (
@@ -235,8 +254,8 @@ const ListaProyectos = ({ navigation }) => {
   return (
     <View style={[stylesFull.screen, { backgroundColor: colors.background }, { paddingBottom: bottomInset }]}>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border}, {paddingTop: topInset - 10}]}>
-        <TouchableOpacity 
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }, { paddingTop: topInset - 10 }]}>
+        <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
@@ -293,7 +312,7 @@ const ListaProyectos = ({ navigation }) => {
         />
       )}
 
-       {/* Modal de Generación de QR */}
+      {/* Modal de Generación de QR */}
       <QRGeneratorModal
         visible={qrModalVisible}
         onClose={() => setQrModalVisible(false)}

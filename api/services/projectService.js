@@ -10,3 +10,8 @@ export const createProject = async (data) => {
   const adapter = getAdapter();
   return await adapter.createProject(data);
 }
+
+export const getProjectById = async (id) => {
+   const adapter = getAdapter();
+   return await adapter.getProjectById(data); 
+}

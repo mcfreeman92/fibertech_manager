@@ -34,7 +34,9 @@ const CreateProject = ({ navigation, route, theme }) => {
   const isEditMode = !!projectId;
   const qrRef = useRef();
   const [qrData, setQrData] = useState(null);
-  const { createProject } = useAdapter()();
+
+  /** ADAPTER PARA LOS DATOS */
+  const { createProject, getProjectById } = useAdapter()();
 
   // const viewShotRef = useRef();
   const { t } = useTranslation();
@@ -57,6 +59,243 @@ const CreateProject = ({ navigation, route, theme }) => {
     purple: '#9b59b6'
   };
 
+  // Estilos base (sin colores específicos para mantener la estructura)
+  const styles = StyleSheet.create({
+    backButton: {
+      padding: 5,
+    },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 15,
+    },
+    clearButton: {
+      padding: 5,
+    },
+    selectProjectButton: {
+      padding: 5,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    inputGroup: {
+      marginBottom: 18,
+    },
+    textArea: {
+      height: 100,
+      textAlignVertical: 'top',
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    pickerContainerIOS: {
+      height: 50,
+      justifyContent: 'center',
+    },
+    picker: {
+      height: 50,
+    },
+    pickerIOS: {
+    },
+    attachmentsList: {
+      marginTop: 15,
+    },
+    fileInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      gap: 12,
+    },
+    fileDetails: {
+      flex: 1,
+    },
+    actionButtons: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    actionButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 10,
+      padding: 14,
+      gap: 8,
+    },
+    qrButton: {
+      backgroundColor: '#9b59b6',
+    },
+    shareButton: {
+      backgroundColor: '#2ecc71',
+    },
+    saveButton: {
+      backgroundColor: '#3498db',
+    },
+    saveButtonDisabled: {
+      backgroundColor: '#bdc3c7',
+    },
+    actionButtonText: {
+      color: 'white',
+      fontWeight: '600',
+      fontSize: 15,
+    },
+    buttonDisabled: {
+      opacity: 0.5,
+    },
+    modalContainer: {
+      width: '100%',
+      maxWidth: 400,
+      borderRadius: 16,
+      overflow: 'hidden',
+    },
+    selectorModal: {
+      maxHeight: '80%',
+    },
+    closeModalButton: {
+      backgroundColor: '#3498db',
+      borderRadius: 10,
+      padding: 15,
+      alignItems: 'center',
+    },
+    cancelButton: {
+      backgroundColor: '#e74c3c',
+      marginTop: 10,
+    },
+    closeModalText: {
+      color: 'white',
+      fontWeight: '600',
+      fontSize: 16,
+    },
+    projectList: {
+      maxHeight: 300,
+      marginBottom: 20,
+    },
+    projectInfo: {
+      flex: 1,
+    },
+    // Añade estos estilos al objeto styles
+    qrActionButtons: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      gap: 10,
+      marginBottom: 20,
+    },
+    qrActionButton: {
+      flex: 1,
+      minWidth: '45%',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 8,
+      padding: 12,
+      gap: 8,
+    },
+    saveQrButton: {
+      backgroundColor: '#3498db',
+    },
+    shareQrButton: {
+      backgroundColor: '#2ecc71',
+    },
+    shareDataButton: {
+      backgroundColor: '#9b59b6',
+    },
+    qrActionButtonText: {
+      color: 'white',
+      fontWeight: '600',
+      fontSize: 14,
+      textAlign: 'center',
+    },
+    qrWrapper: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 10,
+    },
+    container: {
+      flex: 1,
+      marginTop: 0,
+    },
+    tabHeader: {
+      flexDirection: 'row',
+      backgroundColor: '#f0f0f0',
+    },
+    tabButton: {
+      flex: 1,
+      paddingVertical: 15,
+      alignItems: 'center',
+    },
+    activeTabButton: {
+      borderBottomWidth: 2,
+      borderBottomColor: '#3498db',
+    },
+    tabText: {
+      fontSize: 16,
+      color: '#666',
+    },
+    activeTabText: {
+      color: '#3498db',
+      fontWeight: 'bold',
+    },
+    content: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    fiberCard: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 12,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 2,
+    },
+    deviceHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+    },
+    deviceInfo: {
+      flex: 1,
+    },
+    fiberCard: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 12,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 2,
+    },
+    deviceName: {
+      fontSize: 16,
+      fontWeight: '500',
+      color: colors.text,
+    },
+    deviceDescription: {
+      fontSize: 12,
+      color: colors.secondaryText,
+      marginTop: 2,
+    },
+    removeButton: {
+      padding: 4,
+    },
+    configRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+    },
+  });
+
   const [projectData, setProjectData] = useState({
     name: '',
     address: '',
@@ -78,6 +317,14 @@ const CreateProject = ({ navigation, route, theme }) => {
     job_type: 'Residential',
     building_type: 'Garden Style'
   });
+
+  const [activeTab, setActiveTab] = useState(0);
+
+  const tabs = [
+    { id: 0, title: 'Home', content: 'Contenido de Home' },
+    { id: 1, title: 'Settings', content: 'Contenido de Settings' },
+    { id: 2, title: 'Profile', content: 'Contenido de Profile' },
+  ];
 
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -118,7 +365,8 @@ const CreateProject = ({ navigation, route, theme }) => {
       setSaving(true);
 
       // Cargar datos del proyecto
-      const project = await ProjectService.getProjectById(projectId);
+      const data = await getProjectById(projectId);
+      const project = data.meta;
       if (project) {
         setProjectData({
           name: project.name || '',
@@ -132,7 +380,7 @@ const CreateProject = ({ navigation, route, theme }) => {
       }
 
       // Cargar información de unidades
-      const units = await UnitsService.getUnitsInfo(projectId);
+      const units = project.unitsInfo;
       if (units) {
         setUnitsInfo({
           living_unit: units.living_unit?.toString() || '0',
@@ -142,14 +390,14 @@ const CreateProject = ({ navigation, route, theme }) => {
       }
 
       // Cargar tipo de proyecto
-      const projectTypeData = await ProjectTypeService.getProjectType(projectId);
-      if (projectTypeData) {
-        setProjectType({
-          build_type: projectTypeData.build_type || 'MDU',
-          job_type: projectTypeData.job_type || 'Residential',
-          building_type: projectTypeData.building_type || 'Garden Style'
-        });
-      }
+      // const projectTypeData = await ProjectTypeService.getProjectType(projectId);
+      // if (projectTypeData) {
+      //   setProjectType({
+      //     build_type: projectTypeData.build_type || 'MDU',
+      //     job_type: projectTypeData.job_type || 'Residential',
+      //     building_type: projectTypeData.building_type || 'Garden Style'
+      //   });
+      // }
 
     } catch (error) {
       console.log('Error loading project data:', error);
@@ -158,6 +406,46 @@ const CreateProject = ({ navigation, route, theme }) => {
       setSaving(false);
     }
   };
+
+  const renderTabContent = () => {
+    return (
+      <View style={styles.content}>
+        <Text>{tabs[activeTab].content}</Text>
+      </View>
+    );
+  };
+
+  const RenderTabs = () => {
+    return (
+      <View style={styles.container}>
+        {/* Header de tabs */}
+        <View style={styles.tabHeader}>
+          {tabs.map((tab) => (
+            <TouchableOpacity
+              key={tab.id}
+              style={[
+                styles.tabButton,
+                activeTab === tab.id && styles.activeTabButton,
+              ]}
+              onPress={() => setActiveTab(tab.id)}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === tab.id && styles.activeTabText,
+                ]}
+              >
+                {tab.title}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Contenido */}
+        {renderTabContent()}
+      </View>
+    );
+  }
 
   //   const saveQRCodeToGalleryComplete = async () => {
   //   try {
@@ -356,7 +644,7 @@ const CreateProject = ({ navigation, route, theme }) => {
           state: projectData.state || '',
           description: projectData.description || '',
           status: 'active',
-          unitsInfo : {
+          unitsInfo: {
             living_unit: unitsInfo.living_unit || '0',
             office_amenities: unitsInfo.office_amenities || '0',
             commercial_unit: unitsInfo.commercial_unit || '0'
@@ -365,8 +653,8 @@ const CreateProject = ({ navigation, route, theme }) => {
 
 
         const project = await createProject({
-          name : meta.name,
-          metadata : JSON.stringify(meta)
+          name: meta.name,
+          metadata: JSON.stringify(meta)
         })
 
         targetProjectId = project.id; // Actualizar para modo creación
@@ -1223,199 +1511,42 @@ const CreateProject = ({ navigation, route, theme }) => {
           </View>
         </View>
 
-        {/* Unit Information */}
+        {/* Fibras */}
         <View style={combinedStyles.section}>
-          <Text style={combinedStyles.sectionTitle}>{t('unitInformation')}</Text>
-
-          <View style={combinedStyles.formCard}>
-            <View style={styles.row}>
-              <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-                <Text style={combinedStyles.label}>{t('livingUnits')}</Text>
-                <TextInput
-                  style={combinedStyles.input}
-                  value={unitsInfo.living_unit}
-                  onChangeText={(text) => handleUnitsChange('living_unit', text)}
-                  placeholder="0"
-                  keyboardType="numeric"
-                  editable={!saving}
-                  placeholderTextColor={colors.placeholder}
-                />
-              </View>
-
-              <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-                <Text style={combinedStyles.label}>{t('officesAmenities')}</Text>
-                <TextInput
-                  style={combinedStyles.input}
-                  value={unitsInfo.office_amenities}
-                  onChangeText={(text) => handleUnitsChange('office_amenities', text)}
-                  placeholder="0"
-                  keyboardType="numeric"
-                  editable={!saving}
-                  placeholderTextColor={colors.placeholder}
-                />
-              </View>
-
-              <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={combinedStyles.label}>{t('commercialUnits')}</Text>
-                <TextInput
-                  style={combinedStyles.input}
-                  value={unitsInfo.commercial_unit}
-                  onChangeText={(text) => handleUnitsChange('commercial_unit', text)}
-                  placeholder="0"
-                  keyboardType="numeric"
-                  editable={!saving}
-                  placeholderTextColor={colors.placeholder}
-                />
-              </View>
-            </View>
-
-            <View style={combinedStyles.totalUnits}>
-              <Text style={combinedStyles.totalLabel}>{t('totalUnits')}:</Text>
-              <Text style={combinedStyles.totalValue}>{calculateTotalUnits()}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Project Type */}
-        <View style={combinedStyles.section}>
-          <Text style={combinedStyles.sectionTitle}>{t('projectType')}</Text>
-
-          <View style={combinedStyles.formCard}>
-            <View style={styles.row}>
-              <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-                <Text style={combinedStyles.label}>{t('buildType')}</Text>
-                <View style={[combinedStyles.pickerContainer, Platform.OS === 'ios' && styles.pickerContainerIOS]}>
-                  <Picker
-                    selectedValue={projectType.build_type}
-                    onValueChange={(value) => handleTypeChange('build_type', value)}
-                    style={Platform.OS === 'ios' ? styles.pickerIOS : styles.picker}
-                    enabled={!saving}
-                    dropdownIconColor={colors.primary}
-                  >
-                    <Picker.Item label="MDU" value="MDU" />
-                    <Picker.Item label="SDU" value="SDU" />
-                    <Picker.Item label="Commercial" value="Commercial" />
-                  </Picker>
-                </View>
-              </View>
-
-              <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={combinedStyles.label}>{t('jobType')}</Text>
-                <View style={[combinedStyles.pickerContainer, Platform.OS === 'ios' && styles.pickerContainerIOS]}>
-                  <Picker
-                    selectedValue={projectType.job_type}
-                    onValueChange={(value) => handleTypeChange('job_type', value)}
-                    style={Platform.OS === 'ios' ? styles.pickerIOS : styles.picker}
-                    enabled={!saving}
-                    dropdownIconColor={colors.primary}
-                  >
-                    <Picker.Item label={t('residential')} value="Residential" />
-                    <Picker.Item label={t('commercial')} value="Commercial" />
-                    <Picker.Item label={t('mixedUse')} value="Mixed Use" />
-                  </Picker>
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={combinedStyles.label}>{t('buildingType')}</Text>
-              <View style={[combinedStyles.pickerContainer, Platform.OS === 'ios' && styles.pickerContainerIOS]}>
-                <Picker
-                  selectedValue={projectType.building_type}
-                  onValueChange={(value) => handleTypeChange('building_type', value)}
-                  style={Platform.OS === 'ios' ? styles.pickerIOS : styles.picker}
-                  enabled={!saving}
-                  dropdownIconColor={colors.primary}
-                >
-                  <Picker.Item label={t('gardenStyle')} value="Garden Style" />
-                  <Picker.Item label={t('midRise')} value="Mid Rise" />
-                  <Picker.Item label={t('highRise')} value="High Rise" />
-                  <Picker.Item label={t('townhome')} value="Townhome" />
-                  <Picker.Item label={t('singleFamily')} value="Single Family" />
-                </Picker>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Attachments */}
-        <View style={combinedStyles.section}>
-          <Text style={combinedStyles.sectionTitle}>{t('attachments')}</Text>
-
-          <View style={combinedStyles.formCard}>
+          <View style={combinedStyles.deviceHeader}>
+            <Text style={combinedStyles.sectionTitle}>{t('netFibers')}</Text>
             <TouchableOpacity
-              style={[combinedStyles.attachButton, saving && styles.buttonDisabled]}
-              onPress={attachFile}
+              onPress={clearForm}
+              style={styles.clearButton}
               disabled={saving}
             >
-              <Ionicons name="attach" size={20} color={colors.primary} />
-              <Text style={combinedStyles.attachButtonText}>{t('attachFile')}</Text>
-            </TouchableOpacity>
-
-            {attachedFiles.length > 0 && (
-              <View style={styles.attachmentsList}>
-                {attachedFiles.map((file, index) => (
-                  <View key={index} style={combinedStyles.fileItem}>
-                    <View style={styles.fileInfo}>
-                      <Ionicons name="document-text" size={20} color={colors.secondaryText} />
-                      <View style={styles.fileDetails}>
-                        <Text style={combinedStyles.fileName} numberOfLines={1}>{file.name}</Text>
-                        <Text style={combinedStyles.fileSize}>{formatFileSize(file.size)}</Text>
-                      </View>
-                    </View>
-                    <TouchableOpacity
-                      onPress={() => removeFile(index)}
-                      disabled={saving}
-                    >
-                      <Ionicons name="close-circle" size={20} color={colors.danger} />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* Action Buttons */}
-        <View style={combinedStyles.section}>
-          <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.qrButton, saving && styles.buttonDisabled]}
-              onPress={() => setQrModalVisible(true)}
-              disabled={saving}
-            >
-              <Ionicons name="qr-code" size={20} color="white" />
-              <Text style={styles.actionButtonText}>{t('generateQR')}</Text>
-            </TouchableOpacity>
-
-            {/* <TouchableOpacity 
-              style={[styles.actionButton, styles.shareButton, saving && styles.buttonDisabled]}
-              onPress={shareProject}
-              disabled={saving}
-            >
-              <Ionicons name="share-social" size={20} color="white" />
-              <Text style={styles.actionButtonText}>{t('share')}</Text>
-            </TouchableOpacity> */}
-
-            <TouchableOpacity
-              style={[styles.actionButton, styles.saveButton, saving && styles.saveButtonDisabled]}
-              onPress={saveProjectAndCreateGraph}
-              disabled={saving}
-            >
-              {saving ? (
-                <>
-                  <Ionicons name="refresh" size={20} color="white" />
-                  <Text style={styles.actionButtonText}>{t('saving')}...</Text>
-                </>
-              ) : (
-                <>
-                  <Ionicons name="save" size={20} color="white" />
-                  <Text style={styles.actionButtonText}>{t('next')}</Text>
-                </>
-              )}
+              <Ionicons name="add-circle" size={24} color={colors.primary} />
             </TouchableOpacity>
           </View>
+
+          <View style={combinedStyles.fiberCard}>
+            <View style={combinedStyles.deviceHeader}>
+              <View style={combinedStyles.deviceInfo}>
+                <Text style={combinedStyles.deviceName}>A</Text>
+                <Text style={combinedStyles.deviceDescription}>
+                  B
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={dynamicStyles.removeButton}
+
+              >
+                <Ionicons name="close-circle" size={24} color={colors.danger} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={dynamicStyles.configRow}>
+              <Text style={dynamicStyles.configLabel}>{t('quantity')}:</Text>
+            </View>
+          </View>
+
         </View>
+
       </ScrollView>
 
       {/* // QR Code Modal mejorado */}
@@ -1532,160 +1663,6 @@ const CreateProject = ({ navigation, route, theme }) => {
   );
 };
 
-// Estilos base (sin colores específicos para mantener la estructura)
-const styles = StyleSheet.create({
-  backButton: {
-    padding: 5,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 15,
-  },
-  clearButton: {
-    padding: 5,
-  },
-  selectProjectButton: {
-    padding: 5,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  inputGroup: {
-    marginBottom: 18,
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  pickerContainerIOS: {
-    height: 50,
-    justifyContent: 'center',
-  },
-  picker: {
-    height: 50,
-  },
-  pickerIOS: {
-  },
-  attachmentsList: {
-    marginTop: 15,
-  },
-  fileInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-  },
-  fileDetails: {
-    flex: 1,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-    padding: 14,
-    gap: 8,
-  },
-  qrButton: {
-    backgroundColor: '#9b59b6',
-  },
-  shareButton: {
-    backgroundColor: '#2ecc71',
-  },
-  saveButton: {
-    backgroundColor: '#3498db',
-  },
-  saveButtonDisabled: {
-    backgroundColor: '#bdc3c7',
-  },
-  actionButtonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 15,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  modalContainer: {
-    width: '100%',
-    maxWidth: 400,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  selectorModal: {
-    maxHeight: '80%',
-  },
-  closeModalButton: {
-    backgroundColor: '#3498db',
-    borderRadius: 10,
-    padding: 15,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#e74c3c',
-    marginTop: 10,
-  },
-  closeModalText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  projectList: {
-    maxHeight: 300,
-    marginBottom: 20,
-  },
-  projectInfo: {
-    flex: 1,
-  },
-  // Añade estos estilos al objeto styles
-  qrActionButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 10,
-    marginBottom: 20,
-  },
-  qrActionButton: {
-    flex: 1,
-    minWidth: '45%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 8,
-    padding: 12,
-    gap: 8,
-  },
-  saveQrButton: {
-    backgroundColor: '#3498db',
-  },
-  shareQrButton: {
-    backgroundColor: '#2ecc71',
-  },
-  shareDataButton: {
-    backgroundColor: '#9b59b6',
-  },
-  qrActionButtonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  qrWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 10,
-  },
-});
+
 
 export default CreateProject;

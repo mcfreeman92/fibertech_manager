@@ -32,7 +32,14 @@ export const sqliteWebAdapter = {
         .equals(0)
         .reverse()
         .sortBy('creation_date');
-      return projects;
+      return projects.map(item => {
+        const p = {
+          ...item,
+          meta: JSON.parse(item.metadata)
+        };
+
+        return p;
+      });
     } catch (error) {
       console.error('Error getting projects:', error);
       throw error;
@@ -41,7 +48,13 @@ export const sqliteWebAdapter = {
 
   getProjectById: async (id) => {
     try {
-      const project = await db.projects.get(id);
+      const res = await db.projects.get(id);
+
+      const project = {
+        ...res,
+        meta: JSON.parse(res.metadata)
+      };
+
       if (project && project.deleted === 0) {
         return project;
       }
@@ -63,7 +76,7 @@ export const sqliteWebAdapter = {
         metadata: data.metadata || '',
         deleted: 0
       };
-      
+
       const id = await db.projects.add(projectData);
       return { id, ...projectData };
     } catch (error) {
@@ -80,7 +93,7 @@ export const sqliteWebAdapter = {
         modified_date: now,
         main_node_code: data.main_node_code || null
       };
-      
+
       await db.projects.update(id, updates);
       return { id, ...data, modified_date: now };
     } catch (error) {
@@ -115,7 +128,7 @@ export const sqliteWebAdapter = {
   getNodes: async (projectId = null) => {
     try {
       let nodes;
-      
+
       if (projectId !== null) {
         nodes = await db.nodes
           .where(['ProjectId', 'Deleted'])
@@ -153,7 +166,7 @@ export const sqliteWebAdapter = {
   getNodeById: async (id) => {
     try {
       const node = await db.nodes.get(id);
-      
+
       if (!node || node.Deleted !== 0) {
         return null;
       }
@@ -161,7 +174,7 @@ export const sqliteWebAdapter = {
       // Obtener información del tipo
       let typeName = null;
       let typeCode = null;
-      
+
       if (node.TypeId) {
         const nodeType = await db.nodes_types.get(node.TypeId);
         if (nodeType) {
@@ -186,7 +199,7 @@ export const sqliteWebAdapter = {
     try {
       const now = new Date().toISOString();
       const metadata = data.Metadata ? JSON.stringify(data.Metadata) : null;
-      
+
       const nodeData = {
         Label: data.Label,
         ProjectId: data.ProjectId,
@@ -210,7 +223,7 @@ export const sqliteWebAdapter = {
     try {
       const now = new Date().toISOString();
       const metadata = data.Metadata ? JSON.stringify(data.Metadata) : null;
-      
+
       const updates = {
         Label: data.Label,
         TypeId: data.TypeId || null,
@@ -283,7 +296,7 @@ export const sqliteWebAdapter = {
   getFiberById: async (id) => {
     try {
       const fiber = await db.fibers.get(id);
-      
+
       if (!fiber || fiber.Deleted !== 0) {
         return null;
       }
@@ -324,7 +337,7 @@ export const sqliteWebAdapter = {
     try {
       const now = new Date().toISOString();
       const metadata = data.Metadata ? JSON.stringify(data.Metadata) : null;
-      
+
       const fiberData = {
         ProjectId: data.ProjectId,
         Label: data.Label,
@@ -347,7 +360,7 @@ export const sqliteWebAdapter = {
     try {
       const now = new Date().toISOString();
       const metadata = data.Metadata ? JSON.stringify(data.Metadata) : null;
-      
+
       const updates = {
         Label: data.Label,
         Metadata: metadata,
@@ -403,7 +416,7 @@ export const sqliteWebAdapter = {
         name: data.name,
         type: data.type
       };
-      
+
       const id = await db.nodes_types.add(nodeTypeData);
       return { id, ...nodeTypeData };
     } catch (error) {
@@ -418,7 +431,7 @@ export const sqliteWebAdapter = {
         name: data.name,
         type: data.type
       };
-      
+
       await db.nodes_types.update(id, updates);
       return { id, ...data };
     } catch (error) {
