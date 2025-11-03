@@ -5,10 +5,10 @@ const db = new Dexie('FiberDatabase');
 
 // Definir esquema de la base de datos
 db.version(1).stores({
-  projects: '++id, name, creation_date, modified_date, main_node_id, deleted, metadata',
+  projects: '++id, name, createdDate, modifiedDate, deleted, metadata',
   nodes_types: '++id, name, type',
   nodes: '++id, label, projectId, typeId, description, createdDate, modifiedDate, deleted',
-  fibers: '++id, label, projectId, parentId, createdDate, modifiedDate, deleted'
+  fibers: '++id, typeId, label, projectId, parentId, createdDate, modifiedDate, deleted'
 });
 
 // Inicializar base de datos
@@ -70,9 +70,8 @@ export const sqliteWebAdapter = {
       const now = new Date().toISOString();
       const projectData = {
         name: data.name,
-        creation_date: now,
-        modified_date: now,
-        main_node_id: data.main_node_id || 0,
+        createdDate: now,
+        modifiedDate: now,
         metadata: data.metadata || '',
         deleted: 0
       };
@@ -90,12 +89,12 @@ export const sqliteWebAdapter = {
       const now = new Date().toISOString();
       const updates = {
         name: data.name,
-        modified_date: now,
-        main_node_code: data.main_node_code || null
+        modifiedDate: now,
+        metadata: data.metadata || '',
       };
 
       await db.projects.update(id, updates);
-      return { id, ...data, modified_date: now };
+      return { id, ...data, modifiedDate: updates.modifiedDate };
     } catch (error) {
       console.error('Error updating project:', error);
       throw error;
@@ -131,32 +130,24 @@ export const sqliteWebAdapter = {
 
       if (projectId !== null) {
         nodes = await db.nodes
-          .where(['ProjectId', 'Deleted'])
-          .equals([projectId, 0])
+          .where('projectId').equals(projectId)
+          .and(node => node.deleted === 0)
           .toArray();
       } else {
         nodes = await db.nodes
-          .where('Deleted')
+          .where('deleted')
           .equals(0)
           .toArray();
       }
 
-      // Hacer JOIN manual con nodes_types
-      const nodeTypes = await db.nodes_types.toArray();
-      const nodeTypesMap = {};
-      nodeTypes.forEach(nt => {
-        nodeTypesMap[nt.id] = nt;
+      return nodes.map(node => {
+        const outNode = {
+          ...node,
+          devices:  JSON.parse(node.metadata)
+        }
+        return outNode;;
       });
 
-      // Agregar información del tipo y parsear Metadata
-      const nodesWithTypes = nodes.map(node => ({
-        ...node,
-        TypeName: node.TypeId && nodeTypesMap[node.TypeId] ? nodeTypesMap[node.TypeId].name : null,
-        TypeCode: node.TypeId && nodeTypesMap[node.TypeId] ? nodeTypesMap[node.TypeId].type : null,
-        Metadata: node.Metadata ? JSON.parse(node.Metadata) : null
-      }));
-
-      return nodesWithTypes;
     } catch (error) {
       console.error('Error getting nodes:', error);
       throw error;
@@ -222,18 +213,17 @@ export const sqliteWebAdapter = {
   updateNode: async (id, data) => {
     try {
       const now = new Date().toISOString();
-      const metadata = data.Metadata ? JSON.stringify(data.Metadata) : null;
 
       const updates = {
-        Label: data.Label,
-        TypeId: data.TypeId || null,
-        Description: data.Description || null,
-        Metadata: metadata,
-        ModifiedDate: now
+        label: data.label,
+        typeId: data.typeId || null,
+        description: data.description || null,
+        metadata: data.metadata,
+        modifiedDate: now
       };
 
       await db.nodes.update(id, updates);
-      return { Id: id, ...data, ModifiedDate: now };
+      return { id: id, ...data, modifiedDate: updates.modifiedDate };
     } catch (error) {
       console.error('Error updating node:', error);
       throw error;
@@ -256,35 +246,24 @@ export const sqliteWebAdapter = {
     try {
       let fibers;
 
-      if (projectId !== null && parentId !== null) {
+      if (projectId !== null) {
         fibers = await db.fibers
-          .where(['ProjectId', 'ParentId', 'Deleted'])
-          .equals([projectId, parentId, 0])
+          .where('projectId').equals(projectId)
+          .and(node => node.deleted === 0 && node.parentId === parentId)
           .toArray();
-      } else if (projectId !== null) {
-        fibers = await db.fibers
-          .where(['ProjectId', 'Deleted'])
-          .equals([projectId, 0])
-          .toArray();
-      } else if (parentId !== null) {
-        fibers = await db.fibers
-          .where(['ParentId', 'Deleted'])
-          .equals([parentId, 0])
-          .toArray();
-      } else {
-        fibers = await db.fibers
-          .where('Deleted')
-          .equals(0)
-          .toArray();
-      }
+      } 
+
+      fibers = fibers.map(fiber => {
+        const outfiber = {
+          ...fiber,
+          threads:  JSON.parse(fiber.metadata)
+        }
+        return outfiber;;
+      });
 
       // Ordenar por Label y parsear Metadata
       const sortedFibers = fibers
-        .sort((a, b) => a.Label.localeCompare(b.Label))
-        .map(fiber => ({
-          ...fiber,
-          Metadata: fiber.Metadata ? JSON.parse(fiber.Metadata) : null
-        }));
+        .sort((a, b) => a.label.localeCompare(b.label));
 
       return sortedFibers;
     } catch (error) {
@@ -301,10 +280,7 @@ export const sqliteWebAdapter = {
         return null;
       }
 
-      return {
-        ...fiber,
-        Metadata: fiber.Metadata ? JSON.parse(fiber.Metadata) : null
-      };
+      return fiber;
     } catch (error) {
       console.error('Error getting fiber by id:', error);
       throw error;
@@ -335,10 +311,9 @@ export const sqliteWebAdapter = {
 
   createFiber: async (data) => {
     try {
-      
-
       const fiberData = {
         projectId: data.projectId,
+        typeId : data.typeId,
         label: data.label,
         metadata: data.metadata,
         parentId: data.parentId || null,
@@ -358,17 +333,16 @@ export const sqliteWebAdapter = {
   updateFiber: async (id, data) => {
     try {
       const now = new Date().toISOString();
-      const metadata = data.Metadata ? JSON.stringify(data.Metadata) : null;
 
       const updates = {
-        Label: data.Label,
-        Metadata: metadata,
-        ParentId: data.ParentId || null,
-        ModifiedDate: now
+        label: data.label,
+        metadata: data.metadata,
+        parentId: data.parentId || null,
+        modifiedDate: now
       };
 
       await db.fibers.update(id, updates);
-      return { Id: id, ...data, ModifiedDate: now };
+      return { id: id, ...data, modifiedDate: updates.modifiedDate };
     } catch (error) {
       console.error('Error updating fiber:', error);
       throw error;

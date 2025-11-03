@@ -14,11 +14,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { useTranslation } from '../hooks/useTranslation';
 import { useDevice } from '../context/DeviceContext';
-
+import { useAdapter } from '@/api/contexts/DatabaseContext';
 
 import { v4 as uuidv4 } from 'uuid';
 
 const NodeDetails = ({ route, navigation }) => {
+  const { updateNode } = useAdapter()();
+
   const { topInset, bottomInset, stylesFull } = useDevice();
   const { isDarkMode } = useApp();
   const { t } = useTranslation();
@@ -271,18 +273,30 @@ const NodeDetails = ({ route, navigation }) => {
     //navigation.navigate('ViewOnMap', { selectedProject: proyecto });
   };
 
+  const saveAndGoBack = () => {
+    const savedNode = {
+      ...nodeData,
+      devices: devicesData
+    };
+
+    route.params.onSaveNode(savedNode);
+    navigation.goBack();
+  }
+
   const handleSave = () => {
     // Ejecutar el callback si existe
     if (route.params?.onSaveNode) {
-      const savedNode = {
-        ...nodeData,
-        devices: devicesData
-      };
+      if (node.id != undefined) {
+        const upd = { ...nodeData, metadata: JSON.stringify(devicesData) };
+        updateNode(node.id, upd).then(r => {
+          saveAndGoBack();
+        }).catch(e => {
 
-      route.params.onSaveNode(savedNode);
+        })
+      } else {
+        saveAndGoBack();
+      }
     }
-
-    navigation.goBack();
   };
 
   const updateDevice = (device) => {

@@ -18,6 +18,7 @@ import ListaProyectos from '../screens/ListaProyectos';
 import DetallesProyecto from '../screens/DetallesProyecto';
 import NodeDetails from '../screens/NodeDetails';
 import DeviceDetails from '../screens/DeviceDetails';
+import FiberDetails from '../screens/FiberDetails';
 
 const Stack = createStackNavigator();
 
@@ -105,6 +106,11 @@ const AppNavigator = () => {
             name="DeviceDetails"
             component={DeviceDetails}
             options={{ title: 'Detalles del dispositivo' }}
+          />
+          <Stack.Screen
+            name="FiberDetails"
+            component={FiberDetails}
+            options={{ title: 'Detalles de la fibra óptica' }}
           />
           {/* otras pantallas protegidas */}
         </>

@@ -121,6 +121,9 @@ export const AppProvider = ({ children }) => {
   // Traducciones
   const translations = {
     en: {
+      noneSelectedBuffer: 'None buffer selected',
+      label: 'Label',
+      fiberDetails: 'Fiber details',
       port: 'Port',
       number: 'Número',
       enabed: 'Enabed',
@@ -711,6 +714,9 @@ export const AppProvider = ({ children }) => {
       copiedToClipboard: 'Copied to clipboard'
     },
     es: {
+      noneSelectedBuffer: 'Ningún búfer seleccionado',
+      label: 'Nombre',
+      fiberDetails: 'Detalles de la fibra',
       port: 'Puerto',
       number: 'Número',
       enabed: 'Habilitado',

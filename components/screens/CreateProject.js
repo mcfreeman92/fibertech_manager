@@ -23,7 +23,9 @@ import { useTranslation } from '../hooks/useTranslation';
 import { useApp } from '../context/AppContext';
 import { useDevice } from '../context/DeviceContext';
 
-import { useDatabase, useAdapter } from '@/api/contexts/DatabaseContext';
+/** ADAPTER PARA LOS DATOS */
+import { useAdapter } from '@/api/contexts/DatabaseContext';
+
 
 import { generateHash } from '../../utils/utils'
 
@@ -34,6 +36,8 @@ import { v4 as uuidv4 } from 'uuid';
 import * as MediaLibrary from 'expo-media-library';
 
 const CreateProject = ({ navigation, route, theme }) => {
+  const { createProject, updateProject, getProjectById, createNode, createFiber, getFibers, getFiberById, getNodes } = useAdapter()();
+
   const { topInset, isTablet, bottomInset, stylesFull } = useDevice();
   const { projectId } = route.params || {};
   const isEditMode = !!projectId;
@@ -50,8 +54,7 @@ const CreateProject = ({ navigation, route, theme }) => {
 
   const sinleFiberTpeId = '12F';
 
-  /** ADAPTER PARA LOS DATOS */
-  const { createProject, getProjectById, createNode, createFiber } = useAdapter()();
+
 
   // const viewShotRef = useRef();
   const { t } = useTranslation();
@@ -415,16 +418,6 @@ const CreateProject = ({ navigation, route, theme }) => {
     }
   }, [projectId]);
 
-  // useEffect(() => {
-  //     if (qrModalVisible) {
-  //       setQrData(generateQRCode());
-  //       console.log(qrData)
-  //     } else {
-  //       setQrData(null);
-  //     }
-  //     console.log("Ahora")
-  //   }, []);
-
   const loadExistingProjects = async () => {
     try {
       const projects = await ProjectService.getProjects();
@@ -453,6 +446,23 @@ const CreateProject = ({ navigation, route, theme }) => {
           status: project.status || 'active'
         });
       }
+
+      /**Load nodes and fibers */
+      const dbNodes = await getNodes(projectId);
+      setNodes(dbNodes);
+
+      let records = await getFibers(projectId, null);
+      let dbFibers = [];
+
+      for (let f of records) {
+        const buffers = await getFibers(projectId, f.id);
+        dbFibers.push({
+          ...f,
+          buffers: buffers
+        });
+      }
+
+      setFibers(dbFibers);
 
       // Cargar información de unidades
       const units = project.unitsInfo;
@@ -578,28 +588,6 @@ const CreateProject = ({ navigation, route, theme }) => {
     }));
   };
 
-  // const attachFile = async () => {
-  //   try {
-  //     const result = await DocumentPicker.getDocumentAsync({
-  //       type: '*/*',
-  //       copyToCacheDirectory: true
-  //     });
-
-  //     if (result.type === 'success') {
-  //       const fileInfo = {
-  //         name: result.name,
-  //         uri: result.uri,
-  //         size: result.size,
-  //         type: result.mimeType,
-  //         lastModified: result.lastModified
-  //       };
-  //       setAttachedFiles(prev => [...prev, fileInfo]);
-  //       Alert.alert(t('success'), t('fileAttachedSuccess'));
-  //     }
-  //   } catch (error) {
-  //     Alert.alert(t('error'), t('failedToAttachFile') + error.message);
-  //   }
-  // };
 
   const attachFile = async () => {
     try {
@@ -672,9 +660,10 @@ const CreateProject = ({ navigation, route, theme }) => {
   const addFiber = (fiberType) => {
     const newFiber = {
       hash: uuidv4(),
-      type: fiberType.name,
       count: 1,
-      description: fiberType.description
+      typeId: fiberType.typeId,
+      label:fiberType.name,
+      description: fiberType.name
     };
 
     setShowAddFiberModal(true);
@@ -762,62 +751,94 @@ const CreateProject = ({ navigation, route, theme }) => {
 
       console.log('💾 Starting save process...');
 
-      let targetProjectId = projectId; // Para modo edición
-
-      if (isEditMode) {
-        // Modo edición: Actualizar proyecto existente
-        await ProjectService.updateProject(projectId, {
-          name: projectData.name.trim(),
-          address: projectData.address.trim(),
-          city: projectData.city || '',
-          country: projectData.country || 'USA',
-          state: projectData.state || '',
-          description: projectData.description || '',
-          status: 'active'
-        });
-
-        await UnitsService.updateUnitsInfo(projectId, {
+      // Modo creación: Crear nuevo proyecto
+      let meta = await ProjectService.createProject({
+        name: projectData.name.trim(),
+        address: projectData.address.trim(),
+        city: projectData.city || '',
+        country: projectData.country || 'USA',
+        state: projectData.state || '',
+        description: projectData.description || '',
+        status: 'active',
+        unitsInfo: {
           living_unit: unitsInfo.living_unit || '0',
           office_amenities: unitsInfo.office_amenities || '0',
           commercial_unit: unitsInfo.commercial_unit || '0'
-        });
+        }
+      });
 
-        await ProjectTypeService.updateProjectType(projectId, {
-          build_type: projectType.build_type || 'MDU',
-          job_type: projectType.job_type || 'Residential',
-          building_type: projectType.building_type || 'Garden Style'
-        });
 
-        console.log('📋 Project updated with ID:', projectId);
-      } else {
-        // Modo creación: Crear nuevo proyecto
-        let meta = await ProjectService.createProject({
-          name: projectData.name.trim(),
-          address: projectData.address.trim(),
-          city: projectData.city || '',
-          country: projectData.country || 'USA',
-          state: projectData.state || '',
-          description: projectData.description || '',
-          status: 'active',
-          unitsInfo: {
-            living_unit: unitsInfo.living_unit || '0',
-            office_amenities: unitsInfo.office_amenities || '0',
-            commercial_unit: unitsInfo.commercial_unit || '0'
+      const prjData = {
+        name: meta.name,
+        metadata: JSON.stringify(meta)
+      }
+
+      if (isEditMode) {
+        await updateProject(projectId, prjData);
+
+        /**Persist new nodes */
+        for (let i = 0; i < nodes.length; i++) {
+          const node = nodes[i];
+
+          if (node.id == undefined) {
+            const meta = JSON.stringify(node.devices);
+
+            const dbNode = await createNode({
+              label: node.label,
+              projectId: project.id,
+              typeId: node.typeId || '',
+              description: '',
+              metadata: meta,
+              createdDate: node.createdDate,
+              modifiedDate: node.modifiedDate,
+            });
           }
-        });
+        }
 
+        /**Persist new fibers */
+        for (let i = 0; i < fibers.length; i++) {
+          const fiber = fibers[i];
+
+          const meta = JSON.stringify(fiber.threads);
+
+          const dbFiber = await createFiber({
+            label: fiber.label,
+            projectId: project.id,
+            typeId: fiber.typeId || sinleFiberTpeId,
+            description: '',
+            metadata: meta,
+            createdDate: fiber.createdDate,
+            modifiedDate: fiber.modifiedDate,
+          });
+
+          /**Save buffers */
+          for (let j = 0; j < fiber.buffers.length; j++) {
+            const buffer = fiber.buffers[j];
+
+            const meta2 = JSON.stringify(buffer.threads);
+
+            await createFiber({
+              label: buffer.label,
+              projectId: project.id,
+              parentId: dbFiber.id,
+              typeId: buffer.typeId || sinleFiberTpeId,
+              description: '',
+              metadata: meta2,
+              createdDate: buffer.createdDate,
+              modifiedDate: buffer.modifiedDate,
+            });
+          }
+
+        }
+
+      } else {
         /**Persist on db or API storage */
-        const project = await createProject({
-          name: meta.name,
-          metadata: JSON.stringify(meta)
-        });
+        const project = await createProject(prjData);
 
         /**Persist nodes */
         for (let i = 0; i < nodes.length; i++) {
           const node = nodes[i];
-          const meta = {
-            devices: JSON.stringify(node.devices)
-          };
+          const meta = JSON.stringify(node.devices);
 
           const dbNode = await createNode({
             label: node.label,
@@ -834,9 +855,7 @@ const CreateProject = ({ navigation, route, theme }) => {
         for (let i = 0; i < fibers.length; i++) {
           const fiber = fibers[i];
 
-          const meta = {
-            threads: JSON.stringify(fiber.threads)
-          };
+          const meta = JSON.stringify(fiber.threads);
 
           const dbFiber = await createFiber({
             label: fiber.label,
@@ -849,12 +868,10 @@ const CreateProject = ({ navigation, route, theme }) => {
           });
 
           /**Save buffers */
-          for (let i = 0; i < fiber.buffers.length; i++) {
-            const buffer = fiber.buffers[i];
+          for (let j = 0; j < fiber.buffers.length; j++) {
+            const buffer = fiber.buffers[j];
 
-            const meta2 = {
-              threads: JSON.stringify(buffer.threads)
-            };
+            const meta2 = JSON.stringify(buffer.threads);
 
             await createFiber({
               label: buffer.label,
@@ -1329,6 +1346,7 @@ const CreateProject = ({ navigation, route, theme }) => {
             </Text>
           </View>
           <TouchableOpacity
+            onPress={() => handleSeeFiberInfo(fiber)}
             style={{ marginRight: 3 }}
           >
             <Ionicons name="information-circle" size={24} color={'#504d4cff'} />
@@ -1369,6 +1387,33 @@ const CreateProject = ({ navigation, route, theme }) => {
     };
 
     navigation.navigate('NodeDetails', tmp);
+  }
+
+  const updateFiber = (fiber) => {
+    let index = -1;
+
+    if (fiber.hash != undefined) {
+      index = fibers.findIndex(x => x.hash == fiber.hash);
+    } else {
+      index = fibers.findIndex(x => x.id == fiber.id);
+    }
+
+    if (index != -1) {
+      let tmp = [...fibers];
+      tmp[index] = fiber;
+      setFibers(tmp);
+    }
+  }
+
+  const handleSeeFiberInfo = (fiber) => {
+    const tmp = {
+      fiber: fiber,
+      onSaveFiber: (data) => {
+        updateFiber(data);
+      }
+    };
+
+    navigation.navigate('FiberDetails', tmp);
   }
 
   const RenderNode = ({ node }) => {
@@ -1559,8 +1604,6 @@ const CreateProject = ({ navigation, route, theme }) => {
                 <Ionicons name="add-circle" size={24} color={colors.primary} />
               </TouchableOpacity>
             </View>
-
-
           </View>
 
           {nodes.length == 0 && (
@@ -1661,14 +1704,6 @@ const CreateProject = ({ navigation, route, theme }) => {
                   <Ionicons name="share-outline" size={20} color="white" />
                   <Text style={styles.qrActionButtonText}>{t('shareAsImage')}</Text>
                 </TouchableOpacity>
-
-                {/* <TouchableOpacity
-            style={[styles.qrActionButton, styles.shareDataButton]}
-            onPress={shareQRDataAsJson}
-          >
-            <Ionicons name="code-slash-outline" size={20} color="white" />
-            <Text style={styles.qrActionButtonText}>{t('shareAsData')}</Text>
-          </TouchableOpacity> */}
               </View>
             </View>
           </View>
