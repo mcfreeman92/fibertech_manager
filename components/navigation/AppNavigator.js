@@ -16,6 +16,8 @@ import { useApp } from '../context/AppContext';
 import LoadingScreen from '../screens/LoadingScreen';
 import ListaProyectos from '../screens/ListaProyectos';
 import DetallesProyecto from '../screens/DetallesProyecto';
+import NodeDetails from '../screens/NodeDetails';
+import DeviceDetails from '../screens/DeviceDetails';
 
 const Stack = createStackNavigator();
 
@@ -31,78 +33,88 @@ const AppNavigator = () => {
 
   return (
     // <NavigationContainer>
-      <Stack.Navigator 
-        // initialRouteName="Login"
-        screenOptions={{
-          headerShown: false,
-          cardStyle: { backgroundColor: '#ffffff' }
-        }}
-      >
-        {!isAuthenticated ? (
-          <Stack.Screen name="Login" component={LoginScreen} />
-        ) : (
-          <>
-            <Stack.Screen 
-          name="Dashboard" 
-          component={DashboardScreen}
-        />
-        <Stack.Screen 
-          name="UserProfile" 
-          component={UserProfile}
-        />
-        <Stack.Screen 
-          name="Tools" 
-          component={Tools}
-        />
-        <Stack.Screen 
-          name="Settings" 
-          component={Settings}
-        />
-        <Stack.Screen 
-          name="CreateProject" 
-          component={CreateProject}
-        />
-        <Stack.Screen 
-          name="ScanQr" 
-          component={ScanQr}
-        />
-        <Stack.Screen 
-          name="ViewOnMap" 
-          component={ViewOnMap}
-        />
-        <Stack.Screen 
-          name="CreateMaintenance" 
-          component={CreateMaintenance}
-        />
-        <Stack.Screen 
-         name="ConnectivityDevices" 
-         component={ConnectivityDevices} 
-         options={{ title: 'Network Devices' }}
-        />
-        <Stack.Screen 
-         name="NetworkMap" 
-         component={NetworkMap} 
-         options={{ title: 'Network Map' }}
-        />
-        <Stack.Screen 
-         name="ListaProyectos" 
-         component={ListaProyectos} 
-         options={{ title: 'Listado de proyectos' }}
-        />
-        <Stack.Screen 
-         name="DetallesProyecto" 
-         component={DetallesProyecto} 
-         options={{ title: 'Detalles del proyectos' }}
-        />
-            {/* otras pantallas protegidas */}
-          </>
-        )}
-        {/* <Stack.Screen 
+    <Stack.Navigator
+      // initialRouteName="Login"
+      screenOptions={{
+        headerShown: false,
+        cardStyle: { backgroundColor: '#ffffff' }
+      }}
+    >
+      {!isAuthenticated ? (
+        <Stack.Screen name="Login" component={LoginScreen} />
+      ) : (
+        <>
+          <Stack.Screen
+            name="Dashboard"
+            component={DashboardScreen}
+          />
+          <Stack.Screen
+            name="UserProfile"
+            component={UserProfile}
+          />
+          <Stack.Screen
+            name="Tools"
+            component={Tools}
+          />
+          <Stack.Screen
+            name="Settings"
+            component={Settings}
+          />
+          <Stack.Screen
+            name="CreateProject"
+            component={CreateProject}
+          />
+          <Stack.Screen
+            name="ScanQr"
+            component={ScanQr}
+          />
+          <Stack.Screen
+            name="ViewOnMap"
+            component={ViewOnMap}
+          />
+          <Stack.Screen
+            name="CreateMaintenance"
+            component={CreateMaintenance}
+          />
+          <Stack.Screen
+            name="ConnectivityDevices"
+            component={ConnectivityDevices}
+            options={{ title: 'Network Devices' }}
+          />
+          <Stack.Screen
+            name="NetworkMap"
+            component={NetworkMap}
+            options={{ title: 'Network Map' }}
+          />
+          <Stack.Screen
+            name="ListaProyectos"
+            component={ListaProyectos}
+            options={{ title: 'Listado de proyectos' }}
+          />
+          <Stack.Screen
+            name="DetallesProyecto"
+            component={DetallesProyecto}
+            options={{ title: 'Detalles del proyectos' }}
+          />
+          <Stack.Screen
+            name="NodeDetails"
+            component={NodeDetails}
+            options={{ title: 'Detalles del nodo' }}
+          />
+          <Stack.Screen
+            name="DeviceDetails"
+            component={DeviceDetails}
+            options={{ title: 'Detalles del dispositivo' }}
+          />
+          {/* otras pantallas protegidas */}
+        </>
+      )}
+      {/* <Stack.Screen 
           name="Login" 
           component={LoginScreen}
         /> */}
-        
-      </Stack.Navigator>
+
+    </Stack.Navigator>
     // </NavigationContainer>
   );
 };

@@ -6,9 +6,9 @@ const db = new Dexie('FiberDatabase');
 // Definir esquema de la base de datos
 db.version(1).stores({
   projects: '++id, name, creation_date, modified_date, main_node_id, deleted, metadata',
-  nodes_types: 'id, name, type',
-  nodes: 'Id, Label, ProjectId, TypeId, Description, CreatedDate, ModifiedDate, Deleted',
-  fibers: 'Id, Label, ProjectId, ParentId, CreatedDate, ModifiedDate, Deleted'
+  nodes_types: '++id, name, type',
+  nodes: '++id, label, projectId, typeId, description, createdDate, modifiedDate, deleted',
+  fibers: '++id, label, projectId, parentId, createdDate, modifiedDate, deleted'
 });
 
 // Inicializar base de datos
@@ -201,14 +201,14 @@ export const sqliteWebAdapter = {
       const metadata = data.Metadata ? JSON.stringify(data.Metadata) : null;
 
       const nodeData = {
-        Label: data.Label,
-        ProjectId: data.ProjectId,
-        TypeId: data.TypeId || null,
-        Description: data.Description || null,
-        Metadata: metadata,
-        CreatedDate: now,
-        ModifiedDate: now,
-        Deleted: 0
+        label: data.label,
+        projectId: data.projectId,
+        typeId: data.typeId || '',
+        description: data.description || '',
+        metadata: data.metadata,
+        createdDate: data.createdDate,
+        modifiedDate: data.modifiedDate,
+        deleted: 0
       };
 
       const Id = await db.nodes.add(nodeData);
@@ -335,21 +335,20 @@ export const sqliteWebAdapter = {
 
   createFiber: async (data) => {
     try {
-      const now = new Date().toISOString();
-      const metadata = data.Metadata ? JSON.stringify(data.Metadata) : null;
+      
 
       const fiberData = {
-        ProjectId: data.ProjectId,
-        Label: data.Label,
-        Metadata: metadata,
-        ParentId: data.ParentId || null,
-        CreatedDate: now,
-        ModifiedDate: now,
-        Deleted: 0
+        projectId: data.projectId,
+        label: data.label,
+        metadata: data.metadata,
+        parentId: data.parentId || null,
+        createdDate: data.createdDate,
+        modifiedDate: data.modifiedDate,
+        deleted: 0
       };
 
-      const Id = await db.fibers.add(fiberData);
-      return { Id, ...data, CreatedDate: now, ModifiedDate: now, Deleted: 0 };
+      const id = await db.fibers.add(fiberData);
+      return { id, ...data, deleted: 0 };
     } catch (error) {
       console.error('Error creating fiber:', error);
       throw error;

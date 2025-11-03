@@ -25,6 +25,7 @@ const screens = [
   { name: 'ConnectivityDevices', component: require('./components/screens/ConnectivityDevices').default },
   { name: 'NetworkMap', component: require('./components/screens/NetworkMap').default },
   { name: 'Login', component: require('./components/screens/LoginScreen').default },
+  { name: 'NodeDetails', component: require('./components/screens/NodeDetails').default },
   // NetworkMap
   // añade más aquí
 ];

@@ -121,6 +121,18 @@ export const AppProvider = ({ children }) => {
   // Traducciones
   const translations = {
     en: {
+      port: 'Port',
+      number: 'Número',
+      enabed: 'Enabed',
+      portsDetailsLabel: 'Ports details',
+      serialNumber: 'Serial number',
+      selectAnOption: 'Select an option',
+      devicesEmpty: 'No devices added',
+      addDevice: 'Add device',
+      editDevice: 'Edit device',
+      deviceModel: 'Model',
+      devicesLabel: 'Conectivity devices',
+      nodeDetails: 'Node details',
       netNodes: 'Network nodes',
       netFibers: 'Fibers',
       settings: 'Settings',
@@ -290,9 +302,11 @@ export const AppProvider = ({ children }) => {
 
       // Subtítulos y descripciones
       selectDevicesConfigurePorts: 'Select devices and configure ports',
-      selectFiberTypesQuantities: 'Select fiber types and quantities',
+      selectFiberTypesQuantities: 'Fiber',
       selectedEquipment: 'Selected Equipment',
       selectedFiberTypes: 'Selected Fiber Types',
+      fibersEmpty: 'No fibers added',
+      nodesEmpty : 'No haz agregado ninguno',
 
       // Estadísticas
       devices: 'Devices',
@@ -697,6 +711,19 @@ export const AppProvider = ({ children }) => {
       copiedToClipboard: 'Copied to clipboard'
     },
     es: {
+      port: 'Puerto',
+      number: 'Número',
+      enabed: 'Habilitado',
+      portsDetailsLabel: 'Detalle de los puertos',
+      serialNumber: 'Número de serie',
+      selectAnOption: 'Seleccione una opción',
+      devicesEmpty: 'Ningún dispositivo agregado',
+      addDevice: 'Agregar dispositivo',
+      editDevice: 'Editar dispositivo',
+      deviceModel: 'Modelo',
+      devicesLabel: 'Dispositivos de conectividad',
+      generalData: 'Datos generales',
+      nodeDetails: 'Detalles del nodo',
       netNodes: 'Nodos de la red',
       netFibers: 'Fibras ópticas',
       projectAlreadyExists: 'Proyecto ya exitente',
@@ -997,9 +1024,11 @@ export const AppProvider = ({ children }) => {
 
       // Subtítulos y descripciones
       selectDevicesConfigurePorts: 'Selecciona dispositivos y configura puertos',
-      selectFiberTypesQuantities: 'Selecciona tipos de fibra y cantidades',
+      selectFiberTypesQuantities: 'Tipo',
       selectedEquipment: 'Equipo Seleccionado',
       selectedFiberTypes: 'Tipos de Fibra Seleccionados',
+      fibersEmpty: 'No haz agregado ninguna',
+      nodesEmpty: 'No haz agregado ninguno',
 
       // Estadísticas
       devices: 'Dispositivos',
