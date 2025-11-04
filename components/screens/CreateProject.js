@@ -63,6 +63,8 @@ const CreateProject = ({ navigation, route, theme }) => {
   const [showAddFiberModal, setShowAddFiberModal] = useState(false);
   const [showAddNodeModal, setShowAddNodeModal] = useState(false);
 
+  const [showFilterNodesModal, setShowFilterNodesModal] = useState(false);
+
   const [fibers, setFibers] = useState([]);
   const [nodes, setNodes] = useState([]);
 
@@ -118,6 +120,34 @@ const CreateProject = ({ navigation, route, theme }) => {
     { id: 3, name: 'UNIT', type: 'U' },
   ];
 
+  const nodesFiltersList = [
+    { id: 0, name: t('allNodeFilter'), type: 'ALL' },
+    { id: 1, name: 'MDF', type: 'MDF' },
+    { id: 2, name: 'IDF', type: 'IDF' },
+    { id: 3, name: 'UNIT', type: 'U' },
+  ];
+
+  const [selectedNodesFilter, setSelectedNodesFilter] = useState(nodesFiltersList[1]);
+
+  const handleNodesFilterSelect = () => {
+    setShowFilterNodesModal(true);
+  }
+
+  const handleFilterNodeSelect = (filter) => {
+    setSelectedNodesFilter(filter);
+    setShowFilterNodesModal(false);
+
+    /** update nodes list */
+    getNodes(projectId).then(result => {
+      if (filter.id == 0)
+        setNodes(result);
+      else
+        setNodes(result.filter(x => x.typeId == filter.id));
+    }).catch(e => {
+
+    })
+
+  }
 
   // Estilos base (sin colores específicos para mantener la estructura)
   const styles = StyleSheet.create({
@@ -1426,7 +1456,7 @@ const CreateProject = ({ navigation, route, theme }) => {
         /**Build updated fiber */
         const update = {
           ...data[0],
-          buffers : data.slice(1)
+          buffers: data.slice(1)
         }
         updateFiber(update);
       }
@@ -1608,7 +1638,7 @@ const CreateProject = ({ navigation, route, theme }) => {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={handleConnectionMap}
+                onPress={handleNodesFilterSelect}
                 style={styles.clearButton}
                 disabled={saving}
               >
@@ -1827,6 +1857,43 @@ const CreateProject = ({ navigation, route, theme }) => {
 
       </Modal>
 
+      {/* Show Filter Nodes Modal */}
+      <Modal
+        visible={showFilterNodesModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowAddNodeModal(false)}
+      >
+        <View style={dynamicStyles.modalOverlay}>
+          <View style={dynamicStyles.modalContent}>
+            <Text style={dynamicStyles.modalTitle}>{t('filterNodesModalTitle')}</Text>
+            <FlatList
+              data={nodesFiltersList}
+              keyExtractor={item => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={dynamicStyles.modalItem}
+                  onPress={() => handleFilterNodeSelect(item)}
+                >
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      gap: 3
+                    }}
+                  >
+                    {selectedNodesFilter.id == item.id && (
+                      <Ionicons name="checkmark" size={24} color={colors.primary} />
+                    )}
+
+                    <Text style={dynamicStyles.modalItemText}>{item.name}</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+
+      </Modal>
 
     </View>
   );

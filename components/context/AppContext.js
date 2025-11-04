@@ -121,6 +121,8 @@ export const AppProvider = ({ children }) => {
   // Traducciones
   const translations = {
     en: {
+      allNodeFilter: 'All',
+      filterNodesModalTitle: 'Filter nodes',
       noneSelectedBuffer: 'None buffer selected',
       label: 'Label',
       fiberDetails: 'Fiber details',
@@ -309,7 +311,7 @@ export const AppProvider = ({ children }) => {
       selectedEquipment: 'Selected Equipment',
       selectedFiberTypes: 'Selected Fiber Types',
       fibersEmpty: 'No fibers added',
-      nodesEmpty : 'No haz agregado ninguno',
+      nodesEmpty : 'Empty nodes',
 
       // Estadísticas
       devices: 'Devices',
@@ -714,6 +716,8 @@ export const AppProvider = ({ children }) => {
       copiedToClipboard: 'Copied to clipboard'
     },
     es: {
+      allNodeFilter: 'Todos',
+      filterNodesModalTitle: 'Filtrar nodos',
       noneSelectedBuffer: 'Ningún búfer seleccionado',
       label: 'Nombre',
       fiberDetails: 'Detalles de la fibra',
@@ -1034,7 +1038,7 @@ export const AppProvider = ({ children }) => {
       selectedEquipment: 'Equipo Seleccionado',
       selectedFiberTypes: 'Tipos de Fibra Seleccionados',
       fibersEmpty: 'No haz agregado ninguna',
-      nodesEmpty: 'No haz agregado ninguno',
+      nodesEmpty: 'Ningún nodo',
 
       // Estadísticas
       devices: 'Dispositivos',
