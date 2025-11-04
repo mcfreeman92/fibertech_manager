@@ -1465,6 +1465,14 @@ const CreateProject = ({ navigation, route, theme }) => {
     navigation.navigate('FiberDetails', tmp);
   }
 
+  const handleSeeNodeLinks = (node) => {
+
+
+    navigation.navigate('NodeLinks', {
+      node : node
+    });
+  }
+
   const RenderNode = ({ node }) => {
     return (
       <View style={combinedStyles.fiberCard}>
@@ -1475,10 +1483,18 @@ const CreateProject = ({ navigation, route, theme }) => {
 
             </Text>
           </View>
+
+          <TouchableOpacity
+            style={{ marginRight: 3 }}
+            onPress={() => handleSeeNodeLinks(node)}
+          >
+            <Ionicons name="git-network" size={24} color={colors.primary} />
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={{ marginRight: 3 }}
           >
-            <Ionicons name="location" size={24} color={colors.primary} />
+            <Ionicons name="location" size={24} color={'#666261ff'} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -1695,8 +1711,6 @@ const CreateProject = ({ navigation, route, theme }) => {
           />
 
         </View>
-
-
 
       </ScrollView>
 

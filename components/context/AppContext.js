@@ -121,6 +121,12 @@ export const AppProvider = ({ children }) => {
   // Traducciones
   const translations = {
     en: {
+      Source: 'Source',
+      Thread: 'Thread number',
+      Destiny: 'Destiny',
+      fusionPoint: 'Fusion point',
+      fusionLinks: 'Fusion points',
+      nodeLinks: 'Enlaces del nodo',
       allNodeFilter: 'All',
       filterNodesModalTitle: 'Filter nodes',
       noneSelectedBuffer: 'None buffer selected',
@@ -311,7 +317,7 @@ export const AppProvider = ({ children }) => {
       selectedEquipment: 'Selected Equipment',
       selectedFiberTypes: 'Selected Fiber Types',
       fibersEmpty: 'No fibers added',
-      nodesEmpty : 'Empty nodes',
+      nodesEmpty: 'Empty nodes',
 
       // Estadísticas
       devices: 'Devices',
@@ -716,6 +722,12 @@ export const AppProvider = ({ children }) => {
       copiedToClipboard: 'Copied to clipboard'
     },
     es: {
+      Source: 'Origen',
+      Thread: 'Número del hilo',
+      Destiny: 'Destino',
+      fusionPoint: 'Punto de fusión',
+      fusionLinks: 'Puntos de fusión',
+      nodeLinks: 'Enlaces del nodo',
       allNodeFilter: 'Todos',
       filterNodesModalTitle: 'Filtrar nodos',
       noneSelectedBuffer: 'Ningún búfer seleccionado',

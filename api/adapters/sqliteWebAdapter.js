@@ -337,7 +337,6 @@ export const sqliteWebAdapter = {
       const updates = {
         label: data.label,
         metadata: data.metadata,
-        parentId: data.parentId || null,
         modifiedDate: now
       };
 

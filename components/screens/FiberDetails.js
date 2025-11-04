@@ -395,6 +395,7 @@ const FiberDetails = ({ route, navigation }) => {
     const loadBufferThreads = async () => {
       if (buffers.length > 0) {
         setSelectedBuffer(buffersData[0]);
+        setThreadsData(buffersData[0].threads);
       }
     };
 
