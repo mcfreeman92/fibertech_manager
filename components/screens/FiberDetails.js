@@ -19,18 +19,21 @@ import RNPickerSelect from 'react-native-picker-select';
 import { number } from 'yup';
 
 
-
+/** ADAPTER PARA LOS DATOS */
+import { useAdapter } from '@/api/contexts/DatabaseContext';
 
 const FiberDetails = ({ route, navigation }) => {
   const { topInset, bottomInset, stylesFull } = useDevice();
   const { isDarkMode } = useApp();
   const { t } = useTranslation();
-  const { fiber } = route.params;
-  const [fiberData, setFiberData] = useState(fiber);
+  const { buffers } = route.params;
+
   const [threadsData, setThreadsData] = useState([]);
-  const [buffersData, setBuffersData] = useState([]);
-  const [selectedBufferId, setSelectedBufferId] = useState(null);
+  const [buffersData, setBuffersData] = useState(buffers);
+
   const [selectedBuffer, setSelectedBuffer] = useState(null);
+
+  const { updateFiber } = useAdapter()();
 
 
   const fiberTypesList = [
@@ -239,13 +242,13 @@ const FiberDetails = ({ route, navigation }) => {
     enabledPort: {
       fontSize: 15,
       fontWeight: '600',
-      color: colors.text,
+      color: '#f9ffe8ff',
       marginBottom: 8,
     },
     disabledPort: {
       fontSize: 15,
       fontWeight: '600',
-      color: '#d3d3d3ff',
+      color: '#cbc6c6ff',
       marginBottom: 8,
     },
     label2: {
@@ -357,14 +360,23 @@ const FiberDetails = ({ route, navigation }) => {
   const handleSave = () => {
     // Ejecutar el callback si existe
     if (route.params?.onSaveFiber) {
-      let update = {
-        ...buffersData[0]
-      };
+      for (let i = 0; i < buffersData.length; i++) {
+        const fiber = buffersData[i];
+        if (fiber.id != undefined) {
+          const meta = JSON.stringify(fiber.threads);
 
-      for (let i = 1; i < buffersData.length; i++)
-        update.buffers.push(buffersData[i]);
+          updateFiber(fiber.id, {
+            label: fiber.label,
+            metadata: meta
+          }).then(r => {
 
-      route.params.onSaveFiber(update);
+          }).catch( e => {
+            console.error('Error updating Fiber:', e);
+          });
+        }
+      }
+
+      route.params.onSaveFiber(buffersData);
     }
 
     navigation.goBack();
@@ -381,34 +393,9 @@ const FiberDetails = ({ route, navigation }) => {
 
   useEffect(() => {
     const loadBufferThreads = async () => {
-
-      if (fiberData.buffers.length > 0) {
-        let buffer = {
-          ...fiberData,
-          value: fiber.id == undefined ? fiber.hash : fiber.id,
-        };
-
-        let buffers = [buffer];
-        fiberData.buffers.forEach(b => {
-          buffer = {
-            ...b,
-            value: b.id == undefined ? b.hash : b.id,
-          };
-
-          buffers = [...buffers, buffer];
-        });
-
-        setBuffersData(buffers);
-        setSelectedBufferId(buffers[0].value);
-        setSelectedBuffer(buffers[0]);
-      } else {
-        const buffers = [...buffersData, fiberData];
-        setBuffersData(buffers);
-        setSelectedBufferId(buffers[0].value);
-        setSelectedBuffer(buffers[0]);
-        setThreadsData(buffers[0].threads);
+      if (buffers.length > 0) {
+        setSelectedBuffer(buffersData[0]);
       }
-
     };
 
     loadBufferThreads();
@@ -424,6 +411,47 @@ const FiberDetails = ({ route, navigation }) => {
     }).text;
   };
 
+  // Función para calcular luminancia y determinar color de texto
+  const getContrastColor = (hexColor) => {
+    // Si el color es muy claro, usar texto oscuro, sino claro
+    const hex = hexColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+
+    // Fórmula de luminancia relativa
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+    return luminance > 0.5 ? '#000000' : '#FFFFFF';
+  };
+
+  const RenderThread = ({ item }) => {
+    const textColor = getContrastColor(item.color);
+
+    return (
+      <View style={{
+        backgroundColor: item.color,
+        paddingLeft: 8,
+        paddingRight: 8,
+        margin: 2,
+        borderWidth: 1,
+        borderColor: '#e9ecef',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 2,
+        borderRadius: 5
+      }}>
+        <Text style={[
+          item.active ? styles.enabledPort : styles.disabledPort,
+          { color: textColor }
+        ]}>
+          {`${t('port')} - ${item.number}`}
+        </Text>
+      </View>
+    );
+  };
 
   return (
     <View style={[stylesFull.screen, { backgroundColor: colors.background }, { paddingBottom: bottomInset }]}>
@@ -465,7 +493,7 @@ const FiberDetails = ({ route, navigation }) => {
             <TextInput
               readOnly={true}
               style={styles.input}
-              value={fiberTypesList.find(x => x.typeId == fiberData.typeId).name || ''}
+              value={fiberTypesList.find(x => x.typeId == buffersData[0].typeId).name || ''}
             />
           </View>
 
@@ -474,13 +502,11 @@ const FiberDetails = ({ route, navigation }) => {
             <Text style={styles.label} >{t('label')}</Text>
             <TextInput
               style={styles.input}
-              value={fiberData.label}
+              value={buffersData[0].label}
               onChangeText={(text) => {
-                const tmp = {
-                  ...fiberData,
-                  label: text
-                };
-                setFiberData(tmp);
+                let tmp = [...buffersData];
+                tmp[0].label = text;
+                setBuffersData(tmp);
               }}
 
             />
@@ -490,17 +516,16 @@ const FiberDetails = ({ route, navigation }) => {
         </View>
 
         {/**Buffers */}
-        {fiberData.buffers.length > 0 && (
+        {buffersData.length > 1 && (
           <View>
             <Text style={styles.label2} >{'Buffers'}</Text>
 
             <RNPickerSelect
               style={pickerSelectStyles}
-              value={selectedBufferId}
+              value={selectedBuffer != null ? selectedBuffer.value : 0}
               useNativeAndroidPickerStyle={false}
               onValueChange={(value) => {
                 if (value != null) {
-                  setSelectedBufferId(value);
                   const buffer = buffersData.find(x => x.value == value);
                   setSelectedBuffer(buffer);
                   setThreadsData(buffer.threads);
@@ -530,16 +555,7 @@ const FiberDetails = ({ route, navigation }) => {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                   }}>
-                    <View style = {{
-                      backgroundColor: item.color,
-                      paddingLeft: 8,
-                      paddingRight: 8,
-                      margin: 2
-                    }}>
-                      <Text style={item.enabled ? styles.enabledPort : styles.disabledPort} >{`${t('port')} - ${item.number}`}</Text>
-                    </View>
-
-
+                    <RenderThread item={item}> </RenderThread>
                     <Switch
                       trackColor={{ false: "#767577", true: "#81b0ff" }}
                       value={item.active}
@@ -553,8 +569,6 @@ const FiberDetails = ({ route, navigation }) => {
             />
           )}
         </View>
-
-
 
 
       </ScrollView>

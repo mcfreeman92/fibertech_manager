@@ -662,7 +662,7 @@ const CreateProject = ({ navigation, route, theme }) => {
       hash: uuidv4(),
       count: 1,
       typeId: fiberType.typeId,
-      label:fiberType.name,
+      label: fiberType.name,
       description: fiberType.name
     };
 
@@ -1406,10 +1406,29 @@ const CreateProject = ({ navigation, route, theme }) => {
   }
 
   const handleSeeFiberInfo = (fiber) => {
+    let buffers = [{
+      ...fiber,
+      value: fiber.id == undefined ? fiber.hash : fiber.id
+    }];
+
+    fiber.buffers.forEach(b => {
+      const buffer = {
+        ...b,
+        value: b.id == undefined ? b.hash : b.id,
+      };
+
+      buffers = [...buffers, buffer];
+    });
+
     const tmp = {
-      fiber: fiber,
+      buffers: buffers,
       onSaveFiber: (data) => {
-        updateFiber(data);
+        /**Build updated fiber */
+        const update = {
+          ...data[0],
+          buffers : data.slice(1)
+        }
+        updateFiber(update);
       }
     };
 
