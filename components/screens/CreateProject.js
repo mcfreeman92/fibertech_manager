@@ -34,6 +34,7 @@ import { v4 as uuidv4 } from 'uuid';
 // import ViewShot from 'react-native-view-shot';
 // import CameraRoll from '@react-native-cameraroll/cameraroll';
 import * as MediaLibrary from 'expo-media-library';
+import FusionLink from './FusionLink';
 
 const CreateProject = ({ navigation, route, theme }) => {
   const { createProject, updateProject, getProjectById, createNode, createFiber, getFibers, getFiberById, getNodes } = useAdapter()();
@@ -434,7 +435,8 @@ const CreateProject = ({ navigation, route, theme }) => {
           modifiedDate: new Date().toISOString(),
           deleted: 0,
           typeId: 1,
-          devices: []
+          devices: [],
+          fusionLinks: [],
         }
       ]);
     };
@@ -811,14 +813,18 @@ const CreateProject = ({ navigation, route, theme }) => {
           const node = nodes[i];
 
           if (node.id == undefined) {
-            const meta = JSON.stringify(node.devices);
+
+            const meta = {
+              devices : node.devices,
+              fusionLinks : node.fusionLinks,
+            };
 
             const dbNode = await createNode({
               label: node.label,
               projectId: project.id,
               typeId: node.typeId || '',
               description: '',
-              metadata: meta,
+              metadata: JSON.stringify(meta),
               createdDate: node.createdDate,
               modifiedDate: node.modifiedDate,
             });
@@ -868,14 +874,18 @@ const CreateProject = ({ navigation, route, theme }) => {
         /**Persist nodes */
         for (let i = 0; i < nodes.length; i++) {
           const node = nodes[i];
-          const meta = JSON.stringify(node.devices);
+
+            const meta = {
+              devices : node.devices,
+              fusionLinks : node.fusionLinks,
+            };
 
           const dbNode = await createNode({
             label: node.label,
             projectId: project.id,
             typeId: node.typeId || '',
             description: '',
-            metadata: meta,
+            metadata: JSON.stringify(meta),
             createdDate: node.createdDate,
             modifiedDate: node.modifiedDate,
           });

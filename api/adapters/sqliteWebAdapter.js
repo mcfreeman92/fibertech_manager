@@ -180,7 +180,6 @@ export const sqliteWebAdapter = {
   createNode: async (data) => {
     try {
       const now = new Date().toISOString();
-      const metadata = data.Metadata ? JSON.stringify(data.Metadata) : null;
 
       const nodeData = {
         label: data.label,
@@ -188,13 +187,13 @@ export const sqliteWebAdapter = {
         typeId: data.typeId || '',
         description: data.description || '',
         metadata: data.metadata,
-        createdDate: data.createdDate,
-        modifiedDate: data.modifiedDate,
+        createdDate: now,
+        modifiedDate: now,
         deleted: 0
       };
 
-      const Id = await db.nodes.add(nodeData);
-      return { Id, ...data, CreatedDate: now, ModifiedDate: now, Deleted: 0 };
+      const id = await db.nodes.add(nodeData);
+      return { ...nodeData, id : id };
     } catch (error) {
       console.error('Error creating node:', error);
       throw error;

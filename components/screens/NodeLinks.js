@@ -430,7 +430,7 @@ const NodeLinks = ({ route, navigation }) => {
     SPACING: {
       SM: 8,
       MD: 12,
-      LG: 16,
+      LG: 10,
       XL: 20,
     },
     RADIUS: {
@@ -639,60 +639,85 @@ const NodeLinks = ({ route, navigation }) => {
   const RenderFusionLink = ({ link, onPress }) => {
     const { src, dst } = link;
 
-    const ContainerComponent = onPress ? TouchableOpacity : View;
-
     return (
-      <ContainerComponent
-        style={styles2.container}
-        onPress={onPress}
-        activeOpacity={0.7}
+      <View
+        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+        onPress={() => console.log('OK')}
       >
-        {/* Source Section */}
-        <FiberThreadInfo
-          fiberLabel={src.fiberLabel}
-          thread={src.thread}
-          direction="source"
-          buffer={src.bufferLabel}
-        />
+        <View
+          style={styles2.container}
+          onPress={onPress}
+          activeOpacity={0.7}
+        >
+          {/* Source Section */}
+          <FiberThreadInfo
+            fiberLabel={src.fiberLabel}
+            thread={src.thread}
+            direction="source"
+            buffer={src.bufferLabel}
+          />
 
-        {/* Connection Icon */}
-        <View style={styles2.connectionCenter}>
-          <View style={styles2.iconContainer}>
-            <Ionicons
-              name={CONFIG.ICON.NAME}
-              size={CONFIG.ICON.SIZE}
-              color={CONFIG.ICON.COLOR}
-            />
+          {/* Connection Icon */}
+          <View style={styles2.connectionCenter}>
+            <View style={styles2.iconContainer}>
+              <Ionicons
+                name={CONFIG.ICON.NAME}
+                size={CONFIG.ICON.SIZE}
+                color={CONFIG.ICON.COLOR}
+              />
+            </View>
+
           </View>
 
-        </View>
+          {/* Destination Section */}
+          <FiberThreadInfo
+            fiberLabel={dst.fiberLabel}
+            thread={dst.thread}
+            direction="destination"
+            buffer={dst.bufferLabel}
+          />
 
-        {/* Destination Section */}
-        <FiberThreadInfo
-          fiberLabel={dst.fiberLabel}
-          thread={dst.thread}
-          direction="destination"
-          buffer={dst.bufferLabel}
-        />
+
+
+
+        </View>
 
         <View style={styles2.connectionCenter}>
           <View style={styles2.iconContainer2}>
-            <Ionicons
-              name={'trash'}
-              size={15}
-              color={'#ffffffff'}
-            />
-          </View>
 
+            <TouchableOpacity
+              onPress={() => {
+                console.warn('⚠️ Este mensaje es más visible');
+              }}
+            >
+              
+              <Ionicons
+                name={'trash'}
+                size={15}
+                color={'#ffffffff'}
+              />
+            </TouchableOpacity>
+
+          </View>
         </View>
 
-      </ContainerComponent>
+
+
+      </View>
     );
   };
 
-  const handleSaveFusionLink = (data) => {
+  const handleSaveFusionLink = (link) => {
     let fusionLinks = nodeData.fusionLinks == undefined ? [] : nodeData.fusionLinks;
-    fusionLinks.push(data);
+
+    const index = nodeData.fusionLinks.findIndex(x => x.hash == link.hash);
+
+    if (index == -1) {
+      fusionLinks.push(link);
+    }
+    else {
+      fusionLinks[index] = link;
+    }
 
     const tmp = {
       ...nodeData,
@@ -705,15 +730,7 @@ const NodeLinks = ({ route, navigation }) => {
   const handleAddFusionLink = () => {
     navigation.navigate('FusionLink', {
       projectId: node.projectId,
-      link: {
-        hash: uuidv4(),
-        src: '',
-        srcBuffer: '',
-        srcThread: '',
-        dst: '',
-        dstBuffer: '',
-        dstThread: '',
-      },
+      linkHash: uuidv4(),
       onSaveFusionLink: (link) => {
         handleSaveFusionLink(link);
       }
@@ -774,11 +791,7 @@ const NodeLinks = ({ route, navigation }) => {
         <FlatList
           data={nodeData.fusionLinks == undefined ? [] : nodeData.fusionLinks}
           renderItem={({ item }) => (
-            <View style={[styles.card, { backgroundColor: colors.card }]}>
-              <View style={styles.deviceHeader}>
-              </View>
-              <RenderFusionLink link={item} />
-            </View>
+            <RenderFusionLink link={item} />
           )}
         >
 

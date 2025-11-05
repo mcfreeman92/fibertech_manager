@@ -34,6 +34,7 @@ const FusionLink = ({ route, navigation }) => {
   const { t } = useTranslation();
   const { projectId } = route.params;
   const { link } = route.params;
+  const { linkHash } = route.params;
 
   const [showFusionModal, setShowFusionModal] = useState(true);
   const [fibersData, setFibersData] = useState([]);
@@ -400,7 +401,7 @@ const FusionLink = ({ route, navigation }) => {
   };
 
   const saveAndGoBack = () => {
-    const result = {
+    let result = {
       src: {
         fiberId: srcLink.fiber.id,
         fiberLabel: srcLink.fiber.label,
@@ -416,6 +417,8 @@ const FusionLink = ({ route, navigation }) => {
         thread: dstLink.thread
       }
     };
+
+    result.hash = linkHash;
 
     route.params.onSaveFusionLink(result);
     navigation.goBack();
@@ -528,13 +531,13 @@ const FusionLink = ({ route, navigation }) => {
         </TouchableOpacity>
 
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          {t('FusionLink')}
+          {t('fusionLink')}
         </Text>
 
         <View style={{ flexDirection: 'row', }}>
           <View style={styles.headerActions}>
             <TouchableOpacity onPress={verEnMapa} style={styles.mapButton}>
-              <Ionicons name="location" size={24} color="#666261ff" />
+              <Ionicons name="add" size={24} color="#3498db" />
             </TouchableOpacity>
           </View>
 
