@@ -343,7 +343,7 @@ const FusionLink = ({ route, navigation }) => {
       borderRadius: 12,
       color: '#1F2937',
       backgroundColor: '#F9FAFB',
-      paddingRight: 50,
+      paddingRight: 10,
       marginVertical: 8,
       outline: 'none', // Importante para web
       cursor: 'pointer',
@@ -434,6 +434,7 @@ const FusionLink = ({ route, navigation }) => {
   };
 
 
+  
 
   const getContrastColor = (hexColor) => {
     // Si el color es muy claro, usar texto oscuro, sino claro

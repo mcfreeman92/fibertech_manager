@@ -821,7 +821,7 @@ const CreateProject = ({ navigation, route, theme }) => {
 
             const dbNode = await createNode({
               label: node.label,
-              projectId: project.id,
+              projectId: projectId,
               typeId: node.typeId || '',
               description: '',
               metadata: JSON.stringify(meta),
@@ -839,7 +839,7 @@ const CreateProject = ({ navigation, route, theme }) => {
 
           const dbFiber = await createFiber({
             label: fiber.label,
-            projectId: project.id,
+            projectId: projectId,
             typeId: fiber.typeId || sinleFiberTpeId,
             description: '',
             metadata: meta,
@@ -855,7 +855,7 @@ const CreateProject = ({ navigation, route, theme }) => {
 
             await createFiber({
               label: buffer.label,
-              projectId: project.id,
+              projectId: projectId,
               parentId: dbFiber.id,
               typeId: buffer.typeId || sinleFiberTpeId,
               description: '',
@@ -932,6 +932,7 @@ const CreateProject = ({ navigation, route, theme }) => {
       console.log('❌ Error saving project:', error);
       Alert.alert('❌ ' + t('error'), t(isEditMode ? 'failedToUpdate' : 'failedToSave'));
     } finally {
+      console.log('✅ Project saved');
       setSaving(false);
       navigation.goBack();
     }
