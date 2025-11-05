@@ -378,47 +378,317 @@ const NodeLinks = ({ route, navigation }) => {
     //navigation.navigate('ViewOnMap', { selectedProject: proyecto });
   };
 
-  const saveAndGoBack = () => {
-    const savedNode = {
-      ...nodeData,
-      devices: devicesData
-    };
-
-    route.params.onSaveNode(savedNode);
-    navigation.goBack();
-  }
-
   const handleSave = () => {
     // Ejecutar el callback si existe
     if (route.params?.onSaveNode) {
       if (node.id != undefined) {
-        const upd = { ...nodeData, metadata: JSON.stringify(devicesData) };
+
+        const meta = {
+          devices: nodeData.devices,
+          fusionLinks: nodeData.fusionLinks
+        }
+
+        const upd = {
+          ...nodeData,
+          metadata: JSON.stringify(meta)
+        }
+
         updateNode(node.id, upd).then(r => {
-          saveAndGoBack();
+          navigation.goBack();
         }).catch(e => {
 
         })
-      } else {
-        saveAndGoBack();
       }
+    }
+    else {
+      navigation.goBack();
     }
   };
 
-  const updateDevice = (device) => {
-    let index = -1;
+  // Constantes para el diseño
+  const CONFIG = {
+    ICON: {
+      NAME: 'link',
+      SIZE: 20,
+      COLOR: '#ffffff',
+    },
+    ICON_DEL: {
+      NAME: 'link',
+      SIZE: 20,
+      COLOR: '#ffffff',
+    },
+    COLORS: {
+      PRIMARY: '#6366f1',
+      PRIMARY_DARK: '#4f46e5',
+      SECONDARY: '#8b5cf6',
+      BACKGROUND: '#f8fafc',
+      TEXT_PRIMARY: '#1e293b',
+      TEXT_SECONDARY: '#64748b',
+      BORDER: '#e2e8f0',
+      SUCCESS: '#10b981',
+    },
+    SPACING: {
+      SM: 8,
+      MD: 12,
+      LG: 16,
+      XL: 20,
+    },
+    RADIUS: {
+      SM: 8,
+      MD: 12,
+      LG: 16,
+    },
+  };
 
-    if (device.hash != undefined) {
-      index = devicesData.findIndex(x => x.hash == device.hash);
-    } else {
-      index = devicesData.findIndex(x => x.id == device.id);
-    }
+  // Styles mejorados con gradientes y sombras
+  const styles2 = {
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: CONFIG.COLORS.BACKGROUND,
+      marginHorizontal: CONFIG.SPACING.MD,
+      marginVertical: CONFIG.SPACING.SM,
+      padding: CONFIG.SPACING.LG,
+      borderRadius: CONFIG.RADIUS.LG,
+      borderWidth: 1,
+      borderColor: CONFIG.COLORS.BORDER,
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 3,
+    },
+    fiberThreadContainer: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
 
-    if (index != -1) {
-      let tmp = [...devicesData];
-      tmp[index] = device;
-      setDevicesData(tmp);
-    }
-  }
+      backgroundColor: '#ffffff',
+      padding: CONFIG.SPACING.MD,
+      borderRadius: CONFIG.RADIUS.MD,
+      borderWidth: 1,
+      borderColor: CONFIG.COLORS.BORDER,
+    },
+    sourceContainer: {
+      borderLeftWidth: 4,
+      borderLeftColor: CONFIG.COLORS.SUCCESS,
+    },
+    destinationContainer: {
+      borderRightWidth: 4,
+      borderRightColor: CONFIG.COLORS.PRIMARY,
+    },
+    fiberBadge: {
+      backgroundColor: CONFIG.COLORS.PRIMARY,
+      paddingHorizontal: CONFIG.SPACING.SM,
+      paddingVertical: 4,
+      borderRadius: CONFIG.RADIUS.SM,
+      marginRight: CONFIG.SPACING.SM,
+    },
+    fiberLabel: {
+      color: '#ffffff',
+      fontSize: 10,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+    },
+    connectionInfo: {
+      flex: 1,
+    },
+    fiberName: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: CONFIG.COLORS.TEXT_PRIMARY,
+      marginBottom: 2,
+    },
+    threadContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    threadText: {
+      fontSize: 12,
+      color: CONFIG.COLORS.TEXT_SECONDARY,
+      fontWeight: '500',
+      marginLeft: 4,
+    },
+    arrowIcon: {
+
+    },
+    arrowIcon2: {
+      marginRight: 8
+    },
+    connectionCenter: {
+      alignItems: 'center',
+      marginHorizontal: CONFIG.SPACING.MD,
+    },
+    iconContainer: {
+      backgroundColor: CONFIG.COLORS.PRIMARY,
+      width: 30,
+      height: 30,
+      borderRadius: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: CONFIG.COLORS.PRIMARY,
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 4,
+      zIndex: 2,
+    },
+    iconContainer2: {
+      backgroundColor: 'salmon',
+      width: 30,
+      height: 30,
+      borderRadius: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: CONFIG.COLORS.PRIMARY,
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 4,
+      zIndex: 2,
+    },
+    connectionLine: {
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      width: 2,
+      height: '200%',
+      backgroundColor: CONFIG.COLORS.PRIMARY,
+      opacity: 0.3,
+      transform: [{ translateX: -1 }],
+      zIndex: 1,
+    },
+  };
+
+  // Componente para información de fibra con mejor diseño
+  const FiberThreadInfo = ({ fiberLabel, thread, buffer, direction = 'source' }) => {
+    const isSource = direction === 'source';
+
+    return (
+      <View>
+        <View style={[
+          styles2.fiberThreadContainer,
+          isSource ? styles2.sourceContainer : styles2.destinationContainer
+        ]}>
+
+          <View>
+            <View style={{ flexDirection: 'row', alignItems: '' }}>
+              {isSource == false && (
+                <Ionicons
+                  name={"arrow-back"}
+                  size={16}
+                  color={CONFIG.COLORS.TEXT_SECONDARY}
+                  style={styles2.arrowIcon2}
+                />
+              )}
+
+              <View style={styles2.fiberBadge}>
+                <Text style={styles2.fiberLabel}>Thread {thread}</Text>
+              </View>
+
+              {isSource && (
+                <Ionicons
+                  name={"arrow-forward"}
+                  size={16}
+                  color={CONFIG.COLORS.TEXT_SECONDARY}
+                  style={styles2.arrowIcon}
+                />
+              )}
+            </View>
+
+            <View style={{ marginTop: 10 }}>
+              <View style={styles2.connectionInfo}>
+                <View style={styles2.threadContainer}>
+                  <Text style={styles2.threadText}>Fiber {fiberLabel}</Text>
+                  {buffer != null && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Ionicons
+                        name={"caret-forward"}
+                        size={16}
+                        color={CONFIG.COLORS.TEXT_SECONDARY}
+                      />
+                      <Text style={styles2.threadText}>Buffer {buffer}</Text>
+                    </View>
+
+                  )}
+                </View>
+              </View>
+            </View>
+          </View>
+
+
+        </View>
+        <View>
+
+        </View>
+      </View>
+    );
+  };
+
+  // Componente principal con mejoras visuales
+  const RenderFusionLink = ({ link, onPress }) => {
+    const { src, dst } = link;
+
+    const ContainerComponent = onPress ? TouchableOpacity : View;
+
+    return (
+      <ContainerComponent
+        style={styles2.container}
+        onPress={onPress}
+        activeOpacity={0.7}
+      >
+        {/* Source Section */}
+        <FiberThreadInfo
+          fiberLabel={src.fiberLabel}
+          thread={src.thread}
+          direction="source"
+          buffer={src.bufferLabel}
+        />
+
+        {/* Connection Icon */}
+        <View style={styles2.connectionCenter}>
+          <View style={styles2.iconContainer}>
+            <Ionicons
+              name={CONFIG.ICON.NAME}
+              size={CONFIG.ICON.SIZE}
+              color={CONFIG.ICON.COLOR}
+            />
+          </View>
+
+        </View>
+
+        {/* Destination Section */}
+        <FiberThreadInfo
+          fiberLabel={dst.fiberLabel}
+          thread={dst.thread}
+          direction="destination"
+          buffer={dst.bufferLabel}
+        />
+
+        <View style={styles2.connectionCenter}>
+          <View style={styles2.iconContainer2}>
+            <Ionicons
+              name={'trash'}
+              size={15}
+              color={'#ffffffff'}
+            />
+          </View>
+
+        </View>
+
+      </ContainerComponent>
+    );
+  };
 
   const handleSaveFusionLink = (data) => {
     let fusionLinks = nodeData.fusionLinks == undefined ? [] : nodeData.fusionLinks;
@@ -430,38 +700,6 @@ const NodeLinks = ({ route, navigation }) => {
     };
 
     setNodeData(tmp);
-  }
-
-  const RenderFusionLink = ({ link }) => {
-    return (
-      <View style={{ flexDirection: 'row', gap: 1, justifyContent: 'space-between' }}>
-
-        <View style={{ flexDirection: 'row' }}>
-          <Text style={styles.deviceName}>
-            {`Fiber -> ${link.src.fiberLabel} ->`}
-          </Text>
-          <Text style={styles.deviceName}>
-            {` Thread: ${link.src.thread}`}
-          </Text>
-        </View>
-
-        <Ionicons name="link" size={24} color="#2c3e50" />
-
-        <View style={{ flexDirection: 'row' }}>
-
-          <Text style={styles.deviceName}>
-            {`Thread: ${link.dst.thread} ->`}
-          </Text>
-
-          <Text style={styles.deviceName}>
-            {`Fiber -> ${link.dst.fiberLabel}`}
-          </Text>
-
-        </View>
-
-
-      </View>
-    )
   }
 
   const handleAddFusionLink = () => {

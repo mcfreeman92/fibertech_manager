@@ -1466,10 +1466,12 @@ const CreateProject = ({ navigation, route, theme }) => {
   }
 
   const handleSeeNodeLinks = (node) => {
-
-
     navigation.navigate('NodeLinks', {
-      node : node
+      node: node,
+      onSaveNode: (data) => {
+        updateNode(data);
+      }
+
     });
   }
 

@@ -430,54 +430,7 @@ const FusionLink = ({ route, navigation }) => {
     }
   };
 
-  const updateDevice = (device) => {
-    let index = -1;
 
-    if (device.hash != undefined) {
-      index = devicesData.findIndex(x => x.hash == device.hash);
-    } else {
-      index = devicesData.findIndex(x => x.id == device.id);
-    }
-
-    if (index != -1) {
-      let tmp = [...devicesData];
-      tmp[index] = device;
-      setDevicesData(tmp);
-    }
-  }
-
-  const handleSeeDeviceInfo = (device) => {
-    const tmp = {
-      deviceData: device,
-      onSaveDevice: (data) => {
-        updateDevice(data);
-      }
-    };
-
-    navigation.navigate('DeviceDetails', tmp);
-  }
-
-  const handleAddDevice = () => {
-    navigation.navigate('DeviceDetails', {
-      deviceData: {
-        hash: uuidv4(),
-        name: '',
-        label: '',
-        description: '',
-        defaultPorts: 0,
-        type: '',
-        serialNumber: '',
-        mac: '',
-        portsCount: '',
-        ports: []
-      },
-      onSaveDevice: (data) => {
-        let devs = [...devicesData];
-        devs.push(data);
-        setDevicesData(devs);
-      }
-    });
-  };
 
   const getContrastColor = (hexColor) => {
     // Si el color es muy claro, usar texto oscuro, sino claro

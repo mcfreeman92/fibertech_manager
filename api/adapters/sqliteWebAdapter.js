@@ -141,11 +141,13 @@ export const sqliteWebAdapter = {
       }
 
       return nodes.map(node => {
+        const meta = JSON.parse(node.metadata);
         const outNode = {
           ...node,
-          devices:  JSON.parse(node.metadata)
+          devices: meta.devices,
+          fusionLinks: meta.fusionLinks
         }
-        return outNode;;
+        return outNode;
       });
 
     } catch (error) {
@@ -162,23 +164,12 @@ export const sqliteWebAdapter = {
         return null;
       }
 
-      // Obtener información del tipo
-      let typeName = null;
-      let typeCode = null;
-
-      if (node.TypeId) {
-        const nodeType = await db.nodes_types.get(node.TypeId);
-        if (nodeType) {
-          typeName = nodeType.name;
-          typeCode = nodeType.type;
-        }
-      }
+      const meta = JSON.parse(node.metadata);
 
       return {
         ...node,
-        TypeName: typeName,
-        TypeCode: typeCode,
-        Metadata: node.Metadata ? JSON.parse(node.Metadata) : null
+        devices: meta.devices,
+        fusionLinks: meta.fusionLinks
       };
     } catch (error) {
       console.error('Error getting node by id:', error);
@@ -251,12 +242,12 @@ export const sqliteWebAdapter = {
           .where('projectId').equals(projectId)
           .and(node => node.deleted === 0 && node.parentId === parentId)
           .toArray();
-      } 
+      }
 
       fibers = fibers.map(fiber => {
         const outfiber = {
           ...fiber,
-          threads:  JSON.parse(fiber.metadata)
+          threads: JSON.parse(fiber.metadata)
         }
         return outfiber;;
       });
@@ -313,7 +304,7 @@ export const sqliteWebAdapter = {
     try {
       const fiberData = {
         projectId: data.projectId,
-        typeId : data.typeId,
+        typeId: data.typeId,
         label: data.label,
         metadata: data.metadata,
         parentId: data.parentId || null,
