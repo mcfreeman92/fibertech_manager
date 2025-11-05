@@ -89,7 +89,7 @@ const NodeLinks = ({ route, navigation }) => {
       color: colors.text,
     },
     section: {
-      marginBottom: 25,
+      marginBottom: 3,
     },
     sectionTitle: {
       fontSize: 18,
@@ -113,10 +113,8 @@ const NodeLinks = ({ route, navigation }) => {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 1,
-      paddingBottom: 4,
-      borderBottomColor: '#f1f1f1ff',
-      borderBottomWidth: 1,
+      marginBottom: 0,
+      paddingBottom: 4
 
     },
     deviceInfo: {
@@ -422,40 +420,51 @@ const NodeLinks = ({ route, navigation }) => {
     }
   }
 
-  const handleSeeDeviceInfo = (device) => {
+  const handleSaveFusionLink = (data) => {
+    let fusionLinks = nodeData.fusionLinks == undefined ? [] : nodeData.fusionLinks;
+    fusionLinks.push(data);
+
     const tmp = {
-      deviceData: device,
-      onSaveDevice: (data) => {
-        updateDevice(data);
-      }
+      ...nodeData,
+      fusionLinks: fusionLinks
     };
 
-    navigation.navigate('DeviceDetails', tmp);
+    setNodeData(tmp);
   }
 
-  const handleAddDevice = () => {
-    navigation.navigate('DeviceDetails', {
-      deviceData: {
-        hash: uuidv4(),
-        name: '',
-        label: '',
-        description: '',
-        defaultPorts: 0,
-        type: '',
-        serialNumber: '',
-        mac: '',
-        portsCount: '',
-        ports: []
-      },
-      onSaveDevice: (data) => {
-        let devs = [...devicesData];
-        devs.push(data);
-        setDevicesData(devs);
-      }
-    });
-  };
+  const RenderFusionLink = ({ link }) => {
+    return (
+      <View style={{ flexDirection: 'row', gap: 1, justifyContent: 'space-between' }}>
 
-  const handleAddFusionPoint = () => {
+        <View style={{ flexDirection: 'row' }}>
+          <Text style={styles.deviceName}>
+            {`Fiber -> ${link.src.fiberLabel} ->`}
+          </Text>
+          <Text style={styles.deviceName}>
+            {` Thread: ${link.src.thread}`}
+          </Text>
+        </View>
+
+        <Ionicons name="link" size={24} color="#2c3e50" />
+
+        <View style={{ flexDirection: 'row' }}>
+
+          <Text style={styles.deviceName}>
+            {`Thread: ${link.dst.thread} ->`}
+          </Text>
+
+          <Text style={styles.deviceName}>
+            {`Fiber -> ${link.dst.fiberLabel}`}
+          </Text>
+
+        </View>
+
+
+      </View>
+    )
+  }
+
+  const handleAddFusionLink = () => {
     navigation.navigate('FusionLink', {
       projectId: node.projectId,
       link: {
@@ -467,7 +476,8 @@ const NodeLinks = ({ route, navigation }) => {
         dstBuffer: '',
         dstThread: '',
       },
-      onSaveFusionPoint: (data) => {
+      onSaveFusionLink: (link) => {
+        handleSaveFusionLink(link);
       }
     });
   }
@@ -512,7 +522,7 @@ const NodeLinks = ({ route, navigation }) => {
           <View style={styles.deviceHeader}>
             <Text style={styles.sectionTitle}>{t('fusionLinks')}</Text>
             <TouchableOpacity
-              onPress={handleAddFusionPoint}
+              onPress={handleAddFusionLink}
               style={styles.clearButton}
 
             >
@@ -520,11 +530,21 @@ const NodeLinks = ({ route, navigation }) => {
             </TouchableOpacity>
           </View>
 
-
         </View>
 
 
+        <FlatList
+          data={nodeData.fusionLinks == undefined ? [] : nodeData.fusionLinks}
+          renderItem={({ item }) => (
+            <View style={[styles.card, { backgroundColor: colors.card }]}>
+              <View style={styles.deviceHeader}>
+              </View>
+              <RenderFusionLink link={item} />
+            </View>
+          )}
+        >
 
+        </FlatList>
 
       </ScrollView>
 

@@ -121,11 +121,12 @@ export const AppProvider = ({ children }) => {
   // Traducciones
   const translations = {
     en: {
+      Link: 'Link',
       Source: 'Source',
       Thread: 'Thread number',
       Destiny: 'Destiny',
       fusionPoint: 'Fusion point',
-      fusionLinks: 'Fusion points',
+      fusionLinks: 'Fusion links',
       nodeLinks: 'Enlaces del nodo',
       allNodeFilter: 'All',
       filterNodesModalTitle: 'Filter nodes',
@@ -722,11 +723,12 @@ export const AppProvider = ({ children }) => {
       copiedToClipboard: 'Copied to clipboard'
     },
     es: {
+       Link: 'Enlace',
       Source: 'Origen',
       Thread: 'Número del hilo',
       Destiny: 'Destino',
       fusionPoint: 'Punto de fusión',
-      fusionLinks: 'Puntos de fusión',
+      fusionLinks: 'Enlaces de fusión',
       nodeLinks: 'Enlaces del nodo',
       allNodeFilter: 'Todos',
       filterNodesModalTitle: 'Filtrar nodos',

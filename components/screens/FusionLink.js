@@ -336,7 +336,7 @@ const FusionLink = ({ route, navigation }) => {
     inputWeb: {
       fontSize: 16,
       paddingVertical: 15,
-      paddingHorizontal: 20,
+      paddingHorizontal: 8,
       borderWidth: 2,
       borderColor: '#E5E7EB',
       borderRadius: 12,
@@ -400,28 +400,33 @@ const FusionLink = ({ route, navigation }) => {
   };
 
   const saveAndGoBack = () => {
-    const savedNode = {
-      ...nodeData,
-      devices: devicesData
+    const result = {
+      src: {
+        fiberId: srcLink.fiber.id,
+        fiberLabel: srcLink.fiber.label,
+        bufferId: srcLink.buffer != null ? srcLink.buffer : null,
+        bufferLabel: srcLink.bufferLabel != undefined ? srcLink.bufferLabel : null,
+        thread: srcLink.thread
+      },
+      dst: {
+        fiberId: dstLink.fiber.id,
+        fiberLabel: dstLink.fiber.label,
+        bufferId: dstLink.buffer != null ? dstLink.buffer : null,
+        bufferLabel: dstLink.bufferLabel != undefined ? dstLink.bufferLabel : null,
+        thread: dstLink.thread
+      }
     };
 
-    route.params.onSaveNode(savedNode);
+    route.params.onSaveFusionLink(result);
     navigation.goBack();
   }
 
   const handleSave = () => {
     // Ejecutar el callback si existe
-    if (route.params?.onSaveNode) {
-      if (node.id != undefined) {
-        const upd = { ...nodeData, metadata: JSON.stringify(devicesData) };
-        updateNode(node.id, upd).then(r => {
-          saveAndGoBack();
-        }).catch(e => {
-
-        })
-      } else {
-        saveAndGoBack();
-      }
+    if (route.params?.onSaveFusionLink) {
+      saveAndGoBack();
+    } else {
+      navigation.goBack();
     }
   };
 
@@ -570,7 +575,7 @@ const FusionLink = ({ route, navigation }) => {
         </TouchableOpacity>
 
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          {t('fusionPoint')}
+          {t('FusionLink')}
         </Text>
 
         <View style={{ flexDirection: 'row', }}>
@@ -641,6 +646,7 @@ const FusionLink = ({ route, navigation }) => {
                 const tmp = {
                   ...srcLink,
                   buffer: value,
+                  bufferLabel: buffer.label,
                   threads: buffer.threads.filter(x => x.active == true).map(t => {
                     return {
                       ...t,
@@ -692,9 +698,43 @@ const FusionLink = ({ route, navigation }) => {
           />
         </View>
 
+        {/**Destiny Buffer*/}
+        {dstLink.fiber != null && dstLink.fiber.buffers.length > 1 && (
+          <View>
+            <Text style={styles.label} >{t('Buffer')}</Text>
+            <RNPickerSelect
+              style={pickerSelectStyles}
+              value={dstLink.buffer != null ? dstLink.buffer.value : null}
+              useNativeAndroidPickerStyle={false}
+              onValueChange={(value) => {
+                const buffer = dstLink.fiber.buffers.find(x => x.value == value);
+
+                const tmp = {
+                  ...dstLink,
+                  buffer: value,
+                  bufferLabel: buffer.label,
+                  threads: buffer.threads.filter(x => x.active == true).map(t => {
+                    return {
+                      ...t,
+                      value: t.number,
+                      label: `Thread - ${t.number}`
+                    }
+                  })
+                }
+                setDstLink(tmp);
+              }}
+              itemKey={item => item.value}
+              items={dstLink.fiber.buffers}
+              placeholder={{ label: t('selectAnOption'), value: null }}
+            />
+          </View>
+        )}
+
         { /** LINK */}
+        <Text style={styles.label} >{t('Link')}</Text>
+
         <View style={styles.formCard}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <RNPickerSelect
               style={pickerSelectStyles}
               value={srcLink.thread != null ? srcLink.thread : null}
@@ -710,6 +750,10 @@ const FusionLink = ({ route, navigation }) => {
               items={srcLink.threads}
               placeholder={{ label: t('selectAnOption'), value: null }}
             />
+
+            <View style={{ padding: 2 }}>
+              <Ionicons name="link" size={24} color="#666261ff" />
+            </View>
 
             <RNPickerSelect
               style={pickerSelectStyles}
