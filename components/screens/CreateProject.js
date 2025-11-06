@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -11,33 +11,50 @@ import {
   Share,
   Platform,
   PermissionsAndroid,
-  FlatList
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import QRCode from 'react-native-qrcode-svg';
-import { captureRef } from 'react-native-view-shot';
-import * as DocumentPicker from 'expo-document-picker';
-import { Picker } from '@react-native-picker/picker';
-import { ProjectService, UnitsService, ProjectTypeService, NodeService, FileService } from '../../service/storage';
-import { useTranslation } from '../hooks/useTranslation';
-import { useApp } from '../context/AppContext';
-import { useDevice } from '../context/DeviceContext';
+  FlatList,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import QRCode from "react-native-qrcode-svg";
+import { captureRef } from "react-native-view-shot";
+import * as DocumentPicker from "expo-document-picker";
+import { Picker } from "@react-native-picker/picker";
+import {
+  ProjectService,
+  UnitsService,
+  ProjectTypeService,
+  NodeService,
+  FileService,
+} from "../../service/storage";
+import { useTranslation } from "../hooks/useTranslation";
+import { useApp } from "../context/AppContext";
+import { useDevice } from "../context/DeviceContext";
 
 /** ADAPTER PARA LOS DATOS */
-import { useAdapter } from '@/api/contexts/DatabaseContext';
+import { useAdapter } from "@/api/contexts/DatabaseContext";
 
+import { generateHash } from "../../utils/utils";
 
-import { generateHash } from '../../utils/utils'
-
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 
 // import ViewShot from 'react-native-view-shot';
 // import CameraRoll from '@react-native-cameraroll/cameraroll';
-import * as MediaLibrary from 'expo-media-library';
-import FusionLink from './FusionLink';
+import * as MediaLibrary from "expo-media-library";
+import FusionLink from "./FusionLink";
 
 const CreateProject = ({ navigation, route, theme }) => {
-  const { createProject, updateProject, getProjectById, createNode, createFiber, getFibers, getFiberById, getNodes } = useAdapter()();
+  const {
+    createProject,
+    updateProject,
+    getProjectById,
+    createNode,
+    createFiber,
+    getFibers,
+    getFiberById,
+    getNodes,
+    updateFiber,
+    updateNode
+    
+  } = useAdapter()();
 
   const { topInset, isTablet, bottomInset, stylesFull } = useDevice();
   const { projectId } = route.params || {};
@@ -46,16 +63,39 @@ const CreateProject = ({ navigation, route, theme }) => {
   const [qrData, setQrData] = useState(null);
 
   const fiberTypesList = [
-    { typeId: '12F', name: '12F', description: 'fiber12FDescription', buffersCount: 1 },
-    { typeId: '24F', name: '24F', description: 'fiber24FDescription', buffersCount: 2 },
-    { typeId: '48F', name: '48F', description: 'fiber48FDescription', buffersCount: 4 },
-    { typeId: '96F', name: '96F', description: 'fiber96FDescription', buffersCount: 8 },
-    { typeId: '192F', name: '192F', description: 'fiber192FDescription', buffersCount: 16 }
+    {
+      typeId: "12F",
+      name: "12F",
+      description: "fiber12FDescription",
+      buffersCount: 1,
+    },
+    {
+      typeId: "24F",
+      name: "24F",
+      description: "fiber24FDescription",
+      buffersCount: 2,
+    },
+    {
+      typeId: "48F",
+      name: "48F",
+      description: "fiber48FDescription",
+      buffersCount: 4,
+    },
+    {
+      typeId: "96F",
+      name: "96F",
+      description: "fiber96FDescription",
+      buffersCount: 8,
+    },
+    {
+      typeId: "192F",
+      name: "192F",
+      description: "fiber192FDescription",
+      buffersCount: 16,
+    },
   ];
 
-  const sinleFiberTpeId = '12F';
-
-
+  const sinleFiberTpeId = "12F";
 
   // const viewShotRef = useRef();
   const { t } = useTranslation();
@@ -71,84 +111,110 @@ const CreateProject = ({ navigation, route, theme }) => {
 
   // Colores dinámicos basados en el tema
   const colors = {
-    background: isDarkMode ? '#121212' : '#f5f7fa',
-    cardBackground: isDarkMode ? '#1e1e1e' : 'white',
-    text: isDarkMode ? '#ffffff' : '#2c3e50',
-    qrtext: '#2c3e50',
-    secondaryText: isDarkMode ? '#b0b0b0' : '#7f8c8d',
-    border: isDarkMode ? '#333333' : '#e1e8ed',
-    inputBackground: isDarkMode ? '#2a2a2a' : '#f8f9fa',
-    placeholder: isDarkMode ? '#888888' : '#a0a0a0',
-    primary: '#3498db',
-    success: '#2ecc71',
-    warning: '#f39c12',
-    danger: '#e74c3c',
-    purple: '#9b59b6'
+    background: isDarkMode ? "#121212" : "#f5f7fa",
+    cardBackground: isDarkMode ? "#1e1e1e" : "white",
+    text: isDarkMode ? "#ffffff" : "#2c3e50",
+    qrtext: "#2c3e50",
+    secondaryText: isDarkMode ? "#b0b0b0" : "#7f8c8d",
+    border: isDarkMode ? "#333333" : "#e1e8ed",
+    inputBackground: isDarkMode ? "#2a2a2a" : "#f8f9fa",
+    placeholder: isDarkMode ? "#888888" : "#a0a0a0",
+    primary: "#3498db",
+    success: "#2ecc71",
+    warning: "#f39c12",
+    danger: "#e74c3c",
+    purple: "#9b59b6",
   };
-
 
   // Tipos disponibles de dispositivos y fibras
   const deviceTypes = [
-    { id: 'switch', name: 'Switch', description: 'ethernetSwitching', defaultPorts: 24 },
-    { id: 'router', name: 'Router', description: 'networkRouting', defaultPorts: 8 },
-    { id: 'access_point', name: 'Access Point', description: 'wirelessConnectivity', defaultPorts: 4 },
-    { id: 'olt', name: 'OLT', description: 'opticalLineTerminal', defaultPorts: 16 },
-    { id: 'ont', name: 'ONT', description: 'opticalNetworkTerminal', defaultPorts: 1 },
-    { id: 'splitter', name: 'Splitter', description: 'opticalSignalSplitting', defaultPorts: 8 }
+    {
+      id: "switch",
+      name: "Switch",
+      description: "ethernetSwitching",
+      defaultPorts: 24,
+    },
+    {
+      id: "router",
+      name: "Router",
+      description: "networkRouting",
+      defaultPorts: 8,
+    },
+    {
+      id: "access_point",
+      name: "Access Point",
+      description: "wirelessConnectivity",
+      defaultPorts: 4,
+    },
+    {
+      id: "olt",
+      name: "OLT",
+      description: "opticalLineTerminal",
+      defaultPorts: 16,
+    },
+    {
+      id: "ont",
+      name: "ONT",
+      description: "opticalNetworkTerminal",
+      defaultPorts: 1,
+    },
+    {
+      id: "splitter",
+      name: "Splitter",
+      description: "opticalSignalSplitting",
+      defaultPorts: 8,
+    },
   ];
 
-
-
   const fiberColors12Hex = [
-    { index: 0, color: '#0000FF' },
-    { index: 1, color: '#FFA500' },
-    { index: 2, color: '#008000' },
-    { index: 3, color: '#A52A2A' },
-    { index: 4, color: '#708090' },
-    { index: 5, color: '#FFFFFF' },
-    { index: 6, color: '#FF0000' },
-    { index: 7, color: '#000000' },
-    { index: 8, color: '#FFFF00' },
-    { index: 9, color: '#EE82EE' },
-    { index: 10, color: '#FFC0CB' },
-    { index: 11, color: '#00FFFF' }
+    { index: 0, color: "#0000FF" },
+    { index: 1, color: "#FFA500" },
+    { index: 2, color: "#008000" },
+    { index: 3, color: "#A52A2A" },
+    { index: 4, color: "#708090" },
+    { index: 5, color: "#FFFFFF" },
+    { index: 6, color: "#FF0000" },
+    { index: 7, color: "#000000" },
+    { index: 8, color: "#FFFF00" },
+    { index: 9, color: "#EE82EE" },
+    { index: 10, color: "#FFC0CB" },
+    { index: 11, color: "#00FFFF" },
   ];
 
   // Tipos disponibles de dispositivos y fibras
   const nodesTypesList = [
-    { id: 1, name: 'MDF', type: 'MDF' },
-    { id: 2, name: 'IDF', type: 'IDF' },
-    { id: 3, name: 'UNIT', type: 'U' },
+    { id: 1, name: "MDF", type: "MDF" },
+    { id: 2, name: "IDF", type: "IDF" },
+    { id: 3, name: "UNIT", type: "U" },
   ];
 
   const nodesFiltersList = [
-    { id: 0, name: t('allNodeFilter'), type: 'ALL' },
-    { id: 1, name: 'MDF', type: 'MDF' },
-    { id: 2, name: 'IDF', type: 'IDF' },
-    { id: 3, name: 'UNIT', type: 'U' },
+    { id: 0, name: t("allNodeFilter"), type: "ALL" },
+    { id: 1, name: "MDF", type: "MDF" },
+    { id: 2, name: "IDF", type: "IDF" },
+    { id: 3, name: "UNIT", type: "U" },
   ];
 
-  const [selectedNodesFilter, setSelectedNodesFilter] = useState(nodesFiltersList[1]);
+  const [selectedNodesFilter, setSelectedNodesFilter] = useState(
+    nodesFiltersList[1]
+  );
 
   const handleNodesFilterSelect = () => {
     setShowFilterNodesModal(true);
-  }
+  };
 
   const handleFilterNodeSelect = (filter) => {
     setSelectedNodesFilter(filter);
     setShowFilterNodesModal(false);
 
     /** update nodes list */
-    getNodes(projectId).then(result => {
-      if (filter.id == 0)
-        setNodes(result);
-      else
-        setNodes(result.filter(x => x.typeId == filter.id));
-    }).catch(e => {
-
-    })
-
-  }
+    getNodes(projectId)
+      .then((result) => {
+        if (filter.id == 0) setNodes(result);
+        else setNodes(result.filter((x) => x.typeId == filter.id));
+      })
+      .catch((e) => {});
+  };
 
   // Estilos base (sin colores específicos para mantener la estructura)
   const styles = StyleSheet.create({
@@ -156,8 +222,8 @@ const CreateProject = ({ navigation, route, theme }) => {
       padding: 5,
     },
     headerActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 15,
     },
     clearButton: {
@@ -174,27 +240,26 @@ const CreateProject = ({ navigation, route, theme }) => {
     },
     textArea: {
       height: 100,
-      textAlignVertical: 'top',
+      textAlignVertical: "top",
     },
     row: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
     },
     pickerContainerIOS: {
       height: 50,
-      justifyContent: 'center',
+      justifyContent: "center",
     },
     picker: {
       height: 50,
     },
-    pickerIOS: {
-    },
+    pickerIOS: {},
     attachmentsList: {
       marginTop: 15,
     },
     fileInfo: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       flex: 1,
       gap: 12,
     },
@@ -202,61 +267,61 @@ const CreateProject = ({ navigation, route, theme }) => {
       flex: 1,
     },
     actionButtons: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      justifyContent: "space-between",
       gap: 12,
     },
     actionButton: {
       flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
       borderRadius: 10,
       padding: 14,
       gap: 8,
     },
     qrButton: {
-      backgroundColor: '#9b59b6',
+      backgroundColor: "#9b59b6",
     },
     shareButton: {
-      backgroundColor: '#2ecc71',
+      backgroundColor: "#2ecc71",
     },
     saveButton: {
-      backgroundColor: '#3498db',
+      backgroundColor: "#3498db",
     },
     saveButtonDisabled: {
-      backgroundColor: '#bdc3c7',
+      backgroundColor: "#bdc3c7",
     },
     actionButtonText: {
-      color: 'white',
-      fontWeight: '600',
+      color: "white",
+      fontWeight: "600",
       fontSize: 15,
     },
     buttonDisabled: {
       opacity: 0.5,
     },
     modalContainer: {
-      width: '100%',
+      width: "100%",
       maxWidth: 400,
       borderRadius: 16,
-      overflow: 'hidden',
+      overflow: "hidden",
     },
     selectorModal: {
-      maxHeight: '80%',
+      maxHeight: "80%",
     },
     closeModalButton: {
-      backgroundColor: '#3498db',
+      backgroundColor: "#3498db",
       borderRadius: 10,
       padding: 15,
-      alignItems: 'center',
+      alignItems: "center",
     },
     cancelButton: {
-      backgroundColor: '#e74c3c',
+      backgroundColor: "#e74c3c",
       marginTop: 10,
     },
     closeModalText: {
-      color: 'white',
-      fontWeight: '600',
+      color: "white",
+      fontWeight: "600",
       fontSize: 16,
     },
     projectList: {
@@ -268,40 +333,40 @@ const CreateProject = ({ navigation, route, theme }) => {
     },
     // Añade estos estilos al objeto styles
     qrActionButtons: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "space-between",
       gap: 10,
       marginBottom: 20,
     },
     qrActionButton: {
       flex: 1,
-      minWidth: '45%',
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
+      minWidth: "45%",
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
       borderRadius: 8,
       padding: 12,
       gap: 8,
     },
     saveQrButton: {
-      backgroundColor: '#3498db',
+      backgroundColor: "#3498db",
     },
     shareQrButton: {
-      backgroundColor: '#2ecc71',
+      backgroundColor: "#2ecc71",
     },
     shareDataButton: {
-      backgroundColor: '#9b59b6',
+      backgroundColor: "#9b59b6",
     },
     qrActionButtonText: {
-      color: 'white',
-      fontWeight: '600',
+      color: "white",
+      fontWeight: "600",
       fontSize: 14,
-      textAlign: 'center',
+      textAlign: "center",
     },
     qrWrapper: {
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       padding: 10,
     },
     container: {
@@ -309,30 +374,30 @@ const CreateProject = ({ navigation, route, theme }) => {
       marginTop: 0,
     },
     tabHeader: {
-      flexDirection: 'row',
-      backgroundColor: '#f0f0f0',
+      flexDirection: "row",
+      backgroundColor: "#f0f0f0",
     },
     tabButton: {
       flex: 1,
       paddingVertical: 15,
-      alignItems: 'center',
+      alignItems: "center",
     },
     activeTabButton: {
       borderBottomWidth: 2,
-      borderBottomColor: '#3498db',
+      borderBottomColor: "#3498db",
     },
     tabText: {
       fontSize: 16,
-      color: '#666',
+      color: "#666",
     },
     activeTabText: {
-      color: '#3498db',
-      fontWeight: 'bold',
+      color: "#3498db",
+      fontWeight: "bold",
     },
     content: {
       flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
       padding: 20,
     },
     fiberCard: {
@@ -340,16 +405,16 @@ const CreateProject = ({ navigation, route, theme }) => {
       borderRadius: 12,
       padding: 16,
       marginBottom: 12,
-      shadowColor: '#000',
+      shadowColor: "#000",
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.1,
       shadowRadius: 3,
       elevation: 2,
     },
     deviceHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       marginBottom: 1,
     },
     deviceInfo: {
@@ -360,7 +425,7 @@ const CreateProject = ({ navigation, route, theme }) => {
       borderRadius: 12,
       padding: 16,
       marginBottom: 12,
-      shadowColor: '#000',
+      shadowColor: "#000",
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.1,
       shadowRadius: 3,
@@ -368,7 +433,7 @@ const CreateProject = ({ navigation, route, theme }) => {
     },
     deviceName: {
       fontSize: 16,
-      fontWeight: '500',
+      fontWeight: "500",
       color: colors.text,
     },
     deviceDescription: {
@@ -380,41 +445,41 @@ const CreateProject = ({ navigation, route, theme }) => {
       padding: 4,
     },
     configRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       marginBottom: 8,
     },
   });
 
   const [projectData, setProjectData] = useState({
-    name: '',
-    address: '',
-    city: '',
-    country: '',
-    state: '',
-    description: '',
-    status: 'active'
+    name: "",
+    address: "",
+    city: "",
+    country: "",
+    state: "",
+    description: "",
+    status: "active",
   });
 
   const [unitsInfo, setUnitsInfo] = useState({
-    living_unit: '0',
-    office_amenities: '0',
-    commercial_unit: '0'
+    living_unit: "0",
+    office_amenities: "0",
+    commercial_unit: "0",
   });
 
   const [projectType, setProjectType] = useState({
-    build_type: 'MDU',
-    job_type: 'Residential',
-    building_type: 'Garden Style'
+    build_type: "MDU",
+    job_type: "Residential",
+    building_type: "Garden Style",
   });
 
   const [activeTab, setActiveTab] = useState(0);
 
   const tabs = [
-    { id: 0, title: 'Home', content: 'Contenido de Home' },
-    { id: 1, title: 'Settings', content: 'Contenido de Settings' },
-    { id: 2, title: 'Profile', content: 'Contenido de Profile' },
+    { id: 0, title: "Home", content: "Contenido de Home" },
+    { id: 1, title: "Settings", content: "Contenido de Settings" },
+    { id: 2, title: "Profile", content: "Contenido de Profile" },
   ];
 
   const [qrModalVisible, setQrModalVisible] = useState(false);
@@ -424,7 +489,6 @@ const CreateProject = ({ navigation, route, theme }) => {
   const [projectSelectorVisible, setProjectSelectorVisible] = useState(false);
 
   useEffect(() => {
-
     const initializeNode = async () => {
       const hash = uuidv4();
       setNodes([
@@ -437,7 +501,7 @@ const CreateProject = ({ navigation, route, theme }) => {
           typeId: 1,
           devices: [],
           fusionLinks: [],
-        }
+        },
       ]);
     };
 
@@ -454,9 +518,8 @@ const CreateProject = ({ navigation, route, theme }) => {
     try {
       const projects = await ProjectService.getProjects();
       setExistingProjects(projects);
-
     } catch (error) {
-      console.log('Error loading projects:', error);
+      console.log("Error loading projects:", error);
     }
   };
 
@@ -469,13 +532,13 @@ const CreateProject = ({ navigation, route, theme }) => {
       const project = data.meta;
       if (project) {
         setProjectData({
-          name: project.name || '',
-          address: project.address || '',
-          city: project.city || '',
-          country: project.country || '',
-          state: project.state || '',
-          description: project.description || '',
-          status: project.status || 'active'
+          name: project.name || "",
+          address: project.address || "",
+          city: project.city || "",
+          country: project.country || "",
+          state: project.state || "",
+          description: project.description || "",
+          status: project.status || "active",
         });
       }
 
@@ -490,7 +553,7 @@ const CreateProject = ({ navigation, route, theme }) => {
         const buffers = await getFibers(projectId, f.id);
         dbFibers.push({
           ...f,
-          buffers: buffers
+          buffers: buffers,
         });
       }
 
@@ -500,9 +563,9 @@ const CreateProject = ({ navigation, route, theme }) => {
       const units = project.unitsInfo;
       if (units) {
         setUnitsInfo({
-          living_unit: units.living_unit?.toString() || '0',
-          office_amenities: units.office_amenities?.toString() || '0',
-          commercial_unit: units.commercial_unit?.toString() || '0'
+          living_unit: units.living_unit?.toString() || "0",
+          office_amenities: units.office_amenities?.toString() || "0",
+          commercial_unit: units.commercial_unit?.toString() || "0",
         });
       }
 
@@ -515,10 +578,9 @@ const CreateProject = ({ navigation, route, theme }) => {
       //     building_type: projectTypeData.building_type || 'Garden Style'
       //   });
       // }
-
     } catch (error) {
-      console.log('Error loading project data:', error);
-      Alert.alert(t('error'), t('failedToLoadProject'));
+      console.log("Error loading project data:", error);
+      Alert.alert(t("error"), t("failedToLoadProject"));
     } finally {
       setSaving(false);
     }
@@ -562,7 +624,7 @@ const CreateProject = ({ navigation, route, theme }) => {
         {renderTabContent()}
       </View>
     );
-  }
+  };
 
   //   const saveQRCodeToGalleryComplete = async () => {
   //   try {
@@ -590,62 +652,61 @@ const CreateProject = ({ navigation, route, theme }) => {
   };
 
   const calculateTotalUnits = () => {
-    const living = parseInt(unitsInfo.living_unit || '0');
-    const offices = parseInt(unitsInfo.office_amenities || '0');
-    const commercial = parseInt(unitsInfo.commercial_unit || '0');
+    const living = parseInt(unitsInfo.living_unit || "0");
+    const offices = parseInt(unitsInfo.office_amenities || "0");
+    const commercial = parseInt(unitsInfo.commercial_unit || "0");
     return living + offices + commercial;
   };
 
   const handleInputChange = (field, value) => {
-    setProjectData(prev => ({
+    setProjectData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
   const handleUnitsChange = (field, value) => {
     // Solo permitir números
     if (/^\d*$/.test(value)) {
-      setUnitsInfo(prev => ({
+      setUnitsInfo((prev) => ({
         ...prev,
-        [field]: value
+        [field]: value,
       }));
     }
   };
 
   const handleTypeChange = (field, value) => {
-    setProjectType(prev => ({
+    setProjectType((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
-
 
   const attachFile = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: '*/*',
-        copyToCacheDirectory: true
+        type: "*/*",
+        copyToCacheDirectory: true,
       });
 
-      if (result.type === 'success') {
+      if (result.type === "success") {
         const fileInfo = {
           name: result.name,
           uri: result.uri, // Guardamos la URI/ruta del archivo
           size: result.size,
           type: result.mimeType,
-          lastModified: result.lastModified
+          lastModified: result.lastModified,
         };
-        setAttachedFiles(prev => [...prev, fileInfo]);
-        Alert.alert(t('success'), t('fileAttachedSuccess'));
+        setAttachedFiles((prev) => [...prev, fileInfo]);
+        Alert.alert(t("success"), t("fileAttachedSuccess"));
       }
     } catch (error) {
-      Alert.alert(t('error'), t('failedToAttachFile') + error.message);
+      Alert.alert(t("error"), t("failedToAttachFile") + error.message);
     }
   };
 
   const removeFile = (index) => {
-    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+    setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const generateProjectQR = () => {
@@ -654,24 +715,24 @@ const CreateProject = ({ navigation, route, theme }) => {
       project: {
         ...projectData,
         created: new Date().toISOString(),
-        status: 'draft'
+        status: "draft",
       },
       units: {
         ...unitsInfo,
-        total: calculateTotalUnits()
+        total: calculateTotalUnits(),
       },
       type: projectType,
-      files: attachedFiles.map(file => ({
+      files: attachedFiles.map((file) => ({
         name: file.name,
         uri: file.uri, // Solo guardamos la URI/ruta del archivo
         type: file.type,
-        size: file.size
+        size: file.size,
       })),
       metadata: {
         generated: new Date().toISOString(),
-        app: 'FTTH Project Manager',
-        version: '1.0'
-      }
+        app: "FTTH Project Manager",
+        version: "1.0",
+      },
     };
     // setQrData(projectSummary)
     // console.log("SIIIII " + JSON.stringify(projectSummary))
@@ -681,11 +742,15 @@ const CreateProject = ({ navigation, route, theme }) => {
   const shareProject = async () => {
     try {
       const result = await Share.share({
-        message: `${t('ftthProject')}: ${projectData.name}\n${t('address')}: ${projectData.address}\n${t('totalUnits')}: ${calculateTotalUnits()}\n\n${t('scanQRForDetails')}`,
-        title: t('ftthProjectDetails')
+        message: `${t("ftthProject")}: ${projectData.name}\n${t("address")}: ${
+          projectData.address
+        }\n${t("totalUnits")}: ${calculateTotalUnits()}\n\n${t(
+          "scanQRForDetails"
+        )}`,
+        title: t("ftthProjectDetails"),
       });
     } catch (error) {
-      Alert.alert(t('error'), t('failedToShare'));
+      Alert.alert(t("error"), t("failedToShare"));
     }
   };
 
@@ -695,7 +760,7 @@ const CreateProject = ({ navigation, route, theme }) => {
       count: 1,
       typeId: fiberType.typeId,
       label: fiberType.name,
-      description: fiberType.name
+      description: fiberType.name,
     };
 
     setShowAddFiberModal(true);
@@ -705,23 +770,24 @@ const CreateProject = ({ navigation, route, theme }) => {
     setShowAddNodeModal(true);
   };
 
-  const handleConnectionMap = () => {
-
-  }
+  const handleConnectionMap = () => {};
 
   const buildFiberThreads = () => {
     let items = [];
     for (let i = 0; i < 12; i++) {
       const color = fiberColors12Hex.at(i);
-      items = [...items, {
-        number: i + 1,
-        color: color.color,
-        active: true
-      }]
+      items = [
+        ...items,
+        {
+          number: i + 1,
+          color: color.color,
+          active: true,
+        },
+      ];
     }
 
     return items;
-  }
+  };
 
   const buildFiber = (label, typeId) => {
     const newFiber = {
@@ -732,14 +798,13 @@ const CreateProject = ({ navigation, route, theme }) => {
       deleted: 0,
       typeId: typeId,
       threads: buildFiberThreads(),
-      buffers: []
-    }
+      buffers: [],
+    };
 
     return newFiber;
-  }
+  };
 
   const handleOnSelectFiberType = (fiberType) => {
-
     let fiber = buildFiber(fiberType.name, fiberType.typeId);
 
     let buffers = [];
@@ -747,16 +812,19 @@ const CreateProject = ({ navigation, route, theme }) => {
     if (fiberType.buffersCount > 1) {
       /**Build buffers */
       for (let i = 0; i < fiberType.buffersCount - 1; i++) {
-        const buffer = buildFiber(`${fiberType.name} - ${i + 1}`, sinleFiberTpeId);
+        const buffer = buildFiber(
+          `${fiberType.name} - ${i + 1}`,
+          sinleFiberTpeId
+        );
         buffers.push(buffer);
       }
     }
 
     fiber.buffers = buffers;
 
-    setFibers(prev => [...prev, fiber]);
+    setFibers((prev) => [...prev, fiber]);
     setShowAddFiberModal(false);
-  }
+  };
 
   const handleNodeSelect = (nodeType) => {
     const newNode = {
@@ -765,10 +833,63 @@ const CreateProject = ({ navigation, route, theme }) => {
       modifiedDate: new Date().toISOString(),
       deleted: 0,
       typeId: nodeType.id,
-    }
-    setNodes(prev => [...prev, newNode]);
+    };
+    setNodes((prev) => [...prev, newNode]);
     setShowAddNodeModal(false);
-  }
+  };
+
+  const doCreateNode = async (node) => {
+    const meta = {
+      devices: node.devices || [],
+      fusionLinks: node.fusionLinks || [],
+    };
+
+    const dbNode = await createNode({
+      label: node.label,
+      projectId: node.projectId,
+      typeId: node.typeId || "",
+      description: "",
+      metadata: JSON.stringify(meta),
+      createdDate: node.createdDate,
+      modifiedDate: node.modifiedDate,
+    });
+
+    return dbNode;
+  };
+
+  const doCreateFiber = async (fiber) => {
+    const meta = JSON.stringify(fiber.threads);
+
+    const dbFiber = await createFiber({
+      label: fiber.label,
+      projectId: fiber.projectId,
+      typeId: fiber.typeId || sinleFiberTpeId,
+      description: "",
+      metadata: meta,
+      createdDate: fiber.createdDate,
+      modifiedDate: fiber.modifiedDate,
+    });
+
+    /**Save buffers */
+    for (let j = 0; j < fiber.buffers.length; j++) {
+      const buffer = fiber.buffers[j];
+
+      const meta2 = JSON.stringify(buffer.threads);
+
+      await createFiber({
+        label: buffer.label,
+        projectId: project.id,
+        parentId: dbFiber.id,
+        typeId: buffer.typeId || sinleFiberTpeId,
+        description: "",
+        metadata: meta2,
+        createdDate: buffer.createdDate,
+        modifiedDate: buffer.modifiedDate,
+      });
+    }
+
+    return dbFiber;
+  };
 
   const handleSaveProject = async () => {
     if (saving) return;
@@ -776,58 +897,49 @@ const CreateProject = ({ navigation, route, theme }) => {
     setSaving(true);
     try {
       if (!projectData.name?.trim() || !projectData.address?.trim()) {
-        Alert.alert(t('error'), t('nameAndAddressRequired'));
+        Alert.alert(t("error"), t("nameAndAddressRequired"));
         setSaving(false);
         return;
       }
 
-      console.log('💾 Starting save process...');
+      console.log("💾 Starting save process...");
 
       // Modo creación: Crear nuevo proyecto
       let meta = await ProjectService.createProject({
         name: projectData.name.trim(),
         address: projectData.address.trim(),
-        city: projectData.city || '',
-        country: projectData.country || 'USA',
-        state: projectData.state || '',
-        description: projectData.description || '',
-        status: 'active',
+        city: projectData.city || "",
+        country: projectData.country || "USA",
+        state: projectData.state || "",
+        description: projectData.description || "",
+        status: "active",
         unitsInfo: {
-          living_unit: unitsInfo.living_unit || '0',
-          office_amenities: unitsInfo.office_amenities || '0',
-          commercial_unit: unitsInfo.commercial_unit || '0'
-        }
+          living_unit: unitsInfo.living_unit || "0",
+          office_amenities: unitsInfo.office_amenities || "0",
+          commercial_unit: unitsInfo.commercial_unit || "0",
+        },
       });
-
 
       const prjData = {
         name: meta.name,
-        metadata: JSON.stringify(meta)
-      }
+        metadata: JSON.stringify(meta),
+      };
 
       if (isEditMode) {
         await updateProject(projectId, prjData);
 
-        /**Persist new nodes */
+        /**Persist/Update new nodes */
         for (let i = 0; i < nodes.length; i++) {
           const node = nodes[i];
 
           if (node.id == undefined) {
-
-            const meta = {
-              devices : node.devices,
-              fusionLinks : node.fusionLinks,
-            };
-
-            const dbNode = await createNode({
-              label: node.label,
+            let newObj = {
+              ...node,
               projectId: projectId,
-              typeId: node.typeId || '',
-              description: '',
-              metadata: JSON.stringify(meta),
-              createdDate: node.createdDate,
-              modifiedDate: node.modifiedDate,
-            });
+            };
+            await doCreateNode(newObj);
+          } else {
+            await updateNode(node.id, node);
           }
         }
 
@@ -835,38 +947,31 @@ const CreateProject = ({ navigation, route, theme }) => {
         for (let i = 0; i < fibers.length; i++) {
           const fiber = fibers[i];
 
-          const meta = JSON.stringify(fiber.threads);
-
-          const dbFiber = await createFiber({
-            label: fiber.label,
-            projectId: projectId,
-            typeId: fiber.typeId || sinleFiberTpeId,
-            description: '',
-            metadata: meta,
-            createdDate: fiber.createdDate,
-            modifiedDate: fiber.modifiedDate,
-          });
+          if (fiber.id == undefined) {
+            let newObj = {
+              ...fiber,
+              projectId: projectId,
+            };
+            await doCreateFiber(newObj);
+          } else {
+            await updateFiber(fiber.id, fiber);
+          }
 
           /**Save buffers */
           for (let j = 0; j < fiber.buffers.length; j++) {
             const buffer = fiber.buffers[j];
 
-            const meta2 = JSON.stringify(buffer.threads);
-
-            await createFiber({
-              label: buffer.label,
-              projectId: projectId,
-              parentId: dbFiber.id,
-              typeId: buffer.typeId || sinleFiberTpeId,
-              description: '',
-              metadata: meta2,
-              createdDate: buffer.createdDate,
-              modifiedDate: buffer.modifiedDate,
-            });
+            if (buffer.id == undefined) {
+              let newObj = {
+                ...buffer,
+                projectId: projectId,
+              };
+              await doCreateFiber(newObj);
+            } else {
+              await updateFiber(buffer.id, buffer);
+            }
           }
-
         }
-
       } else {
         /**Persist on db or API storage */
         const project = await createProject(prjData);
@@ -875,195 +980,148 @@ const CreateProject = ({ navigation, route, theme }) => {
         for (let i = 0; i < nodes.length; i++) {
           const node = nodes[i];
 
-            const meta = {
-              devices : node.devices,
-              fusionLinks : node.fusionLinks,
-            };
-
-          const dbNode = await createNode({
-            label: node.label,
-            projectId: project.id,
-            typeId: node.typeId || '',
-            description: '',
-            metadata: JSON.stringify(meta),
-            createdDate: node.createdDate,
-            modifiedDate: node.modifiedDate,
-          });
+          await doCreateNode(node);
         }
 
         /**Persist fibers */
         for (let i = 0; i < fibers.length; i++) {
           const fiber = fibers[i];
 
-          const meta = JSON.stringify(fiber.threads);
-
-          const dbFiber = await createFiber({
-            label: fiber.label,
-            projectId: project.id,
-            typeId: fiber.typeId || sinleFiberTpeId,
-            description: '',
-            metadata: meta,
-            createdDate: fiber.createdDate,
-            modifiedDate: fiber.modifiedDate,
-          });
-
-          /**Save buffers */
-          for (let j = 0; j < fiber.buffers.length; j++) {
-            const buffer = fiber.buffers[j];
-
-            const meta2 = JSON.stringify(buffer.threads);
-
-            await createFiber({
-              label: buffer.label,
-              projectId: project.id,
-              parentId: dbFiber.id,
-              typeId: buffer.typeId || sinleFiberTpeId,
-              description: '',
-              metadata: meta2,
-              createdDate: buffer.createdDate,
-              modifiedDate: buffer.modifiedDate,
-            });
-          }
-
+          await doCreateFiber(fiber);
         }
       }
-
     } catch (error) {
-      console.log('❌ Error saving project:', error);
-      Alert.alert('❌ ' + t('error'), t(isEditMode ? 'failedToUpdate' : 'failedToSave'));
+      console.log("❌ Error saving project:", error);
+      Alert.alert(
+        "❌ " + t("error"),
+        t(isEditMode ? "failedToUpdate" : "failedToSave")
+      );
     } finally {
-      console.log('✅ Project saved');
+      console.log("✅ Project saved");
       setSaving(false);
       navigation.goBack();
     }
   };
 
   const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   const clearForm = () => {
     setProjectData({
-      name: '',
-      address: '',
-      city: '',
-      country: '',
-      state: '',
-      description: '',
-      status: 'active'
+      name: "",
+      address: "",
+      city: "",
+      country: "",
+      state: "",
+      description: "",
+      status: "active",
     });
     setUnitsInfo({
-      living_unit: '0',
-      office_amenities: '0',
-      commercial_unit: '0'
+      living_unit: "0",
+      office_amenities: "0",
+      commercial_unit: "0",
     });
     setProjectType({
-      build_type: 'MDU',
-      job_type: 'Residential',
-      building_type: 'Garden Style'
+      build_type: "MDU",
+      job_type: "Residential",
+      building_type: "Garden Style",
     });
     setAttachedFiles([]);
     navigation.setParams({ projectId: null });
   };
 
-
   const saveQRCodeToGallery = async () => {
-    Alert.alert(
-      t('saveQR'),
-      t('saveQRMessage'),
-      [
-        {
-          text: t('cancel'),
-          style: 'cancel'
-        },
-        {
-          text: t('copyData'),
-          onPress: async () => {
-            try {
-              const qrData = generateProjectQR();
-              Clipboard.setString(qrData);
-              Alert.alert(t('success'), t('qrDataCopied'));
-            } catch (error) {
-              Alert.alert(t('error'), t('failedToSaveQR'));
-            }
+    Alert.alert(t("saveQR"), t("saveQRMessage"), [
+      {
+        text: t("cancel"),
+        style: "cancel",
+      },
+      {
+        text: t("copyData"),
+        onPress: async () => {
+          try {
+            const qrData = generateProjectQR();
+            Clipboard.setString(qrData);
+            Alert.alert(t("success"), t("qrDataCopied"));
+          } catch (error) {
+            Alert.alert(t("error"), t("failedToSaveQR"));
           }
         },
-        {
-          text: t('takeScreenshot'),
-          onPress: () => {
-            Alert.alert(t('info'), t('screenshotInstructions'));
-          }
-        }
-      ]
-    );
+      },
+      {
+        text: t("takeScreenshot"),
+        onPress: () => {
+          Alert.alert(t("info"), t("screenshotInstructions"));
+        },
+      },
+    ]);
   };
 
   const handleSave = async () => {
     if (saving) return;
 
-    Alert.alert(
-      t('saveQRCode'),
-      t('confirmSaveQR'),
-      [
-        {
-          text: t('cancel'),
-          style: 'cancel'
-        },
-        {
-          text: t('save'),
-          onPress: saveQRCode,
-          style: 'default'
-        }
-      ]
-    );
+    Alert.alert(t("saveQRCode"), t("confirmSaveQR"), [
+      {
+        text: t("cancel"),
+        style: "cancel",
+      },
+      {
+        text: t("save"),
+        onPress: saveQRCode,
+        style: "default",
+      },
+    ]);
   };
 
   const captureQRCode = async () => {
     try {
       // Asegúrate de que el QR esté renderizado antes de capturarlo
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Capturar el componente QR como imagen
       const uri = await captureRef(qrRef, {
-        format: 'png',
+        format: "png",
         quality: 1,
       });
 
       return uri;
     } catch (error) {
-      console.error('Error capturing QR code:', error);
+      console.error("Error capturing QR code:", error);
       throw error;
     }
   };
-
 
   const shareQRCode = async () => {
     try {
       setSaving(true);
       const qrImageUri = await captureQRCode();
 
-      const projectName = projectData.name || 'Unnamed Project';
-      const message = t('shareProjectMessage').replace('{projectName}', projectName);
+      const projectName = projectData.name || "Unnamed Project";
+      const message = t("shareProjectMessage").replace(
+        "{projectName}",
+        projectName
+      );
 
       const shareOptions = {
-        title: t('shareProjectQR'),
+        title: t("shareProjectQR"),
         message: message,
         url: qrImageUri,
-        type: 'image/png'
+        type: "image/png",
       };
 
       const result = await Share.share(shareOptions);
 
       if (result.action === Share.sharedAction) {
-        Alert.alert(t('success'), t('qrSharedSuccessfully'));
+        Alert.alert(t("success"), t("qrSharedSuccessfully"));
       }
     } catch (error) {
-      console.error('Error sharing QR code:', error);
-      Alert.alert(t('error'), t('couldNotShareQR'));
+      console.error("Error sharing QR code:", error);
+      Alert.alert(t("error"), t("couldNotShareQR"));
     } finally {
       setSaving(false);
     }
@@ -1071,60 +1129,58 @@ const CreateProject = ({ navigation, route, theme }) => {
 
   const shareAsData = async () => {
     try {
-      const projectName = projectData.name || 'Unnamed Project';
-      const message = t('shareProjectMessage').replace('{projectName}', projectName);
-      const qrData = generateProjectQR()
+      const projectName = projectData.name || "Unnamed Project";
+      const message = t("shareProjectMessage").replace(
+        "{projectName}",
+        projectName
+      );
+      const qrData = generateProjectQR();
       const shareOptions = {
-        title: t('shareProjectData'),
-        message: ` ${message} \n\n${qrData}`
+        title: t("shareProjectData"),
+        message: ` ${message} \n\n${qrData}`,
       };
 
       const result = await Share.share(shareOptions);
 
       if (result.action === Share.sharedAction) {
-        Alert.alert(t('success'), t('dataSharedSuccessfully'));
+        Alert.alert(t("success"), t("dataSharedSuccessfully"));
       }
     } catch (error) {
-      console.error('Error sharing data:', error);
-      Alert.alert(t('error'), t('couldNotShareData'));
+      console.error("Error sharing data:", error);
+      Alert.alert(t("error"), t("couldNotShareData"));
     }
   };
 
   const handleShare = async () => {
     if (saving) return;
 
-    Alert.alert(
-      t('shareQRCode'),
-      t('chooseShareOption'),
-      [
-        {
-          text: t('cancel'),
-          style: 'cancel'
-        },
-        {
-          text: t('shareAsImage'),
-          onPress: shareQRCode
-        },
-        {
-          text: t('shareAsData'),
-          onPress: () => shareAsData()
-        }
-      ]
-    );
+    Alert.alert(t("shareQRCode"), t("chooseShareOption"), [
+      {
+        text: t("cancel"),
+        style: "cancel",
+      },
+      {
+        text: t("shareAsImage"),
+        onPress: shareQRCode,
+      },
+      {
+        text: t("shareAsData"),
+        onPress: () => shareAsData(),
+      },
+    ]);
   };
 
-
   const requestStoragePermission = async () => {
-    if (Platform.OS === 'android') {
+    if (Platform.OS === "android") {
       try {
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
           {
-            title: 'Storage Permission',
-            message: 'App needs access to storage to save QR codes',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'OK',
+            title: "Storage Permission",
+            message: "App needs access to storage to save QR codes",
+            buttonNeutral: "Ask Me Later",
+            buttonNegative: "Cancel",
+            buttonPositive: "OK",
           }
         );
         return granted === PermissionsAndroid.RESULTS.GRANTED;
@@ -1141,18 +1197,18 @@ const CreateProject = ({ navigation, route, theme }) => {
       setSaving(true);
 
       // Solicitar permisos en Android
-      if (Platform.OS === 'android') {
+      if (Platform.OS === "android") {
         const hasPermission = await requestStoragePermission();
         if (!hasPermission) {
-          Alert.alert(t('error'), t('storagePermissionDenied'));
+          Alert.alert(t("error"), t("storagePermissionDenied"));
           return;
         }
       }
 
       // Solicitar permisos para la galería
       const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(t('error'), t('photoLibraryPermissionDenied'));
+      if (status !== "granted") {
+        Alert.alert(t("error"), t("photoLibraryPermissionDenied"));
         return;
       }
 
@@ -1163,17 +1219,17 @@ const CreateProject = ({ navigation, route, theme }) => {
       const asset = await MediaLibrary.createAssetAsync(qrImageUri);
 
       // Crear álbum si no existe
-      const album = await MediaLibrary.getAlbumAsync('FiberQR');
+      const album = await MediaLibrary.getAlbumAsync("FiberQR");
       if (album) {
         await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
       } else {
-        await MediaLibrary.createAlbumAsync('FiberQR', asset, false);
+        await MediaLibrary.createAlbumAsync("FiberQR", asset, false);
       }
 
-      Alert.alert(t('success'), t('qrSavedSuccessfully'));
+      Alert.alert(t("success"), t("qrSavedSuccessfully"));
     } catch (error) {
-      console.error('Error saving QR code:', error);
-      Alert.alert(t('error'), t('couldNotSaveQR'));
+      console.error("Error saving QR code:", error);
+      Alert.alert(t("error"), t("couldNotSaveQR"));
     } finally {
       setSaving(false);
     }
@@ -1185,16 +1241,16 @@ const CreateProject = ({ navigation, route, theme }) => {
       backgroundColor: colors.background,
     },
     header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       paddingHorizontal: 20,
       paddingVertical: 15,
       top: 10,
       backgroundColor: colors.cardBackground,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
-      shadowColor: '#000',
+      shadowColor: "#000",
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.1,
       shadowRadius: 3,
@@ -1203,7 +1259,7 @@ const CreateProject = ({ navigation, route, theme }) => {
     },
     headerTitle: {
       fontSize: 20,
-      fontWeight: '700',
+      fontWeight: "700",
       color: colors.text,
     },
     scrollContent: {
@@ -1215,7 +1271,7 @@ const CreateProject = ({ navigation, route, theme }) => {
     },
     sectionTitle: {
       fontSize: 18,
-      fontWeight: '700',
+      fontWeight: "700",
       color: colors.text,
       marginBottom: 15,
       paddingLeft: 5,
@@ -1224,7 +1280,7 @@ const CreateProject = ({ navigation, route, theme }) => {
       backgroundColor: colors.cardBackground,
       borderRadius: 14,
       padding: 20,
-      shadowColor: '#000',
+      shadowColor: "#000",
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.08,
       shadowRadius: 4,
@@ -1232,7 +1288,7 @@ const CreateProject = ({ navigation, route, theme }) => {
     },
     label: {
       fontSize: 15,
-      fontWeight: '600',
+      fontWeight: "600",
       color: colors.text,
       marginBottom: 8,
     },
@@ -1246,9 +1302,9 @@ const CreateProject = ({ navigation, route, theme }) => {
       color: colors.text,
     },
     totalUnits: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       paddingTop: 15,
       marginTop: 10,
       borderTopWidth: 1,
@@ -1256,12 +1312,12 @@ const CreateProject = ({ navigation, route, theme }) => {
     },
     totalLabel: {
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: "600",
       color: colors.text,
     },
     totalValue: {
       fontSize: 18,
-      fontWeight: '700',
+      fontWeight: "700",
       color: colors.primary,
     },
     pickerContainer: {
@@ -1269,28 +1325,30 @@ const CreateProject = ({ navigation, route, theme }) => {
       borderColor: colors.border,
       borderRadius: 10,
       backgroundColor: colors.inputBackground,
-      overflow: 'hidden',
+      overflow: "hidden",
     },
     attachButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
       borderWidth: 1,
       borderColor: colors.primary,
       borderRadius: 10,
       padding: 14,
-      backgroundColor: isDarkMode ? 'rgba(52, 152, 219, 0.2)' : 'rgba(52, 152, 219, 0.1)',
+      backgroundColor: isDarkMode
+        ? "rgba(52, 152, 219, 0.2)"
+        : "rgba(52, 152, 219, 0.1)",
       gap: 8,
     },
     attachButtonText: {
       color: colors.primary,
-      fontWeight: '600',
+      fontWeight: "600",
       fontSize: 16,
     },
     fileItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       padding: 12,
       backgroundColor: colors.inputBackground,
       borderRadius: 8,
@@ -1299,7 +1357,7 @@ const CreateProject = ({ navigation, route, theme }) => {
     fileName: {
       fontSize: 15,
       color: colors.text,
-      fontWeight: '500',
+      fontWeight: "500",
     },
     fileSize: {
       fontSize: 13,
@@ -1308,9 +1366,9 @@ const CreateProject = ({ navigation, route, theme }) => {
     },
     modalOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.6)',
-      justifyContent: 'center',
-      alignItems: 'center',
+      backgroundColor: "rgba(0, 0, 0, 0.6)",
+      justifyContent: "center",
+      alignItems: "center",
       padding: 20,
     },
     modalContent: {
@@ -1320,10 +1378,10 @@ const CreateProject = ({ navigation, route, theme }) => {
     },
     modalTitle: {
       fontSize: 20,
-      fontWeight: '700',
+      fontWeight: "700",
       color: colors.text,
       marginBottom: 20,
-      textAlign: 'center',
+      textAlign: "center",
     },
     modalItem: {
       padding: 16,
@@ -1335,10 +1393,10 @@ const CreateProject = ({ navigation, route, theme }) => {
       color: colors.text,
     },
     qrContainer: {
-      alignItems: 'center',
+      alignItems: "center",
       marginVertical: 20,
       padding: 15,
-      backgroundColor: 'white',
+      backgroundColor: "white",
       borderRadius: 12,
       borderWidth: 1,
       borderColor: colors.border,
@@ -1346,13 +1404,13 @@ const CreateProject = ({ navigation, route, theme }) => {
     qrDescription: {
       fontSize: 15,
       color: colors.secondaryText,
-      textAlign: 'center',
+      textAlign: "center",
       marginBottom: 20,
       lineHeight: 22,
     },
     projectItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       padding: 15,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
@@ -1369,7 +1427,7 @@ const CreateProject = ({ navigation, route, theme }) => {
       color: colors.secondaryText,
     },
     noProjectsText: {
-      textAlign: 'center',
+      textAlign: "center",
       fontSize: 16,
       color: colors.secondaryText,
       padding: 30,
@@ -1382,33 +1440,29 @@ const CreateProject = ({ navigation, route, theme }) => {
         <View style={combinedStyles.deviceHeader}>
           <View style={combinedStyles.deviceInfo}>
             <Text style={combinedStyles.deviceName}>{fiber.label} </Text>
-            <Text style={combinedStyles.deviceDescription}>
-              {fiber.typeId}
-            </Text>
+            <Text style={combinedStyles.deviceDescription}>{fiber.typeId}</Text>
           </View>
           <TouchableOpacity
             onPress={() => handleSeeFiberInfo(fiber)}
             style={{ marginRight: 3 }}
           >
-            <Ionicons name="information-circle" size={24} color={'#504d4cff'} />
+            <Ionicons name="information-circle" size={24} color={"#504d4cff"} />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={dynamicStyles.removeButton}
-          >
-            <Ionicons name="trash" size={24} color={'#666261ff'} />
+          <TouchableOpacity style={dynamicStyles.removeButton}>
+            <Ionicons name="trash" size={24} color={"#666261ff"} />
           </TouchableOpacity>
         </View>
       </View>
-    )
-  }
+    );
+  };
 
-  const updateNode = (node) => {
+  const updateLocalNode = (node) => {
     let index = -1;
 
     if (node.hash != undefined) {
-      index = nodes.findIndex(x => x.hash == node.hash);
+      index = nodes.findIndex((x) => x.hash == node.hash);
     } else {
-      index = nodes.findIndex(x => x.id == node.id);
+      index = nodes.findIndex((x) => x.id == node.id);
     }
 
     if (index != -1) {
@@ -1416,27 +1470,26 @@ const CreateProject = ({ navigation, route, theme }) => {
       tmp[index] = node;
       setNodes(tmp);
     }
-  }
-
+  };
 
   const handleSeeNodeInfo = (node) => {
     const tmp = {
       node: node,
       onSaveNode: (data) => {
-        updateNode(data);
-      }
+        updateLocalNode(data);
+      },
     };
 
-    navigation.navigate('NodeDetails', tmp);
-  }
+    navigation.navigate("NodeDetails", tmp);
+  };
 
-  const updateFiber = (fiber) => {
+  const updateLocalFiber = (fiber) => {
     let index = -1;
 
     if (fiber.hash != undefined) {
-      index = fibers.findIndex(x => x.hash == fiber.hash);
+      index = fibers.findIndex((x) => x.hash == fiber.hash);
     } else {
-      index = fibers.findIndex(x => x.id == fiber.id);
+      index = fibers.findIndex((x) => x.id == fiber.id);
     }
 
     if (index != -1) {
@@ -1444,15 +1497,17 @@ const CreateProject = ({ navigation, route, theme }) => {
       tmp[index] = fiber;
       setFibers(tmp);
     }
-  }
+  };
 
   const handleSeeFiberInfo = (fiber) => {
-    let buffers = [{
-      ...fiber,
-      value: fiber.id == undefined ? fiber.hash : fiber.id
-    }];
+    let buffers = [
+      {
+        ...fiber,
+        value: fiber.id == undefined ? fiber.hash : fiber.id,
+      },
+    ];
 
-    fiber.buffers.forEach(b => {
+    fiber.buffers.forEach((b) => {
       const buffer = {
         ...b,
         value: b.id == undefined ? b.hash : b.id,
@@ -1467,24 +1522,23 @@ const CreateProject = ({ navigation, route, theme }) => {
         /**Build updated fiber */
         const update = {
           ...data[0],
-          buffers: data.slice(1)
-        }
-        updateFiber(update);
-      }
+          buffers: data.slice(1),
+        };
+        updateLocalFiber(update);
+      },
     };
 
-    navigation.navigate('FiberDetails', tmp);
-  }
+    navigation.navigate("FiberDetails", tmp);
+  };
 
   const handleSeeNodeLinks = (node) => {
-    navigation.navigate('NodeLinks', {
+    navigation.navigate("NodeLinks", {
       node: node,
       onSaveNode: (data) => {
-        updateNode(data);
-      }
-
+        updateLocalNode(data);
+      },
     });
-  }
+  };
 
   const RenderNode = ({ node }) => {
     return (
@@ -1492,22 +1546,23 @@ const CreateProject = ({ navigation, route, theme }) => {
         <View style={combinedStyles.deviceHeader}>
           <View style={combinedStyles.deviceInfo}>
             <Text style={combinedStyles.deviceName}>{node.label} </Text>
-            <Text style={combinedStyles.deviceDescription}>
-
-            </Text>
+            <Text style={combinedStyles.deviceDescription}></Text>
           </View>
 
           <TouchableOpacity
+            disabled={projectId == undefined}
             style={{ marginRight: 3 }}
             onPress={() => handleSeeNodeLinks(node)}
           >
-            <Ionicons name="git-network" size={24} color={colors.primary} />
+            <Ionicons
+              name="git-network"
+              size={24}
+              color={projectId == undefined ? "#cfcbcaff" : colors.primary}
+            />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={{ marginRight: 3 }}
-          >
-            <Ionicons name="location" size={24} color={'#666261ff'} />
+          <TouchableOpacity style={{ marginRight: 3 }}>
+            <Ionicons name="location" size={24} color={"#666261ff"} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -1516,28 +1571,31 @@ const CreateProject = ({ navigation, route, theme }) => {
             }}
             style={{ marginRight: 3 }}
           >
-            <Ionicons name="information-circle" size={24} color={'#666261ff'} />
+            <Ionicons name="information-circle" size={24} color={"#666261ff"} />
           </TouchableOpacity>
 
-
-          <TouchableOpacity
-            style={dynamicStyles.removeButton}
-          >
-            <Ionicons name="trash" size={24} color={'#666261ff'} />
+          <TouchableOpacity style={dynamicStyles.removeButton}>
+            <Ionicons name="trash" size={24} color={"#666261ff"} />
           </TouchableOpacity>
         </View>
       </View>
-    )
-  }
+    );
+  };
 
   // Combinar estilos estáticos con dinámicos
   const combinedStyles = {
     ...styles,
-    ...dynamicStyles
+    ...dynamicStyles,
   };
 
   return (
-    <View style={[stylesFull.screen, { backgroundColor: colors.background }, { paddingBottom: bottomInset }]}>
+    <View
+      style={[
+        stylesFull.screen,
+        { backgroundColor: colors.background },
+        { paddingBottom: bottomInset },
+      ]}
+    >
       {/* Header */}
       <View style={[combinedStyles.header, { paddingTop: topInset - 20 }]}>
         <TouchableOpacity
@@ -1547,7 +1605,7 @@ const CreateProject = ({ navigation, route, theme }) => {
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={combinedStyles.headerTitle}>
-          {isEditMode ? t('editProject') : t('createProject')}
+          {isEditMode ? t("editProject") : t("createProject")}
         </Text>
         <View style={styles.headerActions}>
           {isEditMode && (
@@ -1568,7 +1626,7 @@ const CreateProject = ({ navigation, route, theme }) => {
           </TouchableOpacity>
           <TouchableOpacity onPress={handleSaveProject} disabled={saving}>
             <Ionicons
-              name="save-outline"
+              name="save"
               size={24}
               color={saving ? colors.secondaryText : colors.primary}
             />
@@ -1583,28 +1641,32 @@ const CreateProject = ({ navigation, route, theme }) => {
       >
         {/* Property Information */}
         <View style={combinedStyles.section}>
-          <Text style={combinedStyles.sectionTitle}>{t('propertyInformation')}</Text>
+          <Text style={combinedStyles.sectionTitle}>
+            {t("propertyInformation")}
+          </Text>
 
           <View style={combinedStyles.formCard}>
             <View style={{ flex: isTablet ? 1 : undefined }}>
-              <Text style={[combinedStyles.label, { color: colors.text }]}>{t('propertyName')} *</Text>
+              <Text style={[combinedStyles.label, { color: colors.text }]}>
+                {t("propertyName")} *
+              </Text>
               <TextInput
                 style={combinedStyles.input}
                 value={projectData.name}
-                onChangeText={(text) => handleInputChange('name', text)}
-                placeholder={t('propertyName')}
+                onChangeText={(text) => handleInputChange("name", text)}
+                placeholder={t("propertyName")}
                 editable={!saving}
                 placeholderTextColor={colors.placeholder}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={combinedStyles.label}>{t('propertyAddress')} *</Text>
+              <Text style={combinedStyles.label}>{t("propertyAddress")} *</Text>
               <TextInput
                 style={combinedStyles.input}
                 value={projectData.address}
-                onChangeText={(text) => handleInputChange('address', text)}
-                placeholder={t('enterAddress')}
+                onChangeText={(text) => handleInputChange("address", text)}
+                placeholder={t("enterAddress")}
                 editable={!saving}
                 placeholderTextColor={colors.placeholder}
               />
@@ -1612,24 +1674,24 @@ const CreateProject = ({ navigation, route, theme }) => {
 
             <View style={styles.row}>
               <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-                <Text style={combinedStyles.label}>{t('city')}</Text>
+                <Text style={combinedStyles.label}>{t("city")}</Text>
                 <TextInput
                   style={combinedStyles.input}
                   value={projectData.city}
-                  onChangeText={(text) => handleInputChange('city', text)}
-                  placeholder={t('city')}
+                  onChangeText={(text) => handleInputChange("city", text)}
+                  placeholder={t("city")}
                   editable={!saving}
                   placeholderTextColor={colors.placeholder}
                 />
               </View>
 
               <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={combinedStyles.label}>{t('state')}</Text>
+                <Text style={combinedStyles.label}>{t("state")}</Text>
                 <TextInput
                   style={combinedStyles.input}
                   value={projectData.state}
-                  onChangeText={(text) => handleInputChange('state', text)}
-                  placeholder={t('state')}
+                  onChangeText={(text) => handleInputChange("state", text)}
+                  placeholder={t("state")}
                   maxLength={2}
                   editable={!saving}
                   placeholderTextColor={colors.placeholder}
@@ -1638,12 +1700,12 @@ const CreateProject = ({ navigation, route, theme }) => {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={combinedStyles.label}>{t('description')}</Text>
+              <Text style={combinedStyles.label}>{t("description")}</Text>
               <TextInput
                 style={[combinedStyles.input, styles.textArea]}
                 value={projectData.description}
-                onChangeText={(text) => handleInputChange('description', text)}
-                placeholder={t('projectDescription')}
+                onChangeText={(text) => handleInputChange("description", text)}
+                placeholder={t("projectDescription")}
                 multiline={true}
                 editable={!saving}
                 placeholderTextColor={colors.placeholder}
@@ -1655,9 +1717,8 @@ const CreateProject = ({ navigation, route, theme }) => {
         {/* Nodos */}
         <View style={combinedStyles.section}>
           <View style={combinedStyles.deviceHeader}>
-            <Text style={combinedStyles.sectionTitle}>{t('netNodes')}</Text>
-            <View style={{ flexDirection: 'row' }}>
-
+            <Text style={combinedStyles.sectionTitle}>{t("netNodes")}</Text>
+            <View style={{ flexDirection: "row" }}>
               <TouchableOpacity
                 onPress={handleConnectionMap}
                 style={styles.clearButton}
@@ -1685,23 +1746,22 @@ const CreateProject = ({ navigation, route, theme }) => {
           </View>
 
           {nodes.length == 0 && (
-            <Text style={[combinedStyles.label, { color: colors.text }]}>{t('nodesEmpty')}</Text>
+            <Text style={[combinedStyles.label, { color: colors.text }]}>
+              {t("nodesEmpty")}
+            </Text>
           )}
 
           <FlatList
             data={nodes}
-            keyExtractor={item => nodes.id}
-            renderItem={({ item }) => (
-              <RenderNode node={item}></RenderNode>
-            )}
+            keyExtractor={(item) => nodes.id}
+            renderItem={({ item }) => <RenderNode node={item}></RenderNode>}
           />
-
         </View>
 
         {/* Fibras */}
         <View style={combinedStyles.section}>
           <View style={combinedStyles.deviceHeader}>
-            <Text style={combinedStyles.sectionTitle}>{t('netFibers')}</Text>
+            <Text style={combinedStyles.sectionTitle}>{t("netFibers")}</Text>
             <TouchableOpacity
               onPress={addFiber}
               style={styles.clearButton}
@@ -1712,19 +1772,17 @@ const CreateProject = ({ navigation, route, theme }) => {
           </View>
 
           {fibers.length == 0 && (
-            <Text style={[combinedStyles.label, { color: colors.text }]}>{t('fibersEmpty')}</Text>
+            <Text style={[combinedStyles.label, { color: colors.text }]}>
+              {t("fibersEmpty")}
+            </Text>
           )}
 
           <FlatList
             data={fibers}
-            keyExtractor={item => item.id}
-            renderItem={({ item }) => (
-              <RenderFiber fiber={item}></RenderFiber>
-            )}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => <RenderFiber fiber={item}></RenderFiber>}
           />
-
         </View>
-
       </ScrollView>
 
       {/* // QR Code Modal mejorado */}
@@ -1738,7 +1796,9 @@ const CreateProject = ({ navigation, route, theme }) => {
           <View style={styles.modalContainer}>
             <View style={combinedStyles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={combinedStyles.modalTitle}>{t('projectQRCode')}</Text>
+                <Text style={combinedStyles.modalTitle}>
+                  {t("projectQRCode")}
+                </Text>
                 <TouchableOpacity onPress={() => setQrModalVisible(false)}>
                   <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
@@ -1756,11 +1816,10 @@ const CreateProject = ({ navigation, route, theme }) => {
                 </View>
 
                 {/* </ViewShot> */}
-
               </View>
 
               <Text style={combinedStyles.qrDescription}>
-                {t('scanQRDescription')}
+                {t("scanQRDescription")}
               </Text>
 
               {/* Nuevos botones de acción para el QR */}
@@ -1770,7 +1829,7 @@ const CreateProject = ({ navigation, route, theme }) => {
                   onPress={handleSave}
                 >
                   <Ionicons name="download-outline" size={20} color="white" />
-                  <Text style={styles.qrActionButtonText}>{t('saveQR')}</Text>
+                  <Text style={styles.qrActionButtonText}>{t("saveQR")}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -1778,7 +1837,9 @@ const CreateProject = ({ navigation, route, theme }) => {
                   onPress={handleShare}
                 >
                   <Ionicons name="share-outline" size={20} color="white" />
-                  <Text style={styles.qrActionButtonText}>{t('shareAsImage')}</Text>
+                  <Text style={styles.qrActionButtonText}>
+                    {t("shareAsImage")}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1796,7 +1857,9 @@ const CreateProject = ({ navigation, route, theme }) => {
         <View style={combinedStyles.modalOverlay}>
           <View style={[styles.modalContainer, styles.selectorModal]}>
             <View style={combinedStyles.modalContent}>
-              <Text style={combinedStyles.modalTitle}>{t('selectProjectToEdit')}</Text>
+              <Text style={combinedStyles.modalTitle}>
+                {t("selectProjectToEdit")}
+              </Text>
 
               <ScrollView style={styles.projectList}>
                 {existingProjects.map((project) => (
@@ -1805,17 +1868,31 @@ const CreateProject = ({ navigation, route, theme }) => {
                     style={combinedStyles.projectItem}
                     onPress={() => selectProjectToEdit(project)}
                   >
-                    <Ionicons name="business" size={24} color={colors.primary} />
+                    <Ionicons
+                      name="business"
+                      size={24}
+                      color={colors.primary}
+                    />
                     <View style={styles.projectInfo}>
-                      <Text style={combinedStyles.projectName}>{project.name}</Text>
-                      <Text style={combinedStyles.projectAddress}>{project.address}</Text>
+                      <Text style={combinedStyles.projectName}>
+                        {project.name}
+                      </Text>
+                      <Text style={combinedStyles.projectAddress}>
+                        {project.address}
+                      </Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color={colors.secondaryText}
+                    />
                   </TouchableOpacity>
                 ))}
 
                 {existingProjects.length === 0 && (
-                  <Text style={combinedStyles.noProjectsText}>{t('noProjectsFound')}</Text>
+                  <Text style={combinedStyles.noProjectsText}>
+                    {t("noProjectsFound")}
+                  </Text>
                 )}
               </ScrollView>
 
@@ -1823,7 +1900,7 @@ const CreateProject = ({ navigation, route, theme }) => {
                 style={[styles.closeModalButton, styles.cancelButton]}
                 onPress={() => setProjectSelectorVisible(false)}
               >
-                <Text style={styles.closeModalText}>{t('cancel')}</Text>
+                <Text style={styles.closeModalText}>{t("cancel")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1839,10 +1916,12 @@ const CreateProject = ({ navigation, route, theme }) => {
       >
         <View style={dynamicStyles.modalOverlay}>
           <View style={dynamicStyles.modalContent}>
-            <Text style={dynamicStyles.modalTitle}>{t('selectFiberTypesQuantities')}</Text>
+            <Text style={dynamicStyles.modalTitle}>
+              {t("selectFiberTypesQuantities")}
+            </Text>
             <FlatList
               data={fiberTypesList}
-              keyExtractor={item => item.typeId}
+              keyExtractor={(item) => item.typeId}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={dynamicStyles.modalItem}
@@ -1854,7 +1933,6 @@ const CreateProject = ({ navigation, route, theme }) => {
             />
           </View>
         </View>
-
       </Modal>
 
       {/* Add Node Modal */}
@@ -1866,10 +1944,12 @@ const CreateProject = ({ navigation, route, theme }) => {
       >
         <View style={dynamicStyles.modalOverlay}>
           <View style={dynamicStyles.modalContent}>
-            <Text style={dynamicStyles.modalTitle}>{t('selectFiberTypesQuantities')}</Text>
+            <Text style={dynamicStyles.modalTitle}>
+              {t("selectFiberTypesQuantities")}
+            </Text>
             <FlatList
               data={nodesTypesList}
-              keyExtractor={item => item.id}
+              keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={dynamicStyles.modalItem}
@@ -1881,7 +1961,6 @@ const CreateProject = ({ navigation, route, theme }) => {
             />
           </View>
         </View>
-
       </Modal>
 
       {/* Show Filter Nodes Modal */}
@@ -1893,10 +1972,12 @@ const CreateProject = ({ navigation, route, theme }) => {
       >
         <View style={dynamicStyles.modalOverlay}>
           <View style={dynamicStyles.modalContent}>
-            <Text style={dynamicStyles.modalTitle}>{t('filterNodesModalTitle')}</Text>
+            <Text style={dynamicStyles.modalTitle}>
+              {t("filterNodesModalTitle")}
+            </Text>
             <FlatList
               data={nodesFiltersList}
-              keyExtractor={item => item.id}
+              keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={dynamicStyles.modalItem}
@@ -1904,12 +1985,16 @@ const CreateProject = ({ navigation, route, theme }) => {
                 >
                   <View
                     style={{
-                      flexDirection: 'row',
-                      gap: 3
+                      flexDirection: "row",
+                      gap: 3,
                     }}
                   >
                     {selectedNodesFilter.id == item.id && (
-                      <Ionicons name="checkmark" size={24} color={colors.primary} />
+                      <Ionicons
+                        name="checkmark"
+                        size={24}
+                        color={colors.primary}
+                      />
                     )}
 
                     <Text style={dynamicStyles.modalItemText}>{item.name}</Text>
@@ -1919,13 +2004,9 @@ const CreateProject = ({ navigation, route, theme }) => {
             />
           </View>
         </View>
-
       </Modal>
-
     </View>
   );
 };
-
-
 
 export default CreateProject;

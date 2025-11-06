@@ -6,7 +6,6 @@ const db = new Dexie('FiberDatabase');
 // Definir esquema de la base de datos
 db.version(1).stores({
   projects: '++id, name, createdDate, modifiedDate, deleted, metadata',
-  nodes_types: '++id, name, type',
   nodes: '++id, label, projectId, typeId, description, createdDate, modifiedDate, deleted',
   fibers: '++id, typeId, label, projectId, parentId, createdDate, modifiedDate, deleted'
 });
