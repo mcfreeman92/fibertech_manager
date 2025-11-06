@@ -505,7 +505,8 @@ const CreateProject = ({ navigation, route, theme }) => {
       ]);
     };
 
-    initializeNode();
+    if (projectId == null || projectId == undefined)
+      initializeNode();
 
     loadExistingProjects();
 
@@ -878,7 +879,7 @@ const CreateProject = ({ navigation, route, theme }) => {
 
       await createFiber({
         label: buffer.label,
-        projectId: project.id,
+        projectId: fiber.projectId,
         parentId: dbFiber.id,
         typeId: buffer.typeId || sinleFiberTpeId,
         description: "",
@@ -980,14 +981,20 @@ const CreateProject = ({ navigation, route, theme }) => {
         for (let i = 0; i < nodes.length; i++) {
           const node = nodes[i];
 
-          await doCreateNode(node);
+          await doCreateNode({
+            ...node,
+            projectId : project.id
+          });
         }
 
         /**Persist fibers */
         for (let i = 0; i < fibers.length; i++) {
           const fiber = fibers[i];
 
-          await doCreateFiber(fiber);
+          await doCreateFiber({
+            ...fiber,
+            projectId: project.id
+          });
         }
       }
     } catch (error) {
