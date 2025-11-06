@@ -602,8 +602,8 @@ const NodeLinks = ({ route, navigation }) => {
     direction = "source",
   }) => {
     const isSource = direction === "source";
-    const textColor = fiberColors12Hex[thread - 1].color;
-    const bkColor = getContrastColor(fiberColors12Hex[thread - 1].color);
+    const bkColor = fiberColors12Hex[thread - 1].color;
+    const textColor = getContrastColor(bkColor);
     return (
       <View>
         <View
@@ -695,9 +695,9 @@ const NodeLinks = ({ route, navigation }) => {
           alignItems: "center",
           justifyContent: "space-between",
         }}
-        onPress={() => console.log("OK")}
+  
       >
-        <View style={styles2.container} onPress={onPress} activeOpacity={0.7}>
+        <TouchableOpacity style={styles2.container} onPress={onPress} activeOpacity={0.7}>
           {/* Source Section */}
           <FiberThreadInfo
             fiberLabel={src.fiberLabel}
@@ -724,7 +724,7 @@ const NodeLinks = ({ route, navigation }) => {
             direction="destination"
             buffer={dst.bufferLabel}
           />
-        </View>
+        </TouchableOpacity>
 
         <View style={styles2.connectionCenter}>
           <View style={styles2.iconContainer2}>
@@ -771,6 +771,10 @@ const NodeLinks = ({ route, navigation }) => {
     });
   };
 
+  const handleEditFusionLink = (link) => {
+
+  }
+  
   return (
     <View
       style={[
@@ -830,7 +834,7 @@ const NodeLinks = ({ route, navigation }) => {
 
         <FlatList
           data={nodeData.fusionLinks == undefined ? [] : nodeData.fusionLinks}
-          renderItem={({ item }) => <RenderFusionLink link={item} />}
+          renderItem={({ item }) => <RenderFusionLink link={item} onPress={() => handleEditFusionLink(item)} />}
         ></FlatList>
       </ScrollView>
     </View>
