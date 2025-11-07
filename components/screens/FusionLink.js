@@ -523,22 +523,38 @@ const FusionLink = ({ route, navigation }) => {
       if (link != undefined) {
         const srcFiber = fibers.find(x => x.id == link.src.fiberId);
         const srcBufer = srcFiber.buffers.find(x => x.id == link.src.bufferId);
+        const srcHilos = srcBufer == undefined ? srcFiber.threads : srcBufer.threads;
+
         const src = {
           fiber: srcFiber,
           buffer: srcBufer,
           thread: link.src.thread,
-          threads: srcBufer == undefined ? srcFiber.threads : srcBufer.threads
+          threads: srcHilos.map(x => {
+            return {
+              ...x,
+              value: x.number,
+              label: `Thread - ${x.number}`
+            }
+          })
         }
 
         setSrcLink(src);
 
         const dstFiber = fibers.find(x => x.id == link.dst.fiberId);
         const dstBufer = dstFiber.buffers.find(x => x.id == link.dst.bufferId);
+        const dstHilos = dstBufer == undefined ? dstFiber.threads : dstBufer.threads;
+
         const dst = {
           fiber: dstFiber,
           buffer: dstBufer,
           thread: link.dst.thread,
-          threads: dstBufer == undefined ? dstFiber.threads : dstBufer.threads
+          threads: dstHilos.map(x => {
+            return {
+              ...x,
+              value: x.number,
+              label: `Thread - ${x.number}`
+            }
+          })
         }
 
         setDstLink(dst);

@@ -121,6 +121,7 @@ export const AppProvider = ({ children }) => {
   // Traducciones
   const translations = {
     en: {
+      Links: 'Links',
       Link: 'Link',
       Source: 'Source',
       Thread: 'Thread number',
@@ -724,6 +725,7 @@ export const AppProvider = ({ children }) => {
       copiedToClipboard: 'Copied to clipboard'
     },
     es: {
+       Links: 'Enlaces',
        Link: 'Enlace',
       Source: 'Origen',
       Thread: 'Número del hilo',
