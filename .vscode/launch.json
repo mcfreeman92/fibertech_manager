@@ -7,9 +7,8 @@
     {
       "name": "Debug Edge",
       "request": "launch",
-      "type": "reactnative",
+      "type": "msedge",
       "cwd": "${workspaceFolder}",
-      "platform": "expoweb"
     },
     {
       "name": "Attach to Firefox",

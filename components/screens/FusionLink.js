@@ -418,7 +418,10 @@ const FusionLink = ({ route, navigation }) => {
       }
     };
 
-    result.hash = linkHash;
+    if (link == undefined)
+      result.hash = linkHash;
+    else
+      result.hash = link.hash;
 
     route.params.onSaveFusionLink(result);
     navigation.goBack();
@@ -432,9 +435,6 @@ const FusionLink = ({ route, navigation }) => {
       navigation.goBack();
     }
   };
-
-
-  
 
   const getContrastColor = (hexColor) => {
     // Si el color es muy claro, usar texto oscuro, sino claro
@@ -515,9 +515,37 @@ const FusionLink = ({ route, navigation }) => {
         }
       });
       setFibersData(records);
+      return records;
     };
 
-    loadFibers();
+
+    loadFibers().then(fibers => {
+      if (link != undefined) {
+        const srcFiber = fibers.find(x => x.id == link.src.fiberId);
+        const srcBufer = srcFiber.buffers.find(x => x.id == link.src.bufferId);
+        const src = {
+          fiber: srcFiber,
+          buffer: srcBufer,
+          thread: link.src.thread,
+          threads: srcBufer == undefined ? srcFiber.threads : srcBufer.threads
+        }
+
+        setSrcLink(src);
+
+        const dstFiber = fibers.find(x => x.id == link.dst.fiberId);
+        const dstBufer = dstFiber.buffers.find(x => x.id == link.dst.bufferId);
+        const dst = {
+          fiber: dstFiber,
+          buffer: dstBufer,
+          thread: link.dst.thread,
+          threads: dstBufer == undefined ? dstFiber.threads : dstBufer.threads
+        }
+
+        setDstLink(dst);
+      }
+    }).catch(e => {
+      console.error(e);
+    })
   }, []);
 
   return (

@@ -53,7 +53,7 @@ const CreateProject = ({ navigation, route, theme }) => {
     getNodes,
     updateFiber,
     updateNode
-    
+
   } = useAdapter()();
 
   const { topInset, isTablet, bottomInset, stylesFull } = useDevice();
@@ -213,7 +213,7 @@ const CreateProject = ({ navigation, route, theme }) => {
         if (filter.id == 0) setNodes(result);
         else setNodes(result.filter((x) => x.typeId == filter.id));
       })
-      .catch((e) => {});
+      .catch((e) => { });
   };
 
   // Estilos base (sin colores específicos para mantener la estructura)
@@ -743,11 +743,10 @@ const CreateProject = ({ navigation, route, theme }) => {
   const shareProject = async () => {
     try {
       const result = await Share.share({
-        message: `${t("ftthProject")}: ${projectData.name}\n${t("address")}: ${
-          projectData.address
-        }\n${t("totalUnits")}: ${calculateTotalUnits()}\n\n${t(
-          "scanQRForDetails"
-        )}`,
+        message: `${t("ftthProject")}: ${projectData.name}\n${t("address")}: ${projectData.address
+          }\n${t("totalUnits")}: ${calculateTotalUnits()}\n\n${t(
+            "scanQRForDetails"
+          )}`,
         title: t("ftthProjectDetails"),
       });
     } catch (error) {
@@ -771,7 +770,7 @@ const CreateProject = ({ navigation, route, theme }) => {
     setShowAddNodeModal(true);
   };
 
-  const handleConnectionMap = () => {};
+  const handleConnectionMap = () => { };
 
   const buildFiberThreads = () => {
     let items = [];
@@ -940,7 +939,14 @@ const CreateProject = ({ navigation, route, theme }) => {
             };
             await doCreateNode(newObj);
           } else {
-            await updateNode(node.id, node);
+            const meta = {
+              devices: node.devices || [],
+              fusionLinks: node.fusionLinks || [],
+            };
+            await updateNode(node.id, {
+              ...node,
+              metadata: JSON.stringify(meta)
+            });
           }
         }
 
@@ -983,7 +989,7 @@ const CreateProject = ({ navigation, route, theme }) => {
 
           await doCreateNode({
             ...node,
-            projectId : project.id
+            projectId: project.id
           });
         }
 

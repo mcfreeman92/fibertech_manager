@@ -772,7 +772,13 @@ const NodeLinks = ({ route, navigation }) => {
   };
 
   const handleEditFusionLink = (link) => {
-
+    navigation.navigate("FusionLink", {
+      link: link,
+      projectId: node.projectId,
+      onSaveFusionLink: (link) => {
+        handleSaveFusionLink(link);
+      },
+    });
   }
   
   return (
