@@ -222,7 +222,7 @@ export const sqliteWebAdapter = {
   deleteNode: async (id) => {
     try {
       // Soft delete
-      await db.nodes.update(id, { Deleted: 1 });
+      await db.nodes.update(id, { deleted: 1 });
       return { success: true };
     } catch (error) {
       console.error('Error deleting node:', error);

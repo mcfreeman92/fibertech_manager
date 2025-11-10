@@ -53,7 +53,8 @@ const CreateProject = ({ navigation, route, theme }) => {
     getNodes,
     updateFiber,
     updateNode,
-    updateFiberThread
+    updateFiberThread,
+    deleteNode
 
   } = useAdapter()();
 
@@ -961,15 +962,18 @@ const CreateProject = ({ navigation, route, theme }) => {
         await updateProject(projectId, prjData);
 
         /**Persist/Update new nodes */
+
         for (let i = 0; i < nodes.length; i++) {
           const node = nodes[i];
 
           if (node.id == undefined) {
-            let newObj = {
-              ...node,
-              projectId: projectId,
-            };
-            await doCreateNode(newObj);
+            if (!node.deleted) {
+              let newObj = {
+                ...node,
+                projectId: projectId,
+              };
+              await doCreateNode(newObj);
+            }
           } else {
             const links = node.fusionLinks || [];
 
@@ -982,24 +986,37 @@ const CreateProject = ({ navigation, route, theme }) => {
               doUpdateFiberThread(link.dst, false);
             }
 
-            const updateLinks = links.filter(x => x.deleted == false);
 
-            for (let i = 0; i < updateLinks.length; i++) {
-              const link = updateLinks[i];
+            if ((node.deleted || false) == false) {
 
-              doUpdateFiberThread(link.src, true);
-              doUpdateFiberThread(link.dst, true);
+              const updateLinks = links.filter(x => x.deleted == false);
+
+              for (let i = 0; i < updateLinks.length; i++) {
+                const link = updateLinks[i];
+
+                doUpdateFiberThread(link.src, true);
+                doUpdateFiberThread(link.dst, true);
+              }
+
+              const meta = {
+                devices: node.devices || [],
+                fusionLinks: updateLinks
+              };
+
+              await updateNode(node.id, {
+                ...node,
+                metadata: JSON.stringify(meta)
+              });
+            } else {
+              for (let i = 0; i < links.length; i++) {
+                const link = links[i];
+
+                doUpdateFiberThread(link.src, false);
+                doUpdateFiberThread(link.dst, false);
+              }
+
+              await deleteNode(node.id);
             }
-
-            const meta = {
-              devices: node.devices || [],
-              fusionLinks: updateLinks
-            };
-
-            await updateNode(node.id, {
-              ...node,
-              metadata: JSON.stringify(meta)
-            });
           }
         }
 
@@ -1536,7 +1553,7 @@ const CreateProject = ({ navigation, route, theme }) => {
       let update = [...nodes];
       update[index] = {
         ...update[index],
-        deleted : true
+        deleted: true
       };
 
       setNodes(update);
