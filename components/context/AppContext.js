@@ -121,6 +121,8 @@ export const AppProvider = ({ children }) => {
   // Traducciones
   const translations = {
     en: {
+      threadInUse: 'Thread in use',
+      setupLink: 'Setup link',
       Links: 'Links',
       Link: 'Link',
       Source: 'Source',
@@ -725,8 +727,10 @@ export const AppProvider = ({ children }) => {
       copiedToClipboard: 'Copied to clipboard'
     },
     es: {
-       Links: 'Enlaces',
-       Link: 'Enlace',
+      threadInUse: 'Hilo en uso',
+      setupLink: 'Configurar enlace',
+      Links: 'Enlaces',
+      Link: 'Enlace',
       Source: 'Origen',
       Thread: 'Número del hilo',
       Destiny: 'Destino',
@@ -989,7 +993,7 @@ export const AppProvider = ({ children }) => {
       projectDescription: 'Descripción del proyecto',
 
       // Unidades
-      livingUnits: 'Unidades habitacionales',
+      livingUnits: 'Unids. habitacionales',
       officesAmenities: 'Oficinas/Amenidades',
       commercialUnits: 'Unidades comerciales',
       totalUnits: 'Total de unidades',

@@ -395,23 +395,32 @@ const NodeLinks = ({ route, navigation }) => {
   const handleSave = () => {
     // Ejecutar el callback si existe
     if (route.params?.onSaveNode) {
-      if (node.id != undefined) {
-        const meta = {
-          devices: nodeData.devices,
-          fusionLinks: nodeData.fusionLinks,
-        };
+      const upd = {
+        ...nodeData,
+        devices: nodeData.devices,
+        fusionLinks: nodeData.fusionLinks,
+      };
 
-        const upd = {
-          ...nodeData,
-          metadata: JSON.stringify(meta),
-        };
+      route.params.onSaveNode(upd);
 
-        updateNode(node.id, upd)
-          .then((r) => {
-            navigation.goBack();
-          })
-          .catch((e) => {});
-      }
+
+
+      //if (node.id != undefined) {
+      // const upd = {
+      //   ...nodeData,
+      //   metadata: JSON.stringify(meta),
+      // };
+
+      // updateNode(node.id, upd)
+      //   .then((r) => {
+      //     navigation.goBack();
+      //   })
+      //   .catch((e) => {});
+
+      //route.params.onSaveNode(meta);
+      //}
+
+      navigation.goBack();
     } else {
       navigation.goBack();
     }
@@ -499,7 +508,7 @@ const NodeLinks = ({ route, navigation }) => {
       paddingVertical: 4,
       borderRadius: CONFIG.RADIUS.SM,
       marginRight: CONFIG.SPACING.SM,
-     
+
     },
     fiberLabel: {
       color: "#ffffff",
@@ -602,8 +611,9 @@ const NodeLinks = ({ route, navigation }) => {
     direction = "source",
   }) => {
     const isSource = direction === "source";
-    const bkColor = fiberColors12Hex[thread - 1].color;
+    const bkColor = fiberColors12Hex[thread].color;
     const textColor = getContrastColor(bkColor);
+
     return (
       <View>
         <View
@@ -640,7 +650,7 @@ const NodeLinks = ({ route, navigation }) => {
                     textTransform: "uppercase",
                   }}
                 >
-                  Thread {thread}
+                  Thread {thread + 1}
                 </Text>
               </View>
 
@@ -695,7 +705,7 @@ const NodeLinks = ({ route, navigation }) => {
           alignItems: "center",
           justifyContent: "space-between",
         }}
-  
+
       >
         <TouchableOpacity style={styles2.container} onPress={onPress} activeOpacity={0.7}>
           {/* Source Section */}
@@ -730,7 +740,7 @@ const NodeLinks = ({ route, navigation }) => {
           <View style={styles2.iconContainer2}>
             <TouchableOpacity
               onPress={() => {
-                console.warn("⚠️ Este mensaje es más visible");
+                handleRemoveFusionLink(link);
               }}
             >
               <Ionicons name={"trash"} size={15} color={"#ffffffff"} />
@@ -780,7 +790,20 @@ const NodeLinks = ({ route, navigation }) => {
       },
     });
   }
-  
+
+  const handleRemoveFusionLink = (link) => {
+    const index = nodeData.fusionLinks.findIndex(x => x.hash == link.hash);
+    let items = [...nodeData.fusionLinks];
+    if (index != -1) {
+      items[index] = {...items[index], deleted: true};
+    }
+
+    setNodeData({
+      ...nodeData,
+      fusionLinks : items
+    })
+  }
+
   return (
     <View
       style={[
@@ -839,7 +862,7 @@ const NodeLinks = ({ route, navigation }) => {
         </View>
 
         <FlatList
-          data={nodeData.fusionLinks == undefined ? [] : nodeData.fusionLinks}
+          data={nodeData.fusionLinks == undefined ? [] : nodeData.fusionLinks.filter(x => x.deleted == false)}
           renderItem={({ item }) => <RenderFusionLink link={item} onPress={() => handleEditFusionLink(item)} />}
         ></FlatList>
       </ScrollView>

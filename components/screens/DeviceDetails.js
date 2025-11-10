@@ -9,7 +9,8 @@ import {
   TextInput,
   Alert,
   Switch,
-  FlatList
+  FlatList,
+  Button
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
@@ -184,6 +185,7 @@ const DeviceDetails = ({ route, navigation }) => {
       color: '#ffffff',
       fontSize: 12,
       fontWeight: '500',
+      flexShrink: 0,
     },
     macAddressInput: {
       borderWidth: 1,
@@ -421,7 +423,7 @@ const DeviceDetails = ({ route, navigation }) => {
                 setData(prev => ({
                   ...prev,
                   type: value,
-                  label : deviceTypes.find(x => x.value == value).label
+                  label: deviceTypes.find(x => x.value == value).label
                 }));
 
               }}
@@ -449,17 +451,25 @@ const DeviceDetails = ({ route, navigation }) => {
 
           <View >
             <Text style={styles.label} >{t('macAddress')}</Text>
-            <TextInput
-              style={styles.input}
-              value={data.mac || ''}
-              onChangeText={(text) => {
-                setData(prev => ({
-                  ...prev,
-                  mac: text
-                }));
-              }}
+            <View style={{ flexDirection: 'row', justifyContent:'space-between' }}>
+              <TextInput
+                style={[styles.input, { flex: 1, marginRight:8 }]}
+                value={data.mac || ''}
+                onChangeText={(text) => {
+                  setData(prev => ({
+                    ...prev,
+                    mac: text
+                  }));
+                }}
+              />
+              <Button
+                title={t('scanQR')}
+                style = {styles.scanButton}
+                accessibilityLabel="Learn more about this purple button"
+              />
 
-            />
+            </View>
+
           </View>
 
           <View >
@@ -490,6 +500,7 @@ const DeviceDetails = ({ route, navigation }) => {
               alignItems: 'center',
             }}>
               <TextInput
+                inputMode='numeric'
                 style={styles.numberInput}
                 value={data.portsCount || ''}
                 onChangeText={(text) => {

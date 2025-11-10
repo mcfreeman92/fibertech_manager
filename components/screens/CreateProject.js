@@ -52,7 +52,8 @@ const CreateProject = ({ navigation, route, theme }) => {
     getFiberById,
     getNodes,
     updateFiber,
-    updateNode
+    updateNode,
+    updateFiberThread
 
   } = useAdapter()();
 
@@ -489,7 +490,7 @@ const CreateProject = ({ navigation, route, theme }) => {
   const [projectSelectorVisible, setProjectSelectorVisible] = useState(false);
 
   useEffect(() => {
-    const initializeNode = async () => {
+    const initializeEmptyProject = async () => {
       const hash = uuidv4();
       setNodes([
         {
@@ -506,7 +507,7 @@ const CreateProject = ({ navigation, route, theme }) => {
     };
 
     if (projectId == null || projectId == undefined)
-      initializeNode();
+      initializeEmptyProject();
 
     loadExistingProjects();
 
@@ -545,7 +546,7 @@ const CreateProject = ({ navigation, route, theme }) => {
 
       /**Load nodes and fibers */
       const dbNodes = await getNodes(projectId);
-      setNodes(dbNodes);
+      setNodes(dbNodes.filter(x => x.typeId == 1));
 
       let records = await getFibers(projectId, null);
       let dbFibers = [];
@@ -782,6 +783,7 @@ const CreateProject = ({ navigation, route, theme }) => {
           number: i + 1,
           color: color.color,
           active: true,
+          inUse: false
         },
       ];
     }
@@ -839,9 +841,19 @@ const CreateProject = ({ navigation, route, theme }) => {
   };
 
   const doCreateNode = async (node) => {
+
+    const links = node.fusionLinks || [];
+
+    for (let i = 0; i < links.length; i++) {
+      const link = links[i];
+
+      doUpdateFiberThread(link.src, true);
+      doUpdateFiberThread(link.dst, true);
+    }
+
     const meta = {
       devices: node.devices || [],
-      fusionLinks: node.fusionLinks || [],
+      fusionLinks: links,
     };
 
     const dbNode = await createNode({
@@ -891,12 +903,32 @@ const CreateProject = ({ navigation, route, theme }) => {
     return dbFiber;
   };
 
+  const doUpdateFiberThread = (link, inUse) => {
+    let items = [...fibers];
+
+    let fiber = null;
+
+    if (link.buffer != null) {
+      let f = items.find(x => x.id == link.fiberId);
+      fiber = f.buffers.find(x => x.id == link.buffer);
+    } else {
+      fiber = items.find(x => x.id == link.fiberId);
+    }
+
+    fiber.threads[link.thread] = {
+      ...fiber.threads[link.thread],
+      inUse: inUse
+    };
+
+    setFibers(items);
+  }
+
   const handleSaveProject = async () => {
     if (saving) return;
 
     setSaving(true);
     try {
-      if (!projectData.name?.trim() || !projectData.address?.trim()) {
+      if (!projectData.name?.trim() /**|| !projectData.address?.trim() */) {
         Alert.alert(t("error"), t("nameAndAddressRequired"));
         setSaving(false);
         return;
@@ -939,10 +971,31 @@ const CreateProject = ({ navigation, route, theme }) => {
             };
             await doCreateNode(newObj);
           } else {
+            const links = node.fusionLinks || [];
+
+            const deletedLinks = links.filter(x => x.deleted);
+
+            for (let i = 0; i < deletedLinks.length; i++) {
+              const link = deletedLinks[i];
+
+              doUpdateFiberThread(link.src, false);
+              doUpdateFiberThread(link.dst, false);
+            }
+
+            const updateLinks = links.filter(x => x.deleted == false);
+
+            for (let i = 0; i < updateLinks.length; i++) {
+              const link = updateLinks[i];
+
+              doUpdateFiberThread(link.src, true);
+              doUpdateFiberThread(link.dst, true);
+            }
+
             const meta = {
               devices: node.devices || [],
-              fusionLinks: node.fusionLinks || [],
+              fusionLinks: updateLinks
             };
+
             await updateNode(node.id, {
               ...node,
               metadata: JSON.stringify(meta)
@@ -953,7 +1006,6 @@ const CreateProject = ({ navigation, route, theme }) => {
         /**Persist new fibers */
         for (let i = 0; i < fibers.length; i++) {
           const fiber = fibers[i];
-
           if (fiber.id == undefined) {
             let newObj = {
               ...fiber,
@@ -961,7 +1013,10 @@ const CreateProject = ({ navigation, route, theme }) => {
             };
             await doCreateFiber(newObj);
           } else {
-            await updateFiber(fiber.id, fiber);
+            await updateFiber(fiber.id, {
+              ...fiber,
+              metadata: JSON.stringify(fiber.threads)
+            });
           }
 
           /**Save buffers */
@@ -975,7 +1030,10 @@ const CreateProject = ({ navigation, route, theme }) => {
               };
               await doCreateFiber(newObj);
             } else {
-              await updateFiber(buffer.id, buffer);
+              await updateFiber(buffer.id, {
+                ...buffer,
+                metadata: JSON.stringify(buffer.threads)
+              });
             }
           }
         }
@@ -984,8 +1042,25 @@ const CreateProject = ({ navigation, route, theme }) => {
         const project = await createProject(prjData);
 
         /**Persist nodes */
-        for (let i = 0; i < nodes.length; i++) {
-          const node = nodes[i];
+        let nodesList = [...nodes];
+        const unitType = nodesTypesList.find(x => x.type == 'U');
+
+        const unitsCount = calculateTotalUnits();
+        for (let i = 0; i < unitsCount; i++) {
+          nodesList.push({
+            hash: uuidv4(),
+            label: `UNIT_${i + 1}`,
+            createdDate: new Date().toISOString(),
+            modifiedDate: new Date().toISOString(),
+            deleted: 0,
+            typeId: unitType.id,
+            devices: [],
+            fusionLinks: [],
+          });
+        }
+
+        for (let i = 0; i < nodesList.length; i++) {
+          const node = nodesList[i];
 
           await doCreateNode({
             ...node,
@@ -1003,6 +1078,8 @@ const CreateProject = ({ navigation, route, theme }) => {
           });
         }
       }
+
+
     } catch (error) {
       console.log("❌ Error saving project:", error);
       Alert.alert(
@@ -1447,6 +1524,25 @@ const CreateProject = ({ navigation, route, theme }) => {
     },
   });
 
+  const handleRemoveNode = (node) => {
+    let index = -1;
+
+    if (node.id == undefined)
+      index = nodes.findIndex(x => x.hash == node.hash);
+    else
+      index = nodes.findIndex(x => x.id == node.id);
+
+    if (index != -1) {
+      let update = [...nodes];
+      update[index] = {
+        ...update[index],
+        deleted : true
+      };
+
+      setNodes(update);
+    }
+  }
+
   const RenderFiber = ({ fiber }) => {
     return (
       <View style={combinedStyles.fiberCard}>
@@ -1461,7 +1557,10 @@ const CreateProject = ({ navigation, route, theme }) => {
           >
             <Ionicons name="information-circle" size={24} color={"#504d4cff"} />
           </TouchableOpacity>
-          <TouchableOpacity style={dynamicStyles.removeButton}>
+          <TouchableOpacity
+            style={dynamicStyles.removeButton}
+
+          >
             <Ionicons name="trash" size={24} color={"#666261ff"} />
           </TouchableOpacity>
         </View>
@@ -1587,9 +1686,15 @@ const CreateProject = ({ navigation, route, theme }) => {
             <Ionicons name="information-circle" size={24} color={"#666261ff"} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={dynamicStyles.removeButton}>
-            <Ionicons name="trash" size={24} color={"#666261ff"} />
-          </TouchableOpacity>
+          {node.typeId != 1 && (
+            <TouchableOpacity
+              style={dynamicStyles.removeButton}
+              onPress={() => handleRemoveNode(node)}
+            >
+              <Ionicons name="trash" size={24} color={"#666261ff"} />
+            </TouchableOpacity>
+          )}
+
         </View>
       </View>
     );
@@ -1673,56 +1778,117 @@ const CreateProject = ({ navigation, route, theme }) => {
               />
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={combinedStyles.label}>{t("propertyAddress")} *</Text>
-              <TextInput
-                style={combinedStyles.input}
-                value={projectData.address}
-                onChangeText={(text) => handleInputChange("address", text)}
-                placeholder={t("enterAddress")}
-                editable={!saving}
-                placeholderTextColor={colors.placeholder}
-              />
-            </View>
+            {/** HABILITAR ESTO CUADO NO ES WEB POR LA VISIBILIDAD */}
 
+            {Platform.OS !== 'web' && (
+
+              <View>
+                <View style={styles.inputGroup}>
+                  <Text style={combinedStyles.label}>{t("propertyAddress")} *</Text>
+                  <TextInput
+                    style={combinedStyles.input}
+                    value={projectData.address}
+                    onChangeText={(text) => handleInputChange("address", text)}
+                    placeholder={t("enterAddress")}
+                    editable={!saving}
+                    placeholderTextColor={colors.placeholder}
+                  />
+                </View>
+
+                <View style={styles.row}>
+                  <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+                    <Text style={combinedStyles.label}>{t("city")}</Text>
+                    <TextInput
+                      style={combinedStyles.input}
+                      value={projectData.city}
+                      onChangeText={(text) => handleInputChange("city", text)}
+                      placeholder={t("city")}
+                      editable={!saving}
+                      placeholderTextColor={colors.placeholder}
+                    />
+                  </View>
+
+                  <View style={[styles.inputGroup, { flex: 1 }]}>
+                    <Text style={combinedStyles.label}>{t("state")}</Text>
+                    <TextInput
+                      style={combinedStyles.input}
+                      value={projectData.state}
+                      onChangeText={(text) => handleInputChange("state", text)}
+                      placeholder={t("state")}
+                      maxLength={2}
+                      editable={!saving}
+                      placeholderTextColor={colors.placeholder}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={combinedStyles.label}>{t("description")}</Text>
+                  <TextInput
+                    style={[combinedStyles.input, styles.textArea]}
+                    value={projectData.description}
+                    onChangeText={(text) => handleInputChange("description", text)}
+                    placeholder={t("projectDescription")}
+                    multiline={true}
+                    editable={!saving}
+                    placeholderTextColor={colors.placeholder}
+                  />
+                </View>
+              </View>
+            )}
+
+          </View>
+        </View>
+
+        {/* Unit Information */}
+        <View style={combinedStyles.section}>
+          <Text style={combinedStyles.sectionTitle}>{t('unitInformation')}</Text>
+
+          <View style={combinedStyles.formCard}>
             <View style={styles.row}>
               <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-                <Text style={combinedStyles.label}>{t("city")}</Text>
+                <Text style={combinedStyles.label}>{t('livingUnits')}</Text>
                 <TextInput
                   style={combinedStyles.input}
-                  value={projectData.city}
-                  onChangeText={(text) => handleInputChange("city", text)}
-                  placeholder={t("city")}
+                  value={unitsInfo.living_unit}
+                  onChangeText={(text) => handleUnitsChange('living_unit', text)}
+                  placeholder="0"
+                  keyboardType="numeric"
+                  editable={!saving}
+                  placeholderTextColor={colors.placeholder}
+                />
+              </View>
+
+              <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+                <Text style={combinedStyles.label}>{t('officesAmenities')}</Text>
+                <TextInput
+                  style={combinedStyles.input}
+                  value={unitsInfo.office_amenities}
+                  onChangeText={(text) => handleUnitsChange('office_amenities', text)}
+                  placeholder="0"
+                  keyboardType="numeric"
                   editable={!saving}
                   placeholderTextColor={colors.placeholder}
                 />
               </View>
 
               <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={combinedStyles.label}>{t("state")}</Text>
+                <Text style={combinedStyles.label}>{t('commercialUnits')}</Text>
                 <TextInput
                   style={combinedStyles.input}
-                  value={projectData.state}
-                  onChangeText={(text) => handleInputChange("state", text)}
-                  placeholder={t("state")}
-                  maxLength={2}
+                  value={unitsInfo.commercial_unit}
+                  onChangeText={(text) => handleUnitsChange('commercial_unit', text)}
+                  placeholder="0"
+                  keyboardType="numeric"
                   editable={!saving}
                   placeholderTextColor={colors.placeholder}
                 />
               </View>
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={combinedStyles.label}>{t("description")}</Text>
-              <TextInput
-                style={[combinedStyles.input, styles.textArea]}
-                value={projectData.description}
-                onChangeText={(text) => handleInputChange("description", text)}
-                placeholder={t("projectDescription")}
-                multiline={true}
-                editable={!saving}
-                placeholderTextColor={colors.placeholder}
-              />
+            <View style={combinedStyles.totalUnits}>
+              <Text style={combinedStyles.totalLabel}>{t('totalUnits')}:</Text>
+              <Text style={combinedStyles.totalValue}>{calculateTotalUnits()}</Text>
             </View>
           </View>
         </View>
@@ -1765,7 +1931,7 @@ const CreateProject = ({ navigation, route, theme }) => {
           )}
 
           <FlatList
-            data={nodes}
+            data={nodes.filter(x => (x.deleted || false) == false)}
             keyExtractor={(item) => nodes.id}
             renderItem={({ item }) => <RenderNode node={item}></RenderNode>}
           />

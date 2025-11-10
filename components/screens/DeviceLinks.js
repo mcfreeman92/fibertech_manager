@@ -15,6 +15,7 @@ import {
   PermissionsAndroid,
   FlatList,
   Switch,
+  Button
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useApp } from "../context/AppContext";
@@ -25,13 +26,37 @@ import { useAdapter } from "@/api/contexts/DatabaseContext";
 import { v4 as uuidv4 } from "uuid";
 import RNPickerSelect from "react-native-picker-select";
 
+
+
 const DeviceLinks = ({ route, navigation }) => {
-  const { updateNode } = useAdapter()();
+  const { updateNode, getFibers } = useAdapter()();
 
   const { topInset, bottomInset, stylesFull } = useDevice();
   const { isDarkMode } = useApp();
   const { t } = useTranslation();
   const { device } = route.params;
+  const { projectId } = route.params;
+
+  const [fibersData, setFibersData] = useState([]);
+
+  const [showLinkSetupModal, setShowLinkSetupModal] = useState(false);
+  const [showThreadInUse, setShowThreadInUse] = useState(false);
+
+  const [selectedPort, setSelectedPort] = useState(null);
+  const [deviceData, setDeviceData] = useState(device);
+
+  const [srcLink, setSrcLink] = useState({
+    fiber: null,
+    buffer: null,
+    thread: null,
+    threads: []
+  });
+  const [dstLink, setDstLink] = useState({
+    fiber: null,
+    buffer: null,
+    thread: null,
+    threads: []
+  });
 
   const fiberColors12Hex = [
     { index: 0, color: "#0000FF" },
@@ -65,6 +90,35 @@ const DeviceLinks = ({ route, navigation }) => {
   };
 
   const styles = StyleSheet.create({
+    projectList: {
+      maxHeight: 300,
+      marginBottom: 20,
+    },
+    successButton: {
+      backgroundColor: colors.success,
+      borderRadius: 8,
+      height: 50,
+      marginTop: 10,
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 3,
+    },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between"
+    },
+    link: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: "#787575ff",
+      marginBottom: 8,
+    },
     enabledPort: {
       fontSize: 15,
       fontWeight: "600",
@@ -396,24 +450,9 @@ const DeviceLinks = ({ route, navigation }) => {
 
   const handleSave = () => {
     // Ejecutar el callback si existe
-    if (route.params?.onSaveNode) {
-      if (node.id != undefined) {
-        const meta = {
-          devices: nodeData.devices,
-          fusionLinks: nodeData.fusionLinks,
-        };
-
-        const upd = {
-          ...nodeData,
-          metadata: JSON.stringify(meta),
-        };
-
-        updateNode(node.id, upd)
-          .then((r) => {
-            navigation.goBack();
-          })
-          .catch((e) => {});
-      }
+    if (route.params?.onSaveDeviceData) {
+      route.params.onSaveDeviceData(deviceData);
+      navigation.goBack();
     } else {
       navigation.goBack();
     }
@@ -685,65 +724,7 @@ const DeviceLinks = ({ route, navigation }) => {
     );
   };
 
-  // Componente principal con mejoras visuales
-  const RenderFusionLink = ({ link, onPress }) => {
-    const { src, dst } = link;
 
-    return (
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <TouchableOpacity
-          style={styles2.container}
-          onPress={onPress}
-          activeOpacity={0.7}
-        >
-          {/* Source Section */}
-          <FiberThreadInfo
-            fiberLabel={src.fiberLabel}
-            thread={src.thread}
-            direction="source"
-            buffer={src.bufferLabel}
-          />
-
-          {/* Connection Icon */}
-          <View style={styles2.connectionCenter}>
-            <View style={styles2.iconContainer}>
-              <Ionicons
-                name={CONFIG.ICON.NAME}
-                size={CONFIG.ICON.SIZE}
-                color={CONFIG.ICON.COLOR}
-              />
-            </View>
-          </View>
-
-          {/* Destination Section */}
-          <FiberThreadInfo
-            fiberLabel={dst.fiberLabel}
-            thread={dst.thread}
-            direction="destination"
-            buffer={dst.bufferLabel}
-          />
-        </TouchableOpacity>
-
-        <View style={styles2.connectionCenter}>
-          <View style={styles2.iconContainer2}>
-            <TouchableOpacity
-              onPress={() => {
-                console.warn("⚠️ Este mensaje es más visible");
-              }}
-            >
-              <Ionicons name={"trash"} size={15} color={"#ffffffff"} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    );
-  };
 
   const handleSaveFusionLink = (link) => {
     let fusionLinks =
@@ -765,26 +746,187 @@ const DeviceLinks = ({ route, navigation }) => {
     setNodeData(tmp);
   };
 
-  const handleAddFusionLink = () => {
-    navigation.navigate("FusionLink", {
-      projectId: node.projectId,
-      linkHash: uuidv4(),
-      onSaveFusionLink: (link) => {
-        handleSaveFusionLink(link);
-      },
-    });
-  };
+  const getFiberLabelFrom = (items, fiberId) => {
+    for (let i = 0; i < items.length; i++) {
+      const fiber = items[i];
+      if (fiber.id == fiberId) {
+        return fiber.label;
+      }
+    }
+  }
 
-  const handleEditFusionLink = (link) => {
-    navigation.navigate("FusionLink", {
-      link: link,
-      projectId: node.projectId,
-      onSaveFusionLink: (link) => {
-        handleSaveFusionLink(link);
-      },
-    });
-  };
 
+  const getFiberLabel = (fiberId) => {
+    for (let i = 0; i < fibersData.length; i++) {
+      const fiber = fibersData[i];
+      if (fiber.id == fiberId) {
+        return fiber.label;
+      } else {
+        const label = getFiberLabelFrom(fiber.buffers, fiberId);
+        if (label != undefined)
+          return label;
+      }
+    }
+  }
+
+  const RenderLink = ({ port, enabled }) => {
+    let link = null;
+    if (deviceData != null && deviceData.links != undefined && deviceData.links != null) {
+      link = deviceData.links.find(x => x.port == port);
+    }
+
+    let textColor = null;
+    let prop = { ...styles.link };
+
+    let fiberLabel = 'Fibra';
+    let bufferLabel = 'Buffer';
+    let bkColor = fiberColors12Hex[0];
+
+    if (link != null) {
+      bkColor = fiberColors12Hex[link.src.thread - 1].color;
+      textColor = getContrastColor(bkColor);
+      prop = { ...styles.link, color: textColor }
+      fiberLabel = getFiberLabel(link.src.fiberId);
+      bufferLabel = getFiberLabel(link.src.bufferId);
+    }
+
+    return (
+      <View style={styles.row}>
+        <Text style={enabled ? styles.enabledPort : styles.disabledPort}>
+          {`${t("port")} - ${port}`}
+        </Text>
+
+        {link != null && (
+          <View style={styles.row}>
+            <Ionicons name="link" size={20} style={{ color: "#727272ff", margin: 10 }} />
+
+            <View style={{ backgroundColor: bkColor, paddingHorizontal: 2, paddingVertical: 2, borderRadius: 8, marginRight: 2 }}>
+              <Text style={prop} color={textColor} >
+                {`${t("Thread ")} ${link.src.thread}`}
+              </Text>
+            </View>
+
+            <Ionicons
+              name={"caret-back"}
+              size={16}
+              color={"#a1a0a0ff"}
+            />
+            {link.src.bufferId != null && (
+              <View style={styles.row}>
+                <Text style={styles.link}>
+                  {`Buffer ${bufferLabel}`}
+                </Text>
+
+                <Ionicons
+                  name={"caret-back"}
+                  size={16}
+                  color={"#a1a0a0ff"}
+                />
+              </View>
+            )}
+
+            <Text style={styles.link}>
+              {fiberLabel}
+            </Text>
+
+          </View>
+        )}
+
+      </View>
+    )
+  }
+
+  const handleCloseModal = () => {
+    setShowLinkSetupModal(false);
+
+    let links = [];
+
+    const src = {
+      fiberId: srcLink.fiber.id,
+      bufferId: srcLink.buffer,
+      thread: srcLink.thread
+    }
+
+    if (deviceData != null) {
+      if (deviceData.links != undefined && deviceData.links != null) {
+        links = deviceData.links;
+      }
+
+      let index = links.findIndex(x => x.port == selectedPort);
+
+      if (index == -1) {
+        links.push({
+          port: selectedPort,
+          src: src
+        })
+      } else {
+        links[index].src = src;
+      }
+    }
+
+    setDeviceData({
+      ...deviceData,
+      links: links
+    });
+
+  }
+
+  const handleSetupLink = (portNumber) => {
+    setSelectedPort(portNumber);
+    setShowLinkSetupModal(true);
+  }
+
+  useEffect(() => {
+
+    const loadFibers = async () => {
+
+      let records = await getFibers(projectId, null);
+
+      for (let i = 0; i < records.length; i++) {
+        let buffers = [{
+          ...records[i],
+          value: records[i].id
+        }];
+
+        let children = await getFibers(projectId, records[i].id);
+
+        children = children.map(b => {
+          return {
+            ...b,
+            value: b.id
+          }
+        });
+
+        buffers = [...buffers, ...children];
+
+        let f = {
+          ...records[i],
+          buffers: buffers
+        };
+
+        records[i] = f;
+      }
+
+      records = records.map(f => {
+        return {
+          ...f,
+          value: f.id != undefined ? f.id : f.hash
+        }
+      });
+      setFibersData(records);
+      return records;
+    };
+
+    loadFibers().then(fibers => {
+
+    }).catch(e => {
+      console.error(e);
+    })
+
+    if (device != undefined)
+      setDeviceData(device);
+
+  }, []);
   return (
     <View
       style={[
@@ -814,12 +956,6 @@ const DeviceLinks = ({ route, navigation }) => {
 
         <View style={{ flexDirection: "row" }}>
           <View style={styles.headerActions}>
-            <TouchableOpacity onPress={verEnMapa} style={styles.mapButton}>
-              <Ionicons name="add" size={24} color={colors.primary} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.headerActions}>
             <TouchableOpacity onPress={handleSave} style={styles.mapButton}>
               <Ionicons name="save" size={24} color="#3498db" />
             </TouchableOpacity>
@@ -836,31 +972,162 @@ const DeviceLinks = ({ route, navigation }) => {
             keyExtractor={(item) => item.number}
             renderItem={({ item }) => (
               <View>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <Text
-                    style={
-                      item.enabled ? styles.enabledPort : styles.disabledPort
-                    }
-                  >
-                    {`${t("port")} - ${item.number}`}
-                  </Text>
+                <View style={styles.row}>
 
-                  <TouchableOpacity>
-                    <Ionicons name="information-circle" size={24} color="#727272ff" />
-                  </TouchableOpacity>
+                  <RenderLink
+                    port={item.number}
+                    enabled={item.enabled}
+                  />
+
+                  {/**Actions */}
+                  <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        handleSetupLink(item.number);
+                      }}
+                    >
+                      <Ionicons name="settings" size={24} color="#727272ff" />
+                    </TouchableOpacity>
+                    <TouchableOpacity>
+                      <Ionicons name="trash" size={24} color="salmon" />
+                    </TouchableOpacity>
+                  </View>
+
                 </View>
               </View>
             )}
           />
         </View>
       </ScrollView>
-    </View>
+
+      {/**Link Modal */}
+      <Modal
+        visible={showLinkSetupModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowLinkSetupModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              {t("setupLink")}
+            </Text>
+
+            <ScrollView style={styles.projectList}>
+              <View>
+
+
+
+                {/**Source */}
+                <View>
+                  <Text style={styles.label} >{t('Source')}</Text>
+                  <RNPickerSelect
+                    style={pickerSelectStyles}
+                    value={srcLink.fiber != null ? srcLink.fiber.value : null}
+                    useNativeAndroidPickerStyle={false}
+                    onValueChange={(value) => {
+                      const fiber = fibersData.find(x => x.value == value);
+
+                      if (fiber != undefined) {
+                        const tmp = {
+                          ...srcLink,
+                          fiber: fiber,
+                          thread: null,
+                          threads: fiber.buffers.length == 1 ? fiber.threads.filter(x => x.active == true).map(t => {
+                            return {
+                              ...t,
+                              value: t.number,
+                              label: `Thread - ${t.number}`
+                            }
+                          }) : []
+                        }
+
+                        setSrcLink(tmp);
+                      }
+                    }}
+                    itemKey={item => item.value}
+                    items={fibersData}
+                    placeholder={{ label: t('selectAnOption'), value: null }}
+                  />
+                </View>
+
+                {/**Source Buffer*/}
+                {srcLink.fiber != null && srcLink.fiber.buffers.length > 1 && (
+                  <View>
+                    <Text style={styles.label} >{t('Buffer')}</Text>
+                    <RNPickerSelect
+                      style={pickerSelectStyles}
+                      value={srcLink.buffer != null ? srcLink.buffer.value : null}
+                      useNativeAndroidPickerStyle={false}
+                      onValueChange={(value) => {
+                        const buffer = srcLink.fiber.buffers.find(x => x.value == value);
+
+                        const tmp = {
+                          ...srcLink,
+                          buffer: value,
+                          bufferLabel: buffer.label,
+                          threads: buffer.threads.filter(x => x.active == true).map(t => {
+                            return {
+                              ...t,
+                              value: t.number,
+                              label: `Thread - ${t.number}`
+                            }
+                          })
+                        }
+                        setSrcLink(tmp);
+                      }}
+                      itemKey={item => item.value}
+                      items={srcLink.fiber.buffers}
+                      placeholder={{ label: t('selectAnOption'), value: null }}
+                    />
+                  </View>
+                )}
+
+                { /** LINK */}
+                <Text style={styles.label} >{t('Thread')}</Text>
+
+                <View style={styles.formCard}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <RNPickerSelect
+                      style={pickerSelectStyles}
+                      value={srcLink.thread != null ? srcLink.thread : null}
+                      useNativeAndroidPickerStyle={false}
+                      onValueChange={(value, index) => {
+                        const { inUse } = srcLink.threads[index];
+
+                        if (inUse == false || inUse == undefined) {
+                          const tmp = {
+                            ...srcLink,
+                            thread: value,
+                          }
+
+                          setShowThreadInUse(false);
+                          setSrcLink(tmp);
+                        } else {
+                          setShowThreadInUse(true);
+                        }
+                      }}
+                      itemKey={item => item.value}
+                      items={srcLink.threads}
+                      placeholder={{ label: t('selectAnOption'), value: null }}
+                    />
+                  </View>
+
+                </View>
+
+              </View>
+            </ScrollView>
+
+            <Button
+              title={'ok'}
+              color={colors.primary}
+              onPress={() => handleCloseModal()}
+            />
+
+          </View>
+        </View>
+      </Modal>
+    </View >
   );
 };
 

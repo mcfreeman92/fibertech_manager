@@ -19,7 +19,7 @@ import { useAdapter } from "@/api/contexts/DatabaseContext";
 import { v4 as uuidv4 } from "uuid";
 
 const NodeDetails = ({ route, navigation }) => {
-  const { updateNode } = useAdapter()();
+  const { updateNode, updateFiberThread } = useAdapter()();
 
   const { topInset, bottomInset, stylesFull } = useDevice();
   const { isDarkMode } = useApp();
@@ -285,12 +285,16 @@ const NodeDetails = ({ route, navigation }) => {
     // Ejecutar el callback si existe
     if (route.params?.onSaveNode) {
       if (node.id != undefined) {
-        const upd = { ...nodeData, metadata: JSON.stringify(devicesData) };
-        updateNode(node.id, upd)
-          .then((r) => {
-            saveAndGoBack();
-          })
-          .catch((e) => {});
+
+        // const upd = { ...nodeData, metadata: JSON.stringify(devicesData) };
+
+        // updateNode(node.id, upd)
+        //   .then((r) => {
+        //     saveAndGoBack();
+        //   })
+        //   .catch((e) => { });
+
+        saveAndGoBack();
       } else {
         saveAndGoBack();
       }
@@ -349,8 +353,9 @@ const NodeDetails = ({ route, navigation }) => {
   const handleDeviceLinks = (device) => {
     navigation.navigate("DeviceLinks", {
       device: device,
-      onSaveDevice: (data) => {
-
+      projectId: node.projectId != undefined ? node.projectId : 0,
+      onSaveDeviceData: (data) => {
+        updateDevice(data);
       },
     });
   };
@@ -434,6 +439,15 @@ const NodeDetails = ({ route, navigation }) => {
             <Text style={[styles.title, { color: colors.text }]}>
               {t("devicesLabel")}
             </Text>
+
+            <TouchableOpacity
+              onPress={() => {
+                handleAddDevice();
+              }}
+              style={styles.clearButton}
+            >
+              <Ionicons name="add-circle" size={24} color={colors.primary} />
+            </TouchableOpacity>
           </View>
         </View>
 

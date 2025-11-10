@@ -192,7 +192,7 @@ export const sqliteWebAdapter = {
       };
 
       const id = await db.nodes.add(nodeData);
-      return { ...nodeData, id : id };
+      return { ...nodeData, id: id };
     } catch (error) {
       console.error('Error creating node:', error);
       throw error;
@@ -331,6 +331,26 @@ export const sqliteWebAdapter = {
 
       await db.fibers.update(id, updates);
       return { id: id, ...data, modifiedDate: updates.modifiedDate };
+    } catch (error) {
+      console.error('Error updating fiber:', error);
+      throw error;
+    }
+  },
+
+  updateFiberThread: async (id, threadIndex, inUse) => {
+    try {
+      const now = new Date().toISOString();
+
+      let threads = [...data.threads];
+      threads[threadIndex].inUse = inUse;
+      
+      const updates = {
+        metadata: JSON.stringify(threads),
+        modifiedDate: now
+      };
+
+      await db.fibers.update(id, updates);
+      return true;
     } catch (error) {
       console.error('Error updating fiber:', error);
       throw error;

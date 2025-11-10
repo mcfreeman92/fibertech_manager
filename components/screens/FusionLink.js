@@ -23,6 +23,7 @@ import { useAdapter } from '@/api/contexts/DatabaseContext';
 
 import { v4 as uuidv4 } from 'uuid';
 import RNPickerSelect from 'react-native-picker-select';
+import { deleteData } from '@/service/database';
 
 const FusionLink = ({ route, navigation }) => {
   const { getFibers, getFiberById } = useAdapter()();
@@ -407,15 +408,16 @@ const FusionLink = ({ route, navigation }) => {
         fiberLabel: srcLink.fiber.label,
         bufferId: srcLink.buffer != null ? srcLink.buffer : null,
         bufferLabel: srcLink.bufferLabel != undefined ? srcLink.bufferLabel : null,
-        thread: srcLink.thread
+        thread: srcLink.thread - 1
       },
       dst: {
         fiberId: dstLink.fiber.id,
         fiberLabel: dstLink.fiber.label,
         bufferId: dstLink.buffer != null ? dstLink.buffer : null,
         bufferLabel: dstLink.bufferLabel != undefined ? dstLink.bufferLabel : null,
-        thread: dstLink.thread
-      }
+        thread: dstLink.thread - 1
+      },
+      deleted: false
     };
 
     if (link == undefined)
@@ -614,7 +616,7 @@ const FusionLink = ({ route, navigation }) => {
                   ...srcLink,
                   fiber: fiber,
                   thread: null,
-                  threads: fiber.buffers.length == 1 ? fiber.threads.filter(x => x.active == true).map(t => {
+                  threads: fiber.buffers.length == 1 ? fiber.threads.filter(x => x.active == true && x.inUse == false).map(t => {
                     return {
                       ...t,
                       value: t.number,
@@ -648,7 +650,7 @@ const FusionLink = ({ route, navigation }) => {
                   ...srcLink,
                   buffer: value,
                   bufferLabel: buffer.label,
-                  threads: buffer.threads.filter(x => x.active == true).map(t => {
+                  threads: buffer.threads.filter(x => x.active == true && x.inUse == false).map(t => {
                     return {
                       ...t,
                       value: t.number,
@@ -680,7 +682,7 @@ const FusionLink = ({ route, navigation }) => {
                   ...dstLink,
                   fiber: fiber,
                   thread: null,
-                  threads: fiber.buffers.length == 1 ? fiber.threads.filter(x => x.active == true).map(t => {
+                  threads: fiber.buffers.length == 1 ? fiber.threads.filter(x => x.active == true && x.inUse == false).map(t => {
                     return {
                       ...t,
                       value: t.number,
@@ -714,7 +716,7 @@ const FusionLink = ({ route, navigation }) => {
                   ...dstLink,
                   buffer: value,
                   bufferLabel: buffer.label,
-                  threads: buffer.threads.filter(x => x.active == true).map(t => {
+                  threads: buffer.threads.filter(x => x.active == true && x.inUse == false).map(t => {
                     return {
                       ...t,
                       value: t.number,
