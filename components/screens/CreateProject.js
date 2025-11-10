@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+
 import {
   View,
   Text,
@@ -12,6 +13,8 @@ import {
   Platform,
   PermissionsAndroid,
   FlatList,
+  ActivityIndicator,
+  Button,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import QRCode from "react-native-qrcode-svg";
@@ -54,15 +57,18 @@ const CreateProject = ({ navigation, route, theme }) => {
     updateFiber,
     updateNode,
     updateFiberThread,
-    deleteNode
-
+    deleteNode,
   } = useAdapter()();
 
   const { topInset, isTablet, bottomInset, stylesFull } = useDevice();
-  const { projectId } = route.params || {};
-  const isEditMode = !!projectId;
+
+  
   const qrRef = useRef();
   const [qrData, setQrData] = useState(null);
+  const [projectId, setProjectId] = useState(route.params != undefined ? route.params.projectId : undefined);
+  const [createdProjId, setCreatedProjId] = useState(null);
+
+  const [isEditMode, setIsEditMode] = useState(!!projectId);
 
   const fiberTypesList = [
     {
@@ -110,6 +116,8 @@ const CreateProject = ({ navigation, route, theme }) => {
 
   const [fibers, setFibers] = useState([]);
   const [nodes, setNodes] = useState([]);
+
+  const [showCloseProjectModal, setShowCloseProjectModal] = useState(false);
 
   // Colores dinámicos basados en el tema
   const colors = {
@@ -185,16 +193,18 @@ const CreateProject = ({ navigation, route, theme }) => {
 
   // Tipos disponibles de dispositivos y fibras
   const nodesTypesList = [
-    { id: 1, name: "MDF", type: "MDF" },
-    { id: 2, name: "IDF", type: "IDF" },
-    { id: 3, name: "UNIT", type: "U" },
+    { id: 1, name: "MDF", type: "MDF", visible: false },
+    { id: 2, name: "IDF", type: "IDF", visible: true },
+    { id: 3, name: t("unit"), type: "U", visible: true },
+    { id: 4, name: "Pedestal", type: "P", visible: true },
   ];
 
   const nodesFiltersList = [
     { id: 0, name: t("allNodeFilter"), type: "ALL" },
     { id: 1, name: "MDF", type: "MDF" },
     { id: 2, name: "IDF", type: "IDF" },
-    { id: 3, name: "UNIT", type: "U" },
+    { id: 3, name: t("unit"), type: "U" },
+    { id: 4, name: t("Pedestal"), type: "P" },
   ];
 
   const [selectedNodesFilter, setSelectedNodesFilter] = useState(
@@ -206,16 +216,18 @@ const CreateProject = ({ navigation, route, theme }) => {
   };
 
   const handleFilterNodeSelect = (filter) => {
-    setSelectedNodesFilter(filter);
-    setShowFilterNodesModal(false);
+    if (projectId != undefined) {
+      setSelectedNodesFilter(filter);
+      setShowFilterNodesModal(false);
 
-    /** update nodes list */
-    getNodes(projectId)
-      .then((result) => {
-        if (filter.id == 0) setNodes(result);
-        else setNodes(result.filter((x) => x.typeId == filter.id));
-      })
-      .catch((e) => { });
+      /** update nodes list */
+      getNodes(projectId)
+        .then((result) => {
+          if (filter.id == 0) setNodes(result);
+          else setNodes(result.filter((x) => x.typeId == filter.id));
+        })
+        .catch((e) => {});
+    }
   };
 
   // Estilos base (sin colores específicos para mantener la estructura)
@@ -507,13 +519,16 @@ const CreateProject = ({ navigation, route, theme }) => {
       ]);
     };
 
-    if (projectId == null || projectId == undefined)
-      initializeEmptyProject();
+    if (projectId == null || projectId == undefined) initializeEmptyProject();
 
     loadExistingProjects();
 
     if (isEditMode) {
-      loadProjectData();
+      loadProjectData(projectId).then(r => {
+        console.info("loadProjectData [OK]")
+      }).catch(e => {
+
+      });
     }
   }, [projectId]);
 
@@ -526,12 +541,11 @@ const CreateProject = ({ navigation, route, theme }) => {
     }
   };
 
-  const loadProjectData = async () => {
+  const loadProjectData = async (id) => {
     try {
-      setSaving(true);
 
       // Cargar datos del proyecto
-      const data = await getProjectById(projectId);
+      const data = await getProjectById(id);
       const project = data.meta;
       if (project) {
         setProjectData({
@@ -546,14 +560,14 @@ const CreateProject = ({ navigation, route, theme }) => {
       }
 
       /**Load nodes and fibers */
-      const dbNodes = await getNodes(projectId);
-      setNodes(dbNodes.filter(x => x.typeId == 1));
+      const dbNodes = await getNodes(id);
+      setNodes(dbNodes.filter((x) => x.typeId == 1));
 
-      let records = await getFibers(projectId, null);
+      let records = await getFibers(id, null);
       let dbFibers = [];
 
       for (let f of records) {
-        const buffers = await getFibers(projectId, f.id);
+        const buffers = await getFibers(id, f.id);
         dbFibers.push({
           ...f,
           buffers: buffers,
@@ -745,10 +759,11 @@ const CreateProject = ({ navigation, route, theme }) => {
   const shareProject = async () => {
     try {
       const result = await Share.share({
-        message: `${t("ftthProject")}: ${projectData.name}\n${t("address")}: ${projectData.address
-          }\n${t("totalUnits")}: ${calculateTotalUnits()}\n\n${t(
-            "scanQRForDetails"
-          )}`,
+        message: `${t("ftthProject")}: ${projectData.name}\n${t("address")}: ${
+          projectData.address
+        }\n${t("totalUnits")}: ${calculateTotalUnits()}\n\n${t(
+          "scanQRForDetails"
+        )}`,
         title: t("ftthProjectDetails"),
       });
     } catch (error) {
@@ -772,7 +787,7 @@ const CreateProject = ({ navigation, route, theme }) => {
     setShowAddNodeModal(true);
   };
 
-  const handleConnectionMap = () => { };
+  const handleConnectionMap = () => {};
 
   const buildFiberThreads = () => {
     let items = [];
@@ -784,7 +799,7 @@ const CreateProject = ({ navigation, route, theme }) => {
           number: i + 1,
           color: color.color,
           active: true,
-          inUse: false
+          inUse: false,
         },
       ];
     }
@@ -842,7 +857,6 @@ const CreateProject = ({ navigation, route, theme }) => {
   };
 
   const doCreateNode = async (node) => {
-
     const links = node.fusionLinks || [];
 
     for (let i = 0; i < links.length; i++) {
@@ -910,24 +924,27 @@ const CreateProject = ({ navigation, route, theme }) => {
     let fiber = null;
 
     if (link.buffer != null) {
-      let f = items.find(x => x.id == link.fiberId);
-      fiber = f.buffers.find(x => x.id == link.buffer);
+      let f = items.find((x) => x.id == link.fiberId);
+      fiber = f.buffers.find((x) => x.id == link.buffer);
     } else {
-      fiber = items.find(x => x.id == link.fiberId);
+      fiber = items.find((x) => x.id == link.fiberId);
     }
 
     fiber.threads[link.thread] = {
       ...fiber.threads[link.thread],
-      inUse: inUse
+      inUse: inUse,
     };
 
     setFibers(items);
-  }
+  };
+
 
   const handleSaveProject = async () => {
     if (saving) return;
 
     setSaving(true);
+    setShowCloseProjectModal(true);
+
     try {
       if (!projectData.name?.trim() /**|| !projectData.address?.trim() */) {
         Alert.alert(t("error"), t("nameAndAddressRequired"));
@@ -977,7 +994,7 @@ const CreateProject = ({ navigation, route, theme }) => {
           } else {
             const links = node.fusionLinks || [];
 
-            const deletedLinks = links.filter(x => x.deleted);
+            const deletedLinks = links.filter((x) => x.deleted);
 
             for (let i = 0; i < deletedLinks.length; i++) {
               const link = deletedLinks[i];
@@ -986,10 +1003,8 @@ const CreateProject = ({ navigation, route, theme }) => {
               doUpdateFiberThread(link.dst, false);
             }
 
-
             if ((node.deleted || false) == false) {
-
-              const updateLinks = links.filter(x => x.deleted == false);
+              const updateLinks = links.filter((x) => x.deleted == false);
 
               for (let i = 0; i < updateLinks.length; i++) {
                 const link = updateLinks[i];
@@ -1000,12 +1015,12 @@ const CreateProject = ({ navigation, route, theme }) => {
 
               const meta = {
                 devices: node.devices || [],
-                fusionLinks: updateLinks
+                fusionLinks: updateLinks,
               };
 
               await updateNode(node.id, {
                 ...node,
-                metadata: JSON.stringify(meta)
+                metadata: JSON.stringify(meta),
               });
             } else {
               for (let i = 0; i < links.length; i++) {
@@ -1032,7 +1047,7 @@ const CreateProject = ({ navigation, route, theme }) => {
           } else {
             await updateFiber(fiber.id, {
               ...fiber,
-              metadata: JSON.stringify(fiber.threads)
+              metadata: JSON.stringify(fiber.threads),
             });
           }
 
@@ -1049,7 +1064,7 @@ const CreateProject = ({ navigation, route, theme }) => {
             } else {
               await updateFiber(buffer.id, {
                 ...buffer,
-                metadata: JSON.stringify(buffer.threads)
+                metadata: JSON.stringify(buffer.threads),
               });
             }
           }
@@ -1060,7 +1075,7 @@ const CreateProject = ({ navigation, route, theme }) => {
 
         /**Persist nodes */
         let nodesList = [...nodes];
-        const unitType = nodesTypesList.find(x => x.type == 'U');
+        const unitType = nodesTypesList.find((x) => x.type == "U");
 
         const unitsCount = calculateTotalUnits();
         for (let i = 0; i < unitsCount; i++) {
@@ -1081,7 +1096,7 @@ const CreateProject = ({ navigation, route, theme }) => {
 
           await doCreateNode({
             ...node,
-            projectId: project.id
+            projectId: project.id,
           });
         }
 
@@ -1091,13 +1106,16 @@ const CreateProject = ({ navigation, route, theme }) => {
 
           await doCreateFiber({
             ...fiber,
-            projectId: project.id
+            projectId: project.id,
           });
         }
+
+        /**Reload */
+        setCreatedProjId(project.id);
+
       }
-
-
     } catch (error) {
+      setSaving(false);
       console.log("❌ Error saving project:", error);
       Alert.alert(
         "❌ " + t("error"),
@@ -1106,7 +1124,6 @@ const CreateProject = ({ navigation, route, theme }) => {
     } finally {
       console.log("✅ Project saved");
       setSaving(false);
-      navigation.goBack();
     }
   };
 
@@ -1545,20 +1562,19 @@ const CreateProject = ({ navigation, route, theme }) => {
     let index = -1;
 
     if (node.id == undefined)
-      index = nodes.findIndex(x => x.hash == node.hash);
-    else
-      index = nodes.findIndex(x => x.id == node.id);
+      index = nodes.findIndex((x) => x.hash == node.hash);
+    else index = nodes.findIndex((x) => x.id == node.id);
 
     if (index != -1) {
       let update = [...nodes];
       update[index] = {
         ...update[index],
-        deleted: true
+        deleted: true,
       };
 
       setNodes(update);
     }
-  }
+  };
 
   const RenderFiber = ({ fiber }) => {
     return (
@@ -1574,10 +1590,7 @@ const CreateProject = ({ navigation, route, theme }) => {
           >
             <Ionicons name="information-circle" size={24} color={"#504d4cff"} />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={dynamicStyles.removeButton}
-
-          >
+          <TouchableOpacity style={dynamicStyles.removeButton}>
             <Ionicons name="trash" size={24} color={"#666261ff"} />
           </TouchableOpacity>
         </View>
@@ -1686,7 +1699,7 @@ const CreateProject = ({ navigation, route, theme }) => {
             <Ionicons
               name="git-network"
               size={24}
-              color={projectId == undefined ? "#cfcbcaff" : colors.primary}
+              color={(projectId == undefined || projectId == null) ? "#cfcbcaff" : colors.primary}
             />
           </TouchableOpacity>
 
@@ -1711,7 +1724,6 @@ const CreateProject = ({ navigation, route, theme }) => {
               <Ionicons name="trash" size={24} color={"#666261ff"} />
             </TouchableOpacity>
           )}
-
         </View>
       </View>
     );
@@ -1797,11 +1809,12 @@ const CreateProject = ({ navigation, route, theme }) => {
 
             {/** HABILITAR ESTO CUADO NO ES WEB POR LA VISIBILIDAD */}
 
-            {Platform.OS !== 'web' && (
-
+            {Platform.OS !== "web" && (
               <View>
                 <View style={styles.inputGroup}>
-                  <Text style={combinedStyles.label}>{t("propertyAddress")} *</Text>
+                  <Text style={combinedStyles.label}>
+                    {t("propertyAddress")} *
+                  </Text>
                   <TextInput
                     style={combinedStyles.input}
                     value={projectData.address}
@@ -1813,7 +1826,9 @@ const CreateProject = ({ navigation, route, theme }) => {
                 </View>
 
                 <View style={styles.row}>
-                  <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+                  <View
+                    style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}
+                  >
                     <Text style={combinedStyles.label}>{t("city")}</Text>
                     <TextInput
                       style={combinedStyles.input}
@@ -1844,7 +1859,9 @@ const CreateProject = ({ navigation, route, theme }) => {
                   <TextInput
                     style={[combinedStyles.input, styles.textArea]}
                     value={projectData.description}
-                    onChangeText={(text) => handleInputChange("description", text)}
+                    onChangeText={(text) =>
+                      handleInputChange("description", text)
+                    }
                     placeholder={t("projectDescription")}
                     multiline={true}
                     editable={!saving}
@@ -1853,22 +1870,25 @@ const CreateProject = ({ navigation, route, theme }) => {
                 </View>
               </View>
             )}
-
           </View>
         </View>
 
         {/* Unit Information */}
         <View style={combinedStyles.section}>
-          <Text style={combinedStyles.sectionTitle}>{t('unitInformation')}</Text>
+          <Text style={combinedStyles.sectionTitle}>
+            {t("unitInformation")}
+          </Text>
 
           <View style={combinedStyles.formCard}>
             <View style={styles.row}>
               <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-                <Text style={combinedStyles.label}>{t('livingUnits')}</Text>
+                <Text style={combinedStyles.label}>{t("livingUnits")}</Text>
                 <TextInput
                   style={combinedStyles.input}
                   value={unitsInfo.living_unit}
-                  onChangeText={(text) => handleUnitsChange('living_unit', text)}
+                  onChangeText={(text) =>
+                    handleUnitsChange("living_unit", text)
+                  }
                   placeholder="0"
                   keyboardType="numeric"
                   editable={!saving}
@@ -1877,11 +1897,15 @@ const CreateProject = ({ navigation, route, theme }) => {
               </View>
 
               <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-                <Text style={combinedStyles.label}>{t('officesAmenities')}</Text>
+                <Text style={combinedStyles.label}>
+                  {t("officesAmenities")}
+                </Text>
                 <TextInput
                   style={combinedStyles.input}
                   value={unitsInfo.office_amenities}
-                  onChangeText={(text) => handleUnitsChange('office_amenities', text)}
+                  onChangeText={(text) =>
+                    handleUnitsChange("office_amenities", text)
+                  }
                   placeholder="0"
                   keyboardType="numeric"
                   editable={!saving}
@@ -1890,11 +1914,13 @@ const CreateProject = ({ navigation, route, theme }) => {
               </View>
 
               <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={combinedStyles.label}>{t('commercialUnits')}</Text>
+                <Text style={combinedStyles.label}>{t("commercialUnits")}</Text>
                 <TextInput
                   style={combinedStyles.input}
                   value={unitsInfo.commercial_unit}
-                  onChangeText={(text) => handleUnitsChange('commercial_unit', text)}
+                  onChangeText={(text) =>
+                    handleUnitsChange("commercial_unit", text)
+                  }
                   placeholder="0"
                   keyboardType="numeric"
                   editable={!saving}
@@ -1904,8 +1930,10 @@ const CreateProject = ({ navigation, route, theme }) => {
             </View>
 
             <View style={combinedStyles.totalUnits}>
-              <Text style={combinedStyles.totalLabel}>{t('totalUnits')}:</Text>
-              <Text style={combinedStyles.totalValue}>{calculateTotalUnits()}</Text>
+              <Text style={combinedStyles.totalLabel}>{t("totalUnits")}:</Text>
+              <Text style={combinedStyles.totalValue}>
+                {calculateTotalUnits()}
+              </Text>
             </View>
           </View>
         </View>
@@ -1948,7 +1976,7 @@ const CreateProject = ({ navigation, route, theme }) => {
           )}
 
           <FlatList
-            data={nodes.filter(x => (x.deleted || false) == false)}
+            data={nodes.filter((x) => (x.deleted || false) == false)}
             keyExtractor={(item) => nodes.id}
             renderItem={({ item }) => <RenderNode node={item}></RenderNode>}
           />
@@ -2144,7 +2172,7 @@ const CreateProject = ({ navigation, route, theme }) => {
               {t("selectFiberTypesQuantities")}
             </Text>
             <FlatList
-              data={nodesTypesList}
+              data={nodesTypesList.filter((x) => x.visible == true)}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
@@ -2198,6 +2226,60 @@ const CreateProject = ({ navigation, route, theme }) => {
                 </TouchableOpacity>
               )}
             />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Show Closing Project */}
+      <Modal
+        visible={showCloseProjectModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowCloseProjectModal(false)}
+      >
+        <View style={dynamicStyles.modalOverlay}>
+          <View style={dynamicStyles.modalContent}>
+            <Text style={dynamicStyles.modalTitle}>{t("Proyecto")}</Text>
+
+            {saving && (
+              <View>
+                <Text style={dynamicStyles.modalItem}>{t("saving")}</Text>
+                <ActivityIndicator size="large" />
+              </View>
+            )}
+
+            {!saving && (
+              <View>
+                <Text style={dynamicStyles.modalItem}>{t("projectSaved")}</Text>
+              </View>
+            )}
+
+            <View
+              style={{
+                marginTop: 20,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                gap: 5,
+              }}
+            >
+              <Button
+                onPress={() => navigation.goBack()}
+                title={t("buttonNo")}
+                color="salmon"
+                accessibilityLabel="Learn more about this purple button"
+              />
+              <Button
+                onPress={() => {
+                  setShowCloseProjectModal(false);
+                  setProjectId(createdProjId);
+                  setIsEditMode(true);
+                }}
+                disabled={saving}
+                title={t("buttonYes")}
+                color={colors.primary}
+                accessibilityLabel="Learn more about this purple button"
+              />
+            </View>
           </View>
         </View>
       </Modal>

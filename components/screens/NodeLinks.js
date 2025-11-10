@@ -771,9 +771,14 @@ const NodeLinks = ({ route, navigation }) => {
     setNodeData(tmp);
   };
 
+  const validateLink = (link) => {
+
+  }
+
   const handleAddFusionLink = () => {
     navigation.navigate("FusionLink", {
       projectId: node.projectId,
+      node : nodeData,
       linkHash: uuidv4(),
       onSaveFusionLink: (link) => {
         handleSaveFusionLink(link);
