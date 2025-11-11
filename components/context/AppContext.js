@@ -118,6 +118,7 @@ export const AppProvider = ({ children }) => {
   // Traducciones
   const translations = {
     en: {
+      maxUnits: "You have already created the maximum number of units allowed.",
       buttonNo: "No, go back",
       buttonYes: "Yes, continue",
       projectSaved: "Project saved, do you want to continue working?",
@@ -753,6 +754,7 @@ export const AppProvider = ({ children }) => {
       copiedToClipboard: "Copied to clipboard",
     },
     es: {
+      maxUnits: "Ya ha creado el máximo número de unidades permitidas.",
       buttonNo: "No, regresar",
       buttonYes: "Si, continuar",
       projectSaved: "Proyecto guardado, desea continuar trabajando?",

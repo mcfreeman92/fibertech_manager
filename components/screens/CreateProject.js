@@ -62,10 +62,11 @@ const CreateProject = ({ navigation, route, theme }) => {
 
   const { topInset, isTablet, bottomInset, stylesFull } = useDevice();
 
-  
   const qrRef = useRef();
   const [qrData, setQrData] = useState(null);
-  const [projectId, setProjectId] = useState(route.params != undefined ? route.params.projectId : undefined);
+  const [projectId, setProjectId] = useState(
+    route.params != undefined ? route.params.projectId : undefined
+  );
   const [createdProjId, setCreatedProjId] = useState(null);
 
   const [isEditMode, setIsEditMode] = useState(!!projectId);
@@ -206,6 +207,18 @@ const CreateProject = ({ navigation, route, theme }) => {
     { id: 3, name: t("unit"), type: "U" },
     { id: 4, name: t("Pedestal"), type: "P" },
   ];
+
+  const showAlert = (title, message) => {
+    if (Platform.OS === "web") {
+      // Opciones para web
+      if (typeof window !== "undefined" && window.alert) {
+        window.alert(`${title}\n${message}`);
+      }
+    } else {
+      // Para iOS y Android
+      Alert.alert(title, message);
+    }
+  };
 
   const [selectedNodesFilter, setSelectedNodesFilter] = useState(
     nodesFiltersList[1]
@@ -524,11 +537,11 @@ const CreateProject = ({ navigation, route, theme }) => {
     loadExistingProjects();
 
     if (isEditMode) {
-      loadProjectData(projectId).then(r => {
-        console.info("loadProjectData [OK]")
-      }).catch(e => {
-
-      });
+      loadProjectData(projectId)
+        .then((r) => {
+          console.info("loadProjectData [OK]");
+        })
+        .catch((e) => {});
     }
   }, [projectId]);
 
@@ -543,7 +556,6 @@ const CreateProject = ({ navigation, route, theme }) => {
 
   const loadProjectData = async (id) => {
     try {
-
       // Cargar datos del proyecto
       const data = await getProjectById(id);
       const project = data.meta;
@@ -783,8 +795,23 @@ const CreateProject = ({ navigation, route, theme }) => {
     setShowAddFiberModal(true);
   };
 
-  const addNode = () => {
-    setShowAddNodeModal(true);
+  const addNode = async ()  => {
+    let src = [];
+    if (projectId != undefined){
+      src = await getNodes(projectId);
+    } else {
+      src = nodes;
+    }
+
+    src = src.filter(x => x.typeId == 3);
+    const unitsCount = src.length;
+    const maxUnits = calculateTotalUnits();
+
+    if (unitsCount < maxUnits) {
+      setShowAddNodeModal(true);
+    } else {
+      showAlert(t("error"), t("maxUnits"));
+    }
   };
 
   const handleConnectionMap = () => {};
@@ -937,7 +964,6 @@ const CreateProject = ({ navigation, route, theme }) => {
 
     setFibers(items);
   };
-
 
   const handleSaveProject = async () => {
     if (saving) return;
@@ -1112,7 +1138,6 @@ const CreateProject = ({ navigation, route, theme }) => {
 
         /**Reload */
         setCreatedProjId(project.id);
-
       }
     } catch (error) {
       setSaving(false);
@@ -1699,7 +1724,11 @@ const CreateProject = ({ navigation, route, theme }) => {
             <Ionicons
               name="git-network"
               size={24}
-              color={(projectId == undefined || projectId == null) ? "#cfcbcaff" : colors.primary}
+              color={
+                projectId == undefined || projectId == null
+                  ? "#cfcbcaff"
+                  : colors.primary
+              }
             />
           </TouchableOpacity>
 
