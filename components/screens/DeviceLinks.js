@@ -15,7 +15,7 @@ import {
   PermissionsAndroid,
   FlatList,
   Switch,
-  Button
+  Button,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useApp } from "../context/AppContext";
@@ -25,8 +25,6 @@ import { useAdapter } from "@/api/contexts/DatabaseContext";
 
 import { v4 as uuidv4 } from "uuid";
 import RNPickerSelect from "react-native-picker-select";
-
-
 
 const DeviceLinks = ({ route, navigation }) => {
   const { updateNode, getFibers } = useAdapter()();
@@ -49,13 +47,7 @@ const DeviceLinks = ({ route, navigation }) => {
     fiber: null,
     buffer: null,
     thread: null,
-    threads: []
-  });
-  const [dstLink, setDstLink] = useState({
-    fiber: null,
-    buffer: null,
-    thread: null,
-    threads: []
+    threads: [],
   });
 
   const fiberColors12Hex = [
@@ -99,7 +91,7 @@ const DeviceLinks = ({ route, navigation }) => {
       borderRadius: 8,
       height: 50,
       marginTop: 10,
-      shadowColor: '#000',
+      shadowColor: "#000",
       shadowOffset: {
         width: 0,
         height: 2,
@@ -111,7 +103,7 @@ const DeviceLinks = ({ route, navigation }) => {
     row: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between"
+      justifyContent: "space-between",
     },
     link: {
       fontSize: 15,
@@ -724,8 +716,6 @@ const DeviceLinks = ({ route, navigation }) => {
     );
   };
 
-
-
   const handleSaveFusionLink = (link) => {
     let fusionLinks =
       nodeData.fusionLinks == undefined ? [] : nodeData.fusionLinks;
@@ -746,6 +736,42 @@ const DeviceLinks = ({ route, navigation }) => {
     setNodeData(tmp);
   };
 
+  const buildThreads = (fiber, threads) => {
+    let tmp = threads.filter((x) => x.active == true && x.inUse == false);
+
+    let result = [];
+
+    const links = deviceData.links || [];
+
+    tmp.forEach((t) => {
+      let found = false;
+      const number = t.number;
+
+      for (let i = 0; i < links.length; i++) {
+        const lx = links[i].src;
+
+        if (lx.fiberId == fiber.id || lx.bufferId == fiber.id) {
+          if (lx.thread == number) {
+            found = true;
+            break;
+          }
+        }
+      }
+
+      if (!found) {
+        result.push(t);
+      }
+    });
+
+    return result.map((t) => {
+      return {
+        ...t,
+        value: t.number,
+        label: `Thread - ${t.number}`,
+      };
+    });
+  };
+
   const getFiberLabelFrom = (items, fiberId) => {
     for (let i = 0; i < items.length; i++) {
       const fiber = items[i];
@@ -753,8 +779,7 @@ const DeviceLinks = ({ route, navigation }) => {
         return fiber.label;
       }
     }
-  }
-
+  };
 
   const getFiberLabel = (fiberId) => {
     for (let i = 0; i < fibersData.length; i++) {
@@ -763,29 +788,32 @@ const DeviceLinks = ({ route, navigation }) => {
         return fiber.label;
       } else {
         const label = getFiberLabelFrom(fiber.buffers, fiberId);
-        if (label != undefined)
-          return label;
+        if (label != undefined) return label;
       }
     }
-  }
+  };
 
   const RenderLink = ({ port, enabled }) => {
     let link = null;
-    if (deviceData != null && deviceData.links != undefined && deviceData.links != null) {
-      link = deviceData.links.find(x => x.port == port);
+    if (
+      deviceData != null &&
+      deviceData.links != undefined &&
+      deviceData.links != null
+    ) {
+      link = deviceData.links.find((x) => x.port == port);
     }
 
     let textColor = null;
     let prop = { ...styles.link };
 
-    let fiberLabel = 'Fibra';
-    let bufferLabel = 'Buffer';
+    let fiberLabel = "Fibra";
+    let bufferLabel = "Buffer";
     let bkColor = fiberColors12Hex[0];
 
     if (link != null) {
       bkColor = fiberColors12Hex[link.src.thread - 1].color;
       textColor = getContrastColor(bkColor);
-      prop = { ...styles.link, color: textColor }
+      prop = { ...styles.link, color: textColor };
       fiberLabel = getFiberLabel(link.src.fiberId);
       bufferLabel = getFiberLabel(link.src.bufferId);
     }
@@ -798,43 +826,41 @@ const DeviceLinks = ({ route, navigation }) => {
 
         {link != null && (
           <View style={styles.row}>
-            <Ionicons name="link" size={20} style={{ color: "#727272ff", margin: 10 }} />
+            <Ionicons
+              name="link"
+              size={20}
+              style={{ color: "#727272ff", margin: 10 }}
+            />
 
-            <View style={{ backgroundColor: bkColor, paddingHorizontal: 2, paddingVertical: 2, borderRadius: 8, marginRight: 2 }}>
-              <Text style={prop} color={textColor} >
+            <View
+              style={{
+                backgroundColor: bkColor,
+                paddingHorizontal: 2,
+                paddingVertical: 2,
+                borderRadius: 8,
+                marginRight: 2,
+              }}
+            >
+              <Text style={prop} color={textColor}>
                 {`${t("Thread ")} ${link.src.thread}`}
               </Text>
             </View>
 
-            <Ionicons
-              name={"caret-back"}
-              size={16}
-              color={"#a1a0a0ff"}
-            />
+            <Ionicons name={"caret-back"} size={16} color={"#a1a0a0ff"} />
             {link.src.bufferId != null && (
               <View style={styles.row}>
-                <Text style={styles.link}>
-                  {`Buffer ${bufferLabel}`}
-                </Text>
+                <Text style={styles.link}>{`Buffer ${bufferLabel}`}</Text>
 
-                <Ionicons
-                  name={"caret-back"}
-                  size={16}
-                  color={"#a1a0a0ff"}
-                />
+                <Ionicons name={"caret-back"} size={16} color={"#a1a0a0ff"} />
               </View>
             )}
 
-            <Text style={styles.link}>
-              {fiberLabel}
-            </Text>
-
+            <Text style={styles.link}>{fiberLabel}</Text>
           </View>
         )}
-
       </View>
-    )
-  }
+    );
+  };
 
   const handleCloseModal = () => {
     setShowLinkSetupModal(false);
@@ -844,21 +870,21 @@ const DeviceLinks = ({ route, navigation }) => {
     const src = {
       fiberId: srcLink.fiber.id,
       bufferId: srcLink.buffer,
-      thread: srcLink.thread
-    }
+      thread: srcLink.thread,
+    };
 
     if (deviceData != null) {
       if (deviceData.links != undefined && deviceData.links != null) {
         links = deviceData.links;
       }
 
-      let index = links.findIndex(x => x.port == selectedPort);
+      let index = links.findIndex((x) => x.port == selectedPort);
 
       if (index == -1) {
         links.push({
           port: selectedPort,
-          src: src
-        })
+          src: src,
+        });
       } else {
         links[index].src = src;
       }
@@ -866,66 +892,71 @@ const DeviceLinks = ({ route, navigation }) => {
 
     setDeviceData({
       ...deviceData,
-      links: links
+      links: links,
     });
 
-  }
+    /**clear */
+    setSrcLink({
+      fiber: null,
+      buffer: null,
+      thread: null,
+      threads: [],
+    });
+  };
 
   const handleSetupLink = (portNumber) => {
     setSelectedPort(portNumber);
     setShowLinkSetupModal(true);
-  }
+  };
 
   useEffect(() => {
-
     const loadFibers = async () => {
-
       let records = await getFibers(projectId, null);
 
       for (let i = 0; i < records.length; i++) {
-        let buffers = [{
-          ...records[i],
-          value: records[i].id
-        }];
+        let buffers = [
+          {
+            ...records[i],
+            value: records[i].id,
+          },
+        ];
 
         let children = await getFibers(projectId, records[i].id);
 
-        children = children.map(b => {
+        children = children.map((b) => {
           return {
             ...b,
-            value: b.id
-          }
+            value: b.id,
+          };
         });
 
         buffers = [...buffers, ...children];
 
         let f = {
           ...records[i],
-          buffers: buffers
+          buffers: buffers,
         };
 
         records[i] = f;
       }
 
-      records = records.map(f => {
+      records = records.map((f) => {
         return {
           ...f,
-          value: f.id != undefined ? f.id : f.hash
-        }
+          value: f.id != undefined ? f.id : f.hash,
+        };
       });
       setFibersData(records);
       return records;
     };
 
-    loadFibers().then(fibers => {
+    loadFibers()
+      .then((fibers) => {})
+      .catch((e) => {
+        console.error(e);
+      });
 
-    }).catch(e => {
-      console.error(e);
-    })
-
-    if (device != undefined)
-      setDeviceData(device);
-
+    if (device != undefined) setDeviceData(device);
   }, []);
   return (
     <View
@@ -973,14 +1004,16 @@ const DeviceLinks = ({ route, navigation }) => {
             renderItem={({ item }) => (
               <View>
                 <View style={styles.row}>
-
-                  <RenderLink
-                    port={item.number}
-                    enabled={item.enabled}
-                  />
+                  <RenderLink port={item.number} enabled={item.enabled} />
 
                   {/**Actions */}
-                  <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "flex-end",
+                      gap: 8,
+                    }}
+                  >
                     <TouchableOpacity
                       onPress={() => {
                         handleSetupLink(item.number);
@@ -992,7 +1025,6 @@ const DeviceLinks = ({ route, navigation }) => {
                       <Ionicons name="trash" size={24} color="salmon" />
                     </TouchableOpacity>
                   </View>
-
                 </View>
               </View>
             )}
@@ -1009,125 +1041,120 @@ const DeviceLinks = ({ route, navigation }) => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {t("setupLink")}
-            </Text>
+            <Text style={styles.modalTitle}>{t("setupLink")}</Text>
 
             <ScrollView style={styles.projectList}>
               <View>
-
-
-
                 {/**Source */}
                 <View>
-                  <Text style={styles.label} >{t('Source')}</Text>
+                  <Text style={styles.label}>{t("Source")}</Text>
                   <RNPickerSelect
                     style={pickerSelectStyles}
                     value={srcLink.fiber != null ? srcLink.fiber.value : null}
                     useNativeAndroidPickerStyle={false}
                     onValueChange={(value) => {
-                      const fiber = fibersData.find(x => x.value == value);
+                      const fiber = fibersData.find((x) => x.value == value);
 
                       if (fiber != undefined) {
                         const tmp = {
                           ...srcLink,
                           fiber: fiber,
                           thread: null,
-                          threads: fiber.buffers.length == 1 ? fiber.threads.filter(x => x.active == true).map(t => {
-                            return {
-                              ...t,
-                              value: t.number,
-                              label: `Thread - ${t.number}`
-                            }
-                          }) : []
-                        }
+                          threads:
+                            fiber.buffers.length == 1
+                              ? buildThreads(fiber, fiber.threads)
+                              : [],
+                        };
 
                         setSrcLink(tmp);
                       }
                     }}
-                    itemKey={item => item.value}
+                    itemKey={(item) => item.value}
                     items={fibersData}
-                    placeholder={{ label: t('selectAnOption'), value: null }}
+                    placeholder={{ label: t("selectAnOption"), value: null }}
                   />
                 </View>
 
                 {/**Source Buffer*/}
                 {srcLink.fiber != null && srcLink.fiber.buffers.length > 1 && (
                   <View>
-                    <Text style={styles.label} >{t('Buffer')}</Text>
+                    <Text style={styles.label}>{t("Buffer")}</Text>
                     <RNPickerSelect
                       style={pickerSelectStyles}
-                      value={srcLink.buffer != null ? srcLink.buffer.value : null}
+                      value={
+                        srcLink.buffer != null ? srcLink.buffer.value : null
+                      }
                       useNativeAndroidPickerStyle={false}
                       onValueChange={(value) => {
-                        const buffer = srcLink.fiber.buffers.find(x => x.value == value);
+                        const buffer = srcLink.fiber.buffers.find(
+                          (x) => x.value == value
+                        );
 
                         const tmp = {
                           ...srcLink,
                           buffer: value,
                           bufferLabel: buffer.label,
-                          threads: buffer.threads.filter(x => x.active == true).map(t => {
-                            return {
-                              ...t,
-                              value: t.number,
-                              label: `Thread - ${t.number}`
-                            }
-                          })
-                        }
+                          threads: buildThreads(buffer, buffer.threads),
+                        };
                         setSrcLink(tmp);
                       }}
-                      itemKey={item => item.value}
+                      itemKey={(item) => item.value}
                       items={srcLink.fiber.buffers}
-                      placeholder={{ label: t('selectAnOption'), value: null }}
+                      placeholder={{ label: t("selectAnOption"), value: null }}
                     />
                   </View>
                 )}
 
-                { /** LINK */}
-                <Text style={styles.label} >{t('Thread')}</Text>
+                {/** LINK */}
+                <Text style={styles.label}>{t("Thread")}</Text>
 
                 <View style={styles.formCard}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
                     <RNPickerSelect
                       style={pickerSelectStyles}
                       value={srcLink.thread != null ? srcLink.thread : null}
                       useNativeAndroidPickerStyle={false}
                       onValueChange={(value, index) => {
-                        const { inUse } = srcLink.threads[index];
+                        if (index != -1 && value != null) {
+                          const { inUse } = srcLink.threads[index];
 
-                        if (inUse == false || inUse == undefined) {
-                          const tmp = {
-                            ...srcLink,
-                            thread: value,
+                          if (inUse == false || inUse == undefined) {
+                            const tmp = {
+                              ...srcLink,
+                              thread: value,
+                            };
+
+                            setShowThreadInUse(false);
+                            setSrcLink(tmp);
+                          } else {
+                            setShowThreadInUse(true);
                           }
-
-                          setShowThreadInUse(false);
-                          setSrcLink(tmp);
-                        } else {
-                          setShowThreadInUse(true);
                         }
                       }}
-                      itemKey={item => item.value}
+                      itemKey={(item) => item.value}
                       items={srcLink.threads}
-                      placeholder={{ label: t('selectAnOption'), value: null }}
+                      placeholder={{ label: t("selectAnOption"), value: null }}
                     />
                   </View>
-
                 </View>
-
               </View>
             </ScrollView>
 
             <Button
-              title={'ok'}
+              title={"ok"}
               color={colors.primary}
               onPress={() => handleCloseModal()}
             />
-
           </View>
         </View>
       </Modal>
-    </View >
+    </View>
   );
 };
 
