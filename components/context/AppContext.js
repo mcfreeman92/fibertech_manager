@@ -1403,6 +1403,15 @@ export const AppProvider = ({ children }) => {
     return translations[language]?.[key] || key;
   };
 
+  const nodesTypesList = () => {
+    return [
+      { id: 1, name: "MDF", type: "MDF", visible: false, alowDevices: true },
+      { id: 2, name: "IDF", type: "IDF", visible: true, alowDevices: false },
+      { id: 3, name: t("unit"), type: "U", visible: true, alowDevices: true },
+      { id: 4, name: "Pedestal", type: "P", visible: true, alowDevices: false },
+    ];
+  };
+
   const changeLanguage = async (newLanguage) => {
     try {
       setLanguage(newLanguage);
@@ -1436,6 +1445,7 @@ export const AppProvider = ({ children }) => {
     setIsLoading,
     logout,
     login,
+    nodesTypesList
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

@@ -108,7 +108,7 @@ const CreateProject = ({ navigation, route, theme }) => {
 
   // const viewShotRef = useRef();
   const { t } = useTranslation();
-  const { isDarkMode } = useApp();
+  const { isDarkMode,nodesTypesList } = useApp();
 
   const [showAddFiberModal, setShowAddFiberModal] = useState(false);
   const [showAddNodeModal, setShowAddNodeModal] = useState(false);
@@ -193,12 +193,7 @@ const CreateProject = ({ navigation, route, theme }) => {
   ];
 
   // Tipos disponibles de dispositivos y fibras
-  const nodesTypesList = [
-    { id: 1, name: "MDF", type: "MDF", visible: false },
-    { id: 2, name: "IDF", type: "IDF", visible: true },
-    { id: 3, name: t("unit"), type: "U", visible: true },
-    { id: 4, name: "Pedestal", type: "P", visible: true },
-  ];
+
 
   const nodesFiltersList = [
     { id: 0, name: t("allNodeFilter"), type: "ALL" },
@@ -1108,7 +1103,7 @@ const CreateProject = ({ navigation, route, theme }) => {
     
         /**Prepare nodes */
         let nodesList = [...nodes];
-        const unitType = nodesTypesList.find((x) => x.type == "U");
+        const unitType = nodesTypesList().find((x) => x.type == "U");
 
         /**Create units */
         const unitsCount = calculateTotalUnits();
@@ -2214,7 +2209,7 @@ const CreateProject = ({ navigation, route, theme }) => {
               {t("selectFiberTypesQuantities")}
             </Text>
             <FlatList
-              data={nodesTypesList.filter((x) => x.visible == true)}
+              data={nodesTypesList().filter((x) => x.visible == true)}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
