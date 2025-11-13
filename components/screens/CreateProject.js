@@ -914,7 +914,7 @@ const CreateProject = ({ navigation, route, theme }) => {
   const doCreateFiber = async (fiber) => {
     const meta = JSON.stringify(fiber.threads);
 
-    const dbFiber = await createFiber({
+    let dbFiber = await createFiber({
       label: fiber.label,
       projectId: fiber.projectId,
       typeId: fiber.typeId || sinleFiberTpeId,
@@ -930,7 +930,7 @@ const CreateProject = ({ navigation, route, theme }) => {
 
       const meta2 = JSON.stringify(buffer.threads);
 
-      await createFiber({
+      const dbBuffer = await createFiber({
         label: buffer.label,
         projectId: fiber.projectId,
         parentId: dbFiber.id,
@@ -940,6 +940,11 @@ const CreateProject = ({ navigation, route, theme }) => {
         createdDate: buffer.createdDate,
         modifiedDate: buffer.modifiedDate,
       });
+
+      if (dbFiber.buffers == undefined)
+        dbFiber.buffers = [];
+
+      dbFiber.buffers.pus(dbBuffer);
     }
 
     return dbFiber;
@@ -957,9 +962,10 @@ const CreateProject = ({ navigation, route, theme }) => {
       fiber = items.find((x) => x.id == link.fiberId);
     }
 
+    const t = fiber.threads[link.thread];
     fiber.threads[link.thread] = {
-      ...fiber.threads[link.thread],
-      inUse: inUse,
+      ...t,
+      inUse: inUse ? t.inUse + 1 : t.inUse - 1,
     };
 
     setFibers(items);
@@ -1099,10 +1105,12 @@ const CreateProject = ({ navigation, route, theme }) => {
         /**Persist on db or API storage */
         const project = await createProject(prjData);
 
-        /**Persist nodes */
+    
+        /**Prepare nodes */
         let nodesList = [...nodes];
         const unitType = nodesTypesList.find((x) => x.type == "U");
 
+        /**Create units */
         const unitsCount = calculateTotalUnits();
         for (let i = 0; i < unitsCount; i++) {
           nodesList.push({
@@ -1117,6 +1125,7 @@ const CreateProject = ({ navigation, route, theme }) => {
           });
         }
 
+        /**Prepare nodes */
         for (let i = 0; i < nodesList.length; i++) {
           const node = nodesList[i];
 
@@ -1127,14 +1136,18 @@ const CreateProject = ({ navigation, route, theme }) => {
         }
 
         /**Persist fibers */
+        let saveFibers = [];
+
         for (let i = 0; i < fibers.length; i++) {
           const fiber = fibers[i];
 
-          await doCreateFiber({
+          const f = await doCreateFiber({
             ...fiber,
             projectId: project.id,
           });
-        }
+
+          saveFibers.push(f);
+        }           
 
         /**Reload */
         setCreatedProjId(project.id);
