@@ -108,7 +108,7 @@ const CreateProject = ({ navigation, route, theme }) => {
 
   // const viewShotRef = useRef();
   const { t } = useTranslation();
-  const { isDarkMode,nodesTypesList } = useApp();
+  const { isDarkMode, nodesTypesList } = useApp();
 
   const [showAddFiberModal, setShowAddFiberModal] = useState(false);
   const [showAddNodeModal, setShowAddNodeModal] = useState(false);
@@ -194,7 +194,6 @@ const CreateProject = ({ navigation, route, theme }) => {
 
   // Tipos disponibles de dispositivos y fibras
 
-
   const nodesFiltersList = [
     { id: 0, name: t("allNodeFilter"), type: "ALL" },
     { id: 1, name: "MDF", type: "MDF" },
@@ -224,17 +223,28 @@ const CreateProject = ({ navigation, route, theme }) => {
   };
 
   const handleFilterNodeSelect = (filter) => {
-    if (projectId != undefined) {
-      setSelectedNodesFilter(filter);
-      setShowFilterNodesModal(false);
+    let src = [];
 
+    if (projectId != undefined) {
       /** update nodes list */
       getNodes(projectId)
         .then((result) => {
-          if (filter.id == 0) setNodes(result);
-          else setNodes(result.filter((x) => x.typeId == filter.id));
+          if (filter.id == 0) src = result;
+          else src = result.filter((x) => x.typeId == filter.id);
+
+          setNodes(src);
+          setSelectedNodesFilter(filter);
+          setShowFilterNodesModal(false);
         })
         .catch((e) => {});
+    } else {
+
+      if (filter.id == 0) src = nodes;
+      else src = nodes.filter((x) => x.typeId == filter.id);
+
+      setNodes(src);
+      setSelectedNodesFilter(filter);
+      setShowFilterNodesModal(false);
     }
   };
 
@@ -790,15 +800,15 @@ const CreateProject = ({ navigation, route, theme }) => {
     setShowAddFiberModal(true);
   };
 
-  const addNode = async ()  => {
+  const addNode = async () => {
     let src = [];
-    if (projectId != undefined){
+    if (projectId != undefined) {
       src = await getNodes(projectId);
     } else {
       src = nodes;
     }
 
-    src = src.filter(x => x.typeId == 3);
+    src = src.filter((x) => x.typeId == 3);
     const unitsCount = src.length;
     const maxUnits = calculateTotalUnits();
 
@@ -936,8 +946,7 @@ const CreateProject = ({ navigation, route, theme }) => {
         modifiedDate: buffer.modifiedDate,
       });
 
-      if (dbFiber.buffers == undefined)
-        dbFiber.buffers = [];
+      if (dbFiber.buffers == undefined) dbFiber.buffers = [];
 
       dbFiber.buffers.pus(dbBuffer);
     }
@@ -1100,7 +1109,6 @@ const CreateProject = ({ navigation, route, theme }) => {
         /**Persist on db or API storage */
         const project = await createProject(prjData);
 
-    
         /**Prepare nodes */
         let nodesList = [...nodes];
         const unitType = nodesTypesList().find((x) => x.type == "U");
@@ -1142,7 +1150,7 @@ const CreateProject = ({ navigation, route, theme }) => {
           });
 
           saveFibers.push(f);
-        }           
+        }
 
         /**Reload */
         setCreatedProjId(project.id);
