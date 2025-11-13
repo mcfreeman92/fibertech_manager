@@ -22,7 +22,7 @@ const NodeDetails = ({ route, navigation }) => {
   const { updateNode, updateFiberThread } = useAdapter()();
 
   const { topInset, bottomInset, stylesFull } = useDevice();
-  const { isDarkMode } = useApp();
+  const { isDarkMode, nodesTypesList } = useApp();
   const { t } = useTranslation();
   const { node } = route.params;
   const { devices } = node;
@@ -285,7 +285,6 @@ const NodeDetails = ({ route, navigation }) => {
     // Ejecutar el callback si existe
     if (route.params?.onSaveNode) {
       if (node.id != undefined) {
-
         // const upd = { ...nodeData, metadata: JSON.stringify(devicesData) };
 
         // updateNode(node.id, upd)
@@ -360,6 +359,108 @@ const NodeDetails = ({ route, navigation }) => {
     });
   };
 
+  const RenderDevices = () => {
+    const ar = nodesTypesList();
+    const alowDevices = ar.find((x) => x.id == nodeData.typeId).alowDevices;
+
+    if (alowDevices == undefined || alowDevices == false) return <View></View>;
+
+    return (
+      <View>
+        <View>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 1,
+            }}
+          >
+            <Text style={[styles.title, { color: colors.text }]}>
+              {t("devicesLabel")}
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => {
+                handleAddDevice();
+              }}
+              style={styles.clearButton}
+            >
+              <Ionicons name="add-circle" size={24} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+        </View>
+        
+        {devicesData == undefined ||
+          (devicesData.length == 0 && (
+            <Text style={styles.label}>{t("devicesEmpty")}</Text>
+          ))}
+        <FlatList
+          data={devicesData}
+          renderItem={({ item }) => (
+            <View style={[styles.card, { backgroundColor: colors.card }]}>
+              <View style={styles.deviceHeader}>
+                <View style={styles.deviceInfo}>
+                  <Text
+                    style={styles.deviceName2}
+                  >{`${item.label} ${item.description}`}</Text>
+                </View>
+
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <TouchableOpacity onPress={() => handleDeviceLinks(item)}>
+                    <Ionicons
+                      name="git-network"
+                      size={24}
+                      color={colors.primary}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      handleSeeDeviceInfo(item);
+                    }}
+                    style={styles.removeButton}
+                  >
+                    <Ionicons
+                      name="information-circle"
+                      size={24}
+                      color={"#666261ff"}
+                    />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.removeButton}>
+                    <Ionicons name="trash" size={24} color={"#666261ff"} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View
+                style={{
+                  paddingTop: 7,
+                }}
+              ></View>
+
+              <View style={styles.configRow}>
+                <Text style={styles.configLabel}>{t("ports")}:</Text>
+                <Text style={styles.configLabel}>{item.ports.length}</Text>
+              </View>
+
+              <View style={styles.configRow}>
+                <Text style={styles.configLabel}>{t("macAddress")}:</Text>
+                <Text style={styles.configLabel}>{item.mac}</Text>
+              </View>
+            </View>
+          )}
+        />
+      </View>
+    );
+  };
+
   return (
     <View
       style={[
@@ -427,97 +528,7 @@ const NodeDetails = ({ route, navigation }) => {
         </View>
 
         {/**Devices */}
-        <View>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 1,
-            }}
-          >
-            <Text style={[styles.title, { color: colors.text }]}>
-              {t("devicesLabel")}
-            </Text>
-
-            <TouchableOpacity
-              onPress={() => {
-                handleAddDevice();
-              }}
-              style={styles.clearButton}
-            >
-              <Ionicons name="add-circle" size={24} color={colors.primary} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {devicesData == undefined ||
-          (devicesData.length == 0 && (
-            <Text style={styles.label}>{t("devicesEmpty")}</Text>
-          ))}
-
-        <FlatList
-          data={devicesData}
-          renderItem={({ item }) => (
-            <View style={[styles.card, { backgroundColor: colors.card }]}>
-              <View style={styles.deviceHeader}>
-                <View style={styles.deviceInfo}>
-                  <Text
-                    style={styles.deviceName2}
-                  >{`${item.label} ${item.description}`}</Text>
-                </View>
-
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <TouchableOpacity onPress={() => handleDeviceLinks(item)}>
-                    <Ionicons
-                      name="git-network"
-                      size={24}
-                      color={colors.primary}
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => {
-                      handleSeeDeviceInfo(item);
-                    }}
-                    style={styles.removeButton}
-                  >
-                    <Ionicons
-                      name="information-circle"
-                      size={24}
-                      color={"#666261ff"}
-                    />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity style={styles.removeButton}>
-                    <Ionicons name="trash" size={24} color={"#666261ff"} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <View
-                style={{
-                  paddingTop: 7,
-                }}
-              ></View>
-
-              <View style={styles.configRow}>
-                <Text style={styles.configLabel}>{t("ports")}:</Text>
-                <Text style={styles.configLabel}>{item.ports.length}</Text>
-              </View>
-
-              <View style={styles.configRow}>
-                <Text style={styles.configLabel}>{t("macAddress")}:</Text>
-                <Text style={styles.configLabel}>{item.mac}</Text>
-              </View>
-            </View>
-          )}
-        />
+        <RenderDevices />
 
         <View />
       </ScrollView>
