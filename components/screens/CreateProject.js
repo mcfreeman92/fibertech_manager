@@ -212,7 +212,7 @@ const CreateProject = ({ navigation, route, theme }) => {
       }
     } else {
       // Para iOS y Android
-      Alert.alert(title, message);
+      Alert.alert(t('error'), message);
     }
   };
 
@@ -1733,9 +1733,17 @@ const CreateProject = ({ navigation, route, theme }) => {
       allNodes = [...nodes];
     }
 
+
+    // extract mdf
+    const mdfType = nodesTypesList().find((x) => x.type == "MDF");
+    const mdf = allNodes.find(x => x.typeId == mdfType.id);
+
+    allNodes = allNodes.filter((x) => (x.id != node.id || x.hash != node.hash) && x.id != mdf.id);
+
     navigation.navigate("NodePath", {
+      mdf: mdf,
       node: node,
-      nodes: allNodes.filter((x) => x.id != node.id || x.hash != node.hash),
+      nodes: allNodes,
       fibers: fibers,
     });
   };
