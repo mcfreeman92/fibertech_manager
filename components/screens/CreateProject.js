@@ -1724,15 +1724,25 @@ const CreateProject = ({ navigation, route, theme }) => {
     });
   };
 
-  const handleSeeNodePath = (node) => {
+  const handleSeeNodePath = async (node) => {
+    let allNodes = [];
+
+    if (projectId != undefined) {
+      allNodes = await getNodes(projectId);
+    } else {
+      allNodes = [...nodes];
+    }
+
     navigation.navigate("NodePath", {
       node: node,
-      nodes: nodes,
+      nodes: allNodes.filter((x) => x.id != node.id || x.hash != node.hash),
       fibers: fibers,
     });
-  }
+  };
 
   const RenderNode = ({ node }) => {
+    const mdfType = nodesTypesList().find((x) => x.type == "MDF");
+
     return (
       <View style={combinedStyles.fiberCard}>
         <View style={combinedStyles.deviceHeader}>
@@ -1741,29 +1751,34 @@ const CreateProject = ({ navigation, route, theme }) => {
             <Text style={combinedStyles.deviceDescription}></Text>
           </View>
 
-          <TouchableOpacity
-            disabled={projectId == undefined}
-            style={{ marginRight: 3 }}
-            onPress={() => handleSeeNodePath(node)}
-          >
-            <svg
-              aria-hidden="true"
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#666261ff"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M3 17h4v4h-4z" />
-              <path d="M17 3h4v4h-4z" />
-              <path d="M11 19h5.5a3.5 3.5 0 0 0 0 -7h-8a3.5 3.5 0 0 1 0 -7h4.5" />
-            </svg>
-          </TouchableOpacity>
+          {/**PATH */}
 
+          {node.typeId != mdfType.id && (
+            <TouchableOpacity
+              disabled={projectId == undefined}
+              style={{ marginRight: 3 }}
+              onPress={() => handleSeeNodePath(node)}
+            >
+              <svg
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#666261ff"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M3 17h4v4h-4z" />
+                <path d="M17 3h4v4h-4z" />
+                <path d="M11 19h5.5a3.5 3.5 0 0 0 0 -7h-8a3.5 3.5 0 0 1 0 -7h4.5" />
+              </svg>
+            </TouchableOpacity>
+          )}
+
+          {/**FUSION LINK */}
           <TouchableOpacity
             disabled={projectId == undefined}
             style={{ marginRight: 3 }}
@@ -1780,10 +1795,12 @@ const CreateProject = ({ navigation, route, theme }) => {
             />
           </TouchableOpacity>
 
-          <TouchableOpacity style={{ marginRight: 3 }}>
+          {/**LOCATION */}
+          {/* <TouchableOpacity style={{ marginRight: 3 }}>
             <Ionicons name="location" size={24} color={"#666261ff"} />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
+          {/**INFO */}
           <TouchableOpacity
             onPress={() => {
               handleSeeNodeInfo(node);
@@ -1793,7 +1810,8 @@ const CreateProject = ({ navigation, route, theme }) => {
             <Ionicons name="information-circle" size={24} color={"#666261ff"} />
           </TouchableOpacity>
 
-          {node.typeId != 1 && (
+          {/**REMOVE */}
+          {node.typeId != mdfType.id && (
             <TouchableOpacity
               style={dynamicStyles.removeButton}
               onPress={() => handleRemoveNode(node)}

@@ -32,6 +32,8 @@ const NodePath = ({ route, navigation }) => {
   const { isDarkMode } = useApp();
   const { t } = useTranslation();
   const { node } = route.params;
+  const { nodes } = route.params;
+  const { fibers } = route.params;
   const { devices } = node;
 
   const [nodeData, setNodeData] = React.useState(node);
@@ -833,7 +835,7 @@ const NodePath = ({ route, navigation }) => {
         </TouchableOpacity>
 
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          {t("nodeLinks")}
+          {t("nodePath")}
         </Text>
 
         <View style={{ flexDirection: "row" }}>
@@ -856,7 +858,7 @@ const NodePath = ({ route, navigation }) => {
         {/* Fusion links */}
         <View style={styles.section}>
           <View style={styles.deviceHeader}>
-            <Text style={styles.sectionTitle}>{t("fusionLinks")}</Text>
+            <Text style={styles.sectionTitle}>{t("")}</Text>
           </View>
         </View>
 
