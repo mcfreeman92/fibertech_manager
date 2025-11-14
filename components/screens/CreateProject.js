@@ -1724,6 +1724,14 @@ const CreateProject = ({ navigation, route, theme }) => {
     });
   };
 
+  const handleSeeNodePath = (node) => {
+    navigation.navigate("NodePath", {
+      node: node,
+      nodes: nodes,
+      fibers: fibers,
+    });
+  }
+
   const RenderNode = ({ node }) => {
     return (
       <View style={combinedStyles.fiberCard}>
@@ -1736,7 +1744,7 @@ const CreateProject = ({ navigation, route, theme }) => {
           <TouchableOpacity
             disabled={projectId == undefined}
             style={{ marginRight: 3 }}
-            onPress={() => handleSeeNodeLinks(node)}
+            onPress={() => handleSeeNodePath(node)}
           >
             <svg
               aria-hidden="true"

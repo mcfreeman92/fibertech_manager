@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useColorScheme, Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { NodePath } from "@babel/core";
 
 const AppContext = createContext();
 
@@ -118,6 +119,7 @@ export const AppProvider = ({ children }) => {
   // Traducciones
   const translations = {
     en: {
+      nodePath: "Node path to MDF",
       maxUnits: "You have already created the maximum number of units allowed.",
       buttonNo: "No, go back",
       buttonYes: "Yes, continue",
@@ -754,6 +756,7 @@ export const AppProvider = ({ children }) => {
       copiedToClipboard: "Copied to clipboard",
     },
     es: {
+      nodePath: "Ruta del nodo hasta el MDF",
       maxUnits: "Ya ha creado el máximo número de unidades permitidas.",
       buttonNo: "No, regresar",
       buttonYes: "Si, continuar",
@@ -1445,7 +1448,7 @@ export const AppProvider = ({ children }) => {
     setIsLoading,
     logout,
     login,
-    nodesTypesList
+    nodesTypesList,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

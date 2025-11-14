@@ -22,6 +22,7 @@ import FiberDetails from "../screens/FiberDetails";
 import NodeLinks from "../screens/NodeLinks";
 import FusionLink from "../screens/FusionLink";
 import DeviceLinks from "../screens/DeviceLinks";
+import NodePath from "../screens/NodePath";
 
 const Stack = createStackNavigator();
 
@@ -107,6 +108,11 @@ const AppNavigator = () => {
             name="DeviceLinks"
             component={DeviceLinks}
             options={{ title: "Device Links" }}
+          />
+          <Stack.Screen
+            name="NodePath"
+            component={NodePath}
+            options={{ title: "Node Path" }}
           />
           {/* otras pantallas protegidas */}
         </>
