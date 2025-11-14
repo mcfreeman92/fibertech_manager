@@ -44,6 +44,8 @@ import { v4 as uuidv4 } from "uuid";
 import * as MediaLibrary from "expo-media-library";
 import FusionLink from "./FusionLink";
 
+import Svg, { Circle, G } from "react-native-svg";
+
 const CreateProject = ({ navigation, route, theme }) => {
   const {
     createProject,
@@ -238,7 +240,6 @@ const CreateProject = ({ navigation, route, theme }) => {
         })
         .catch((e) => {});
     } else {
-
       if (filter.id == 0) src = nodes;
       else src = nodes.filter((x) => x.typeId == filter.id);
 
@@ -1737,13 +1738,36 @@ const CreateProject = ({ navigation, route, theme }) => {
             style={{ marginRight: 3 }}
             onPress={() => handleSeeNodeLinks(node)}
           >
+            <svg
+              aria-hidden="true"
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#666261ff"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M3 17h4v4h-4z" />
+              <path d="M17 3h4v4h-4z" />
+              <path d="M11 19h5.5a3.5 3.5 0 0 0 0 -7h-8a3.5 3.5 0 0 1 0 -7h4.5" />
+            </svg>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            disabled={projectId == undefined}
+            style={{ marginRight: 3 }}
+            onPress={() => handleSeeNodeLinks(node)}
+          >
             <Ionicons
               name="git-network"
               size={24}
               color={
                 projectId == undefined || projectId == null
                   ? "#cfcbcaff"
-                  : colors.primary
+                  : "#666261ff"
               }
             />
           </TouchableOpacity>
