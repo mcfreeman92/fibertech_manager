@@ -121,6 +121,9 @@ export const AppProvider = ({ children }) => {
   const translations = {
     en: {
       thread: "Thread",
+      threadShort: "T",
+      fiberShort: "F",
+      bufferShort: "B",
       device: "Device",
       nodePath: "Node path to MDF",
       maxUnits: "You have already created the maximum number of units allowed.",
@@ -789,6 +792,9 @@ export const AppProvider = ({ children }) => {
     },
     es: {
       thread: "Hilo",
+      threadShort: "H",
+      fiberShort: "F",
+      bufferShort: "B",
       device: "Dispositivo",
       nodePath: "Ruta del nodo hasta el MDF",
       maxUnits: "Ya ha creado el máximo número de unidades permitidas.",

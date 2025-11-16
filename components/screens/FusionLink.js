@@ -29,7 +29,7 @@ const FusionLink = ({ route, navigation }) => {
   const { getFibers, getFiberById } = useAdapter()();
 
   const { topInset, bottomInset, stylesFull } = useDevice();
-  const { isDarkMode } = useApp();
+  const { isDarkMode, language } = useApp();
   const { t } = useTranslation();
 
   const { projectId } = route.params;
@@ -540,7 +540,7 @@ const FusionLink = ({ route, navigation }) => {
               return {
                 ...x,
                 value: x.number,
-                label: `Thread - ${x.number}`,
+                label: `${t("threadShort")}-${x.number}`,
               };
             }),
           };
@@ -562,7 +562,7 @@ const FusionLink = ({ route, navigation }) => {
               return {
                 ...x,
                 value: x.number,
-                label: `Thread - ${x.number}`,
+                label: `${t("threadShort")}-${x.number}`,
               };
             }),
           };
@@ -602,11 +602,11 @@ const FusionLink = ({ route, navigation }) => {
       }
     });
 
-    return result.map((t) => {
+    return result.map((thread) => {
       return {
-        ...t,
-        value: t.number,
-        label: `Thread - ${t.number}`,
+        ...thread,
+        value: thread.number,
+        label: `${t("threadShort")}-${thread.number}`,
       };
     });
   };

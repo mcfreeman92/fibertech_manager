@@ -30,7 +30,7 @@ const DeviceLinks = ({ route, navigation }) => {
   const { updateNode, getFibers } = useAdapter()();
 
   const { topInset, bottomInset, stylesFull } = useDevice();
-  const { isDarkMode } = useApp();
+  const { isDarkMode, language } = useApp();
   const { t } = useTranslation();
   const { device } = route.params;
   const { projectId } = route.params;
@@ -675,7 +675,7 @@ const DeviceLinks = ({ route, navigation }) => {
                     textTransform: "uppercase",
                   }}
                 >
-                  Thread {thread}
+                  {t("threadShort")}{thread}
                 </Text>
               </View>
 
@@ -692,7 +692,7 @@ const DeviceLinks = ({ route, navigation }) => {
             <View style={{ marginTop: 10 }}>
               <View style={styles2.connectionInfo}>
                 <View style={styles2.threadContainer}>
-                  <Text style={styles2.threadText}>Fiber {fiberLabel}</Text>
+                  <Text style={styles2.threadText}>{t("fiberShort")} {fiberLabel}</Text>
                   {buffer != null && (
                     <View
                       style={{
@@ -706,7 +706,7 @@ const DeviceLinks = ({ route, navigation }) => {
                         size={16}
                         color={CONFIG.COLORS.TEXT_SECONDARY}
                       />
-                      <Text style={styles2.threadText}>Buffer {buffer}</Text>
+                      <Text style={styles2.threadText}>{t("bufferShort")} {buffer}</Text>
                     </View>
                   )}
                 </View>
@@ -766,11 +766,11 @@ const DeviceLinks = ({ route, navigation }) => {
       }
     });
 
-    return result.map((t) => {
+    return result.map((thread) => {
       return {
-        ...t,
-        value: t.number,
-        label: `Thread - ${t.number}`,
+        ...thread,
+        value: thread.number,
+        label: `${t("threadShort")}-${thread.number}`,
       };
     });
   };
@@ -845,14 +845,14 @@ const DeviceLinks = ({ route, navigation }) => {
               }}
             >
               <Text style={prop} color={textColor}>
-                {`${t("Thread ")} ${link.src.thread}`}
+                {`${t("threadShort")}${link.src.thread}`}
               </Text>
             </View>
 
             <Ionicons name={"caret-back"} size={16} color={"#a1a0a0ff"} />
             {link.src.bufferId != null && (
               <View style={styles.row}>
-                <Text style={styles.link}>{`Buffer ${bufferLabel}`}</Text>
+                <Text style={styles.link}>{`${t("bufferShort")} ${bufferLabel}`}</Text>
 
                 <Ionicons name={"caret-back"} size={16} color={"#a1a0a0ff"} />
               </View>
