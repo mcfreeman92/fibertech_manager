@@ -119,6 +119,7 @@ const CreateProject = ({ navigation, route, theme }) => {
 
   const [fibers, setFibers] = useState([]);
   const [nodes, setNodes] = useState([]);
+  const [allNodes, setAllNodes] = useState([]); // Estado completo sin filtrar
 
   const [showCloseProjectModal, setShowCloseProjectModal] = useState(false);
 
@@ -198,10 +199,10 @@ const CreateProject = ({ navigation, route, theme }) => {
 
   const nodesFiltersList = [
     { id: 0, name: t("allNodeFilter"), type: "ALL" },
-    { id: 1, name: "MDF", type: "MDF" },
-    { id: 2, name: "IDF", type: "IDF" },
-    { id: 3, name: t("pedestal"), type: "P"},
-    { id: 4, name: t("unit"), type: "U"},
+    { id: 1, name: "MDF", type: "MDF" },       // Coincide con nodeType id: 1
+    { id: 2, name: "IDF", type: "IDF" },       // Coincide con nodeType id: 2
+    { id: 3, name: t("pedestal"), type: "P"},  // Coincide con nodeType id: 3
+    { id: 4, name: t("unit"), type: "U"},      // Coincide con nodeType id: 4
   ];
 
   const showAlert = (title, message) => {
@@ -217,7 +218,7 @@ const CreateProject = ({ navigation, route, theme }) => {
   };
 
   const [selectedNodesFilter, setSelectedNodesFilter] = useState(
-    nodesFiltersList[1]
+    nodesFiltersList[0] // Iniciar con "Todos" en lugar de MDF
   );
 
   const handleNodesFilterSelect = () => {
@@ -225,28 +226,20 @@ const CreateProject = ({ navigation, route, theme }) => {
   };
 
   const handleFilterNodeSelect = (filter) => {
-    let src = [];
-
-    if (projectId != undefined) {
-      /** update nodes list */
-      getNodes(projectId)
-        .then((result) => {
-          if (filter.id == 0) src = result;
-          else src = result.filter((x) => x.typeId == filter.id);
-
-          setNodes(src);
-          setSelectedNodesFilter(filter);
-          setShowFilterNodesModal(false);
-        })
-        .catch((e) => {});
+    // Filtrar desde allNodes, no recargar desde DB
+    let filtered = [];
+    
+    if (filter.id == 0) {
+      filtered = allNodes; // Mostrar todos
     } else {
-      if (filter.id == 0) src = nodes;
-      else src = nodes.filter((x) => x.typeId == filter.id);
-
-      setNodes(src);
-      setSelectedNodesFilter(filter);
-      setShowFilterNodesModal(false);
+      filtered = allNodes.filter((x) => x.typeId == filter.id);
     }
+
+    setNodes(filtered);
+    setSelectedNodesFilter(filter);
+    setShowFilterNodesModal(false);
+    
+    console.log(`🔍 Filter applied: ${filter.name}, showing ${filtered.length} nodes`);
   };
 
   // Estilos base (sin colores específicos para mantener la estructura)
@@ -524,18 +517,19 @@ const CreateProject = ({ navigation, route, theme }) => {
   useEffect(() => {
     const initializeEmptyProject = async () => {
       const hash = uuidv4();
-      setNodes([
-        {
-          hash: hash,
-          label: `MDF`,
-          createdDate: new Date().toISOString(),
-          modifiedDate: new Date().toISOString(),
-          deleted: 0,
-          typeId: 1,
-          devices: [],
-          fusionLinks: [],
-        },
-      ]);
+      const mdfNode = {
+        hash: hash,
+        label: `MDF`,
+        createdDate: new Date().toISOString(),
+        modifiedDate: new Date().toISOString(),
+        deleted: 0,
+        typeId: 1,
+        devices: [],
+        fusionLinks: [],
+      };
+      
+      setAllNodes([mdfNode]);
+      setNodes([mdfNode]);
     };
 
     if (projectId == null || projectId == undefined) initializeEmptyProject();
@@ -579,7 +573,31 @@ const CreateProject = ({ navigation, route, theme }) => {
 
       /**Load nodes and fibers */
       const dbNodes = await getNodes(id);
-      setNodes(dbNodes.filter((x) => x.typeId == 1));
+      console.log('📦 Loaded nodes from DB:', dbNodes);
+      
+      // Mapear campos de DB - el adapter web ya retorna en camelCase
+      // pero el adapter REST retorna PascalCase, por eso chequeamos ambos
+      const mappedNodes = dbNodes.map(node => ({
+        id: node.id || node.Id,
+        hash: node.hash || node.Hash,
+        label: node.label || node.Label,
+        projectId: node.projectId || node.ProjectId,
+        typeId: node.typeId || node.TypeId,
+        description: node.description || node.Description,
+        createdDate: node.createdDate || node.CreatedDate,
+        modifiedDate: node.modifiedDate || node.ModifiedDate,
+        deleted: node.deleted || node.Deleted || 0,
+        devices: node.devices || node.Metadata?.devices || [],
+        fusionLinks: node.fusionLinks || node.Metadata?.fusionLinks || [],
+      }));
+      
+      // Guardar TODOS los nodos
+      setAllNodes(mappedNodes);
+      
+      // Mostrar TODOS los nodos inicialmente (sin filtrar)
+      setNodes(mappedNodes);
+      
+      console.log('✅ Loaded', mappedNodes.length, 'nodes successfully');
 
       let records = await getFibers(id, null);
       let dbFibers = [];
@@ -841,7 +859,14 @@ const CreateProject = ({ navigation, route, theme }) => {
   };
 
   const handleOnSelectFiberType = (fiberType) => {
-    let fiber = buildFiber(fiberType.name, fiberType.typeId);
+    // Contar fibras existentes del mismo tipo para nomenclatura inteligente
+    const existingFibersOfType = fibers.filter(
+      (x) => x.typeId === fiberType.typeId && !x.deleted
+    );
+    const fiberNumber = existingFibersOfType.length + 1;
+    const fiberLabel = `${fiberType.name} - ${fiberNumber}`;
+    
+    let fiber = buildFiber(fiberLabel, fiberType.typeId);
 
     let buffers = [];
 
@@ -849,7 +874,7 @@ const CreateProject = ({ navigation, route, theme }) => {
       /**Build buffers */
       for (let i = 0; i < fiberType.buffersCount - 1; i++) {
         const buffer = buildFiber(
-          `${fiberType.name} - ${i + 1}`,
+          `${fiberLabel} Buffer ${i + 1}`,
           sinleFiberTpeId
         );
         buffers.push(buffer);
@@ -858,6 +883,7 @@ const CreateProject = ({ navigation, route, theme }) => {
 
     fiber.buffers = buffers;
 
+    console.log('✅ Added fiber:', fiberLabel, 'with', buffers.length, 'buffers');
     setFibers((prev) => [...prev, fiber]);
     setShowAddFiberModal(false);
   };
@@ -866,33 +892,66 @@ const CreateProject = ({ navigation, route, theme }) => {
     // Validar límite de unidades solo para nodos tipo Unit
     const unitType = nodesTypesList().find((x) => x.type == "U");
     
+    let nodeLabel = "";
+    
     if (nodeType.id === unitType.id) {
-      let src = [];
-      if (projectId != undefined) {
-        src = await getNodes(projectId);
-      } else {
-        src = nodes;
-      }
-
-      src = src.filter((x) => x.typeId == unitType.id && !x.deleted);
-      const unitsCount = src.length;
+      // Contar unidades existentes en allNodes
+      const existingUnits = allNodes.filter((x) => x.typeId == unitType.id && !x.deleted);
+      const unitsCount = existingUnits.length;
       const maxUnits = calculateTotalUnits();
 
       if (unitsCount >= maxUnits) {
         showAlert(t("error"), t("maxUnits"));
         return;
       }
+      
+      // Generar nombre de unidad secuencial
+      nodeLabel = `UNIT_${unitsCount + 1}`;
+    } else {
+      // Para otros tipos (IDF, Pedestal), contar del mismo tipo
+      const sameTypeNodes = allNodes.filter((x) => x.typeId == nodeType.id && !x.deleted);
+      nodeLabel = `${nodeType.name} - ${sameTypeNodes.length + 1}`;
     }
 
     const newNode = {
-      label: `${nodeType.name} - ${nodes.length + 1}`,
+      hash: uuidv4(),
+      label: nodeLabel,
       createdDate: new Date().toISOString(),
       modifiedDate: new Date().toISOString(),
       deleted: 0,
       typeId: nodeType.id,
+      devices: [],
+      fusionLinks: [],
     };
-    setNodes((prev) => [...prev, newNode]);
+    
+    console.log('🔍 Adding node:', {
+      label: nodeLabel,
+      typeId: nodeType.id,
+      currentFilter: selectedNodesFilter.id,
+      filterName: selectedNodesFilter.name,
+      willShow: selectedNodesFilter.id === 0 || selectedNodesFilter.id === nodeType.id
+    });
+    
+    // Actualizar TODOS los nodos
+    setAllNodes((prev) => {
+      const updated = [...prev, newNode];
+      console.log('📦 AllNodes updated. Total:', updated.length);
+      return updated;
+    });
+    
+    // Si el filtro actual coincide, mostrar el nuevo nodo
+    if (selectedNodesFilter.id === 0 || selectedNodesFilter.id === nodeType.id) {
+      setNodes((prev) => {
+        const updated = [...prev, newNode];
+        console.log('👁️ Visible nodes updated. Total:', updated.length);
+        return updated;
+      });
+    } else {
+      console.log('⚠️ Node added but not visible due to current filter');
+    }
+    
     setShowAddNodeModal(false);
+    console.log('✅ Node added successfully:', newNode.label);
   };
 
   const doCreateNode = async (node) => {
@@ -919,8 +978,16 @@ const CreateProject = ({ navigation, route, theme }) => {
       createdDate: node.createdDate,
       modifiedDate: node.modifiedDate,
     });
+    
+    console.log('✅ Created node:', node.label, 'with ID:', dbNode.id, '(DB returned:', JSON.stringify(dbNode), ')');
 
-    return dbNode;
+    // El adapter web ya retorna en camelCase, solo necesitamos agregar los campos extra
+    return {
+      ...dbNode,
+      hash: node.hash,
+      devices: meta.devices,
+      fusionLinks: meta.fusionLinks,
+    };
   };
 
   const doCreateFiber = async (fiber) => {
@@ -955,7 +1022,7 @@ const CreateProject = ({ navigation, route, theme }) => {
 
       if (dbFiber.buffers == undefined) dbFiber.buffers = [];
 
-      dbFiber.buffers.pus(dbBuffer);
+      dbFiber.buffers.push(dbBuffer);
     }
 
     return dbFiber;
@@ -996,6 +1063,10 @@ const CreateProject = ({ navigation, route, theme }) => {
       }
 
       console.log("💾 Starting save process...");
+      console.log("📊 All nodes to save:", allNodes.length);
+      console.log("📋 All nodes:", allNodes.map(n => `${n.label} (${n.id ? 'DB' : 'NEW'})`).join(', '));
+      console.log("👁️ Currently filtered nodes visible:", nodes.length);
+      console.log("🔧 Edit mode:", isEditMode);
 
       // Modo creación: Crear nuevo proyecto
       let meta = await ProjectService.createProject({
@@ -1023,8 +1094,8 @@ const CreateProject = ({ navigation, route, theme }) => {
 
         /**Persist/Update new nodes */
 
-        for (let i = 0; i < nodes.length; i++) {
-          const node = nodes[i];
+        for (let i = 0; i < allNodes.length; i++) {
+          const node = allNodes[i];
 
           if (node.id == undefined) {
             if (!node.deleted) {
@@ -1062,9 +1133,14 @@ const CreateProject = ({ navigation, route, theme }) => {
               };
 
               await updateNode(node.id, {
-                ...node,
-                metadata: JSON.stringify(meta),
+                Label: node.label,
+                TypeId: node.typeId,
+                Description: node.description || "",
+                Metadata: meta,
+                ModifiedDate: new Date().toISOString(),
               });
+              
+              console.log('✅ Updated node:', node.label);
             } else {
               for (let i = 0; i < links.length; i++) {
                 const link = links[i];
@@ -1117,25 +1193,11 @@ const CreateProject = ({ navigation, route, theme }) => {
         const project = await createProject(prjData);
 
         /**Prepare nodes */
-        let nodesList = [...nodes];
-        const unitType = nodesTypesList().find((x) => x.type == "U");
+        let nodesList = [...allNodes];
 
-        /**Create units */
-        const unitsCount = calculateTotalUnits();
-        for (let i = 0; i < unitsCount; i++) {
-          nodesList.push({
-            hash: uuidv4(),
-            label: `UNIT_${i + 1}`,
-            createdDate: new Date().toISOString(),
-            modifiedDate: new Date().toISOString(),
-            deleted: 0,
-            typeId: unitType.id,
-            devices: [],
-            fusionLinks: [],
-          });
-        }
-
-        /**Prepare nodes */
+        /**NO auto-crear unidades - se agregan manualmente hasta el límite */
+        
+        /**Guardar nodos existentes */
         for (let i = 0; i < nodesList.length; i++) {
           const node = nodesList[i];
 
@@ -1144,6 +1206,9 @@ const CreateProject = ({ navigation, route, theme }) => {
             projectId: project.id,
           });
         }
+        
+        console.log('✅ Saved', nodesList.length, 'nodes to project ID:', project.id);
+        console.log('📋 Nodes saved:', nodesList.map(n => n.label).join(', '));
 
         /**Persist fibers */
         let saveFibers = [];
@@ -1159,8 +1224,14 @@ const CreateProject = ({ navigation, route, theme }) => {
           saveFibers.push(f);
         }
 
-        /**Reload */
+        /**Reload project data from DB */
         setCreatedProjId(project.id);
+        setProjectId(project.id);
+        setIsEditMode(true);
+        
+        // Recargar nodos desde DB para obtener los IDs asignados
+        console.log('🔄 Reloading project data after creation...');
+        await loadProjectData(project.id);
       }
     } catch (error) {
       setSaving(false);
@@ -1204,6 +1275,8 @@ const CreateProject = ({ navigation, route, theme }) => {
       building_type: "Garden Style",
     });
     setAttachedFiles([]);
+    setAllNodes([]);
+    setNodes([]);
     navigation.setParams({ projectId: null });
   };
 
@@ -1607,20 +1680,34 @@ const CreateProject = ({ navigation, route, theme }) => {
   });
 
   const handleRemoveNode = (node) => {
-    let index = -1;
+    // Actualizar en allNodes
+    const allIndex = node.id 
+      ? allNodes.findIndex((x) => x.id == node.id)
+      : allNodes.findIndex((x) => x.hash == node.hash);
 
-    if (node.id == undefined)
-      index = nodes.findIndex((x) => x.hash == node.hash);
-    else index = nodes.findIndex((x) => x.id == node.id);
-
-    if (index != -1) {
-      let update = [...nodes];
-      update[index] = {
-        ...update[index],
+    if (allIndex != -1) {
+      const updatedAll = [...allNodes];
+      updatedAll[allIndex] = {
+        ...updatedAll[allIndex],
         deleted: true,
       };
-
-      setNodes(update);
+      setAllNodes(updatedAll);
+      
+      // Actualizar vista filtrada
+      const nodesIndex = node.id
+        ? nodes.findIndex((x) => x.id == node.id)
+        : nodes.findIndex((x) => x.hash == node.hash);
+        
+      if (nodesIndex != -1) {
+        const updatedNodes = [...nodes];
+        updatedNodes[nodesIndex] = {
+          ...updatedNodes[nodesIndex],
+          deleted: true,
+        };
+        setNodes(updatedNodes);
+      }
+      
+      console.log('🗑️ Node marked as deleted:', node.label);
     }
   };
 
@@ -1647,19 +1734,29 @@ const CreateProject = ({ navigation, route, theme }) => {
   };
 
   const updateLocalNode = (node) => {
-    let index = -1;
+    // Actualizar en allNodes
+    const allIndex = node.hash != undefined
+      ? allNodes.findIndex((x) => x.hash == node.hash)
+      : allNodes.findIndex((x) => x.id == node.id);
 
-    if (node.hash != undefined) {
-      index = nodes.findIndex((x) => x.hash == node.hash);
-    } else {
-      index = nodes.findIndex((x) => x.id == node.id);
+    if (allIndex != -1) {
+      const tmpAll = [...allNodes];
+      tmpAll[allIndex] = node;
+      setAllNodes(tmpAll);
     }
+    
+    // Actualizar en nodes (vista filtrada)
+    const index = node.hash != undefined
+      ? nodes.findIndex((x) => x.hash == node.hash)
+      : nodes.findIndex((x) => x.id == node.id);
 
     if (index != -1) {
-      let tmp = [...nodes];
+      const tmp = [...nodes];
       tmp[index] = node;
       setNodes(tmp);
     }
+    
+    console.log('🔄 Node updated:', node.label);
   };
 
   const handleSeeNodeInfo = (node) => {
@@ -2372,10 +2469,14 @@ const CreateProject = ({ navigation, route, theme }) => {
                 accessibilityLabel="Learn more about this purple button"
               />
               <Button
-                onPress={() => {
+                onPress={async () => {
                   setShowCloseProjectModal(false);
-                  setProjectId(createdProjId);
-                  setIsEditMode(true);
+                  if (createdProjId) {
+                    setProjectId(createdProjId);
+                    setIsEditMode(true);
+                    // Recargar datos completos
+                    await loadProjectData(createdProjId);
+                  }
                 }}
                 disabled={saving}
                 title={t("buttonYes")}
