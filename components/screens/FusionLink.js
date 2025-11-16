@@ -485,6 +485,36 @@ const FusionLink = ({ route, navigation }) => {
     const loadFibers = async () => {
       let records = await getFibers(projectId, null);
 
+      // Filtrar fibras según el tipo de nodo
+      if (node) {
+        if (node.typeId === 4) {
+          // UNIT: Solo mostrar la fibra DROP de esta UNIT específica
+          const nodeIdentifier = node.id || node.hash; // Usar id de BD si existe, sino hash
+          console.log('🔷 FusionLink - Filtering fibers for UNIT:', node.label, 'identifier:', nodeIdentifier);
+          records = records.filter(f => {
+            const isUnitFiber = f.nodeId === nodeIdentifier;
+            console.log('  Fiber:', f.label, 'nodeId:', f.nodeId, 'matches:', isUnitFiber);
+            return isUnitFiber;
+          });
+          console.log('🔷 FusionLink - Filtered fibers count:', records.length);
+        } else if (node.typeId === 1) {
+          // MDF (typeId===1): Excluir TODAS las fibras DROP (nunca conexión directa MDF→UNIT)
+          console.log('🔷 FusionLink - MDF: Excluding all DROP fibers');
+          records = records.filter(f => {
+            const isNotDropFiber = !f.nodeId;
+            if (f.nodeId) {
+              console.log('  Excluding DROP fiber:', f.label);
+            }
+            return isNotDropFiber;
+          });
+          console.log('🔷 FusionLink - Available fibers after filter:', records.length);
+        } else {
+          // IDF (typeId===2) y Pedestal (typeId===3): Mostrar TODAS las fibras (incluidas DROP para fusionar a UNITs)
+          console.log('🔷 FusionLink - IDF/Pedestal: Showing all fibers including DROP');
+          console.log('🔷 FusionLink - Total fibers available:', records.length);
+        }
+      }
+
       for (let i = 0; i < records.length; i++) {
         let buffers = [
           {
@@ -516,8 +546,10 @@ const FusionLink = ({ route, navigation }) => {
         return {
           ...f,
           value: f.id != undefined ? f.id : f.hash,
+          label: f.label, // Asegurar que tiene label para el picker
         };
       });
+      console.log('🔷 FusionLink - Final fibersData for picker:', records.map(f => ({ label: f.label, value: f.value })));
       setFibersData(records);
       return records;
     };

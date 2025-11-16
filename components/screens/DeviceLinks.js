@@ -33,6 +33,7 @@ const DeviceLinks = ({ route, navigation }) => {
   const { isDarkMode, language } = useApp();
   const { t } = useTranslation();
   const { device } = route.params;
+  const { node } = route.params;
   const { projectId } = route.params;
 
   const [fibersData, setFibersData] = useState([]);
@@ -908,6 +909,8 @@ const DeviceLinks = ({ route, navigation }) => {
   };
 
   const handleSetupLink = (portNumber) => {
+    console.log('🔧 Setup link for port:', portNumber);
+    console.log('🔧 Available fibersData:', fibersData.length, fibersData);
     setSelectedPort(portNumber);
     setShowLinkSetupModal(true);
   };
@@ -915,6 +918,36 @@ const DeviceLinks = ({ route, navigation }) => {
   useEffect(() => {
     const loadFibers = async () => {
       let records = await getFibers(projectId, null);
+
+      // Filtrar fibras según el tipo de nodo
+      if (node) {
+        if (node.typeId === 4) {
+          // UNIT: Solo mostrar la fibra DROP de esta UNIT específica
+          const nodeIdentifier = node.id || node.hash; // Usar id de BD si existe, sino hash
+          console.log('🔷 DeviceLinks - Filtering fibers for UNIT:', node.label, 'identifier:', nodeIdentifier);
+          records = records.filter(f => {
+            const isUnitFiber = f.nodeId === nodeIdentifier;
+            console.log('  Fiber:', f.label, 'nodeId:', f.nodeId, 'matches:', isUnitFiber);
+            return isUnitFiber;
+          });
+          console.log('🔷 DeviceLinks - Filtered fibers count:', records.length);
+        } else if (node.typeId === 1) {
+          // MDF (typeId===1): Excluir TODAS las fibras DROP (nunca conexión directa MDF→UNIT)
+          console.log('🔷 DeviceLinks - MDF: Excluding all DROP fibers');
+          records = records.filter(f => {
+            const isNotDropFiber = !f.nodeId;
+            if (f.nodeId) {
+              console.log('  Excluding DROP fiber:', f.label);
+            }
+            return isNotDropFiber;
+          });
+          console.log('🔷 DeviceLinks - Available fibers after filter:', records.length);
+        } else {
+          // IDF (typeId===2) y Pedestal (typeId===3): Mostrar TODAS las fibras (incluidas DROP para fusionar a UNITs)
+          console.log('🔷 DeviceLinks - IDF/Pedestal: Showing all fibers including DROP');
+          console.log('🔷 DeviceLinks - Total fibers available:', records.length);
+        }
+      }
 
       for (let i = 0; i < records.length; i++) {
         let buffers = [
@@ -947,8 +980,10 @@ const DeviceLinks = ({ route, navigation }) => {
         return {
           ...f,
           value: f.id != undefined ? f.id : f.hash,
+          label: f.label, // Asegurar que tiene label para el picker
         };
       });
+      console.log('🔷 Final fibersData for picker:', records.map(f => ({ label: f.label, value: f.value })));
       setFibersData(records);
       return records;
     };
@@ -1056,7 +1091,9 @@ const DeviceLinks = ({ route, navigation }) => {
                     value={srcLink.fiber != null ? srcLink.fiber.value : null}
                     useNativeAndroidPickerStyle={false}
                     onValueChange={(value) => {
+                      console.log('🔧 Fiber selected, value:', value);
                       const fiber = fibersData.find((x) => x.value == value);
+                      console.log('🔧 Found fiber:', fiber);
 
                       if (fiber != undefined) {
                         const tmp = {
@@ -1072,7 +1109,6 @@ const DeviceLinks = ({ route, navigation }) => {
                         setSrcLink(tmp);
                       }
                     }}
-                    itemKey={(item) => item.value}
                     items={fibersData}
                     placeholder={{ label: t("selectAnOption"), value: null }}
                   />

@@ -7,7 +7,7 @@ const db = new Dexie('FiberDatabase');
 db.version(1).stores({
   projects: '++id, name, createdDate, modifiedDate, deleted, metadata',
   nodes: '++id, label, projectId, typeId, description, createdDate, modifiedDate, deleted',
-  fibers: '++id, typeId, label, projectId, parentId, createdDate, modifiedDate, deleted'
+  fibers: '++id, typeId, label, projectId, parentId, nodeId, createdDate, modifiedDate, deleted'
 });
 
 // Inicializar base de datos
@@ -275,7 +275,9 @@ export const sqliteWebAdapter = {
         
         const outfiber = {
           ...fiber,
-          threads: threads
+          threads: threads,
+          nodeId: fiber.nodeId || null,
+          isSystemFiber: fiber.nodeId ? true : false, // Si tiene nodeId, es fibra del sistema
         }
         return outfiber;
       });
@@ -336,6 +338,7 @@ export const sqliteWebAdapter = {
         label: data.label,
         metadata: data.metadata,
         parentId: data.parentId || null,
+        nodeId: data.nodeId || null,
         createdDate: data.createdDate,
         modifiedDate: data.modifiedDate,
         deleted: 0
@@ -358,6 +361,11 @@ export const sqliteWebAdapter = {
         metadata: data.metadata,
         modifiedDate: now
       };
+
+      // Si se proporciona nodeId, actualizarlo también
+      if (data.nodeId !== undefined) {
+        updates.nodeId = data.nodeId;
+      }
 
       await db.fibers.update(id, updates);
       return { id: id, ...data, modifiedDate: updates.modifiedDate };

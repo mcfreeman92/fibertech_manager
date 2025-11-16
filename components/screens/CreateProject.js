@@ -982,6 +982,43 @@ const CreateProject = ({ navigation, route, theme }) => {
       willShow: selectedNodesFilter.id === 0 || selectedNodesFilter.id === nodeType.id
     });
     
+    // Si es una UNIT, crear automáticamente la fibra DROP de 2 hilos
+    if (nodeType.id === unitType.id) {
+      const dropFiberLabel = `FIBER_${nodeLabel}`;
+      
+      // Crear 2 hilos azules para la fibra DROP
+      const dropThreads = [
+        {
+          number: 1,
+          color: fiberColors12Hex[0].color, // Azul
+          active: true,
+          inUse: false,
+        },
+        {
+          number: 2,
+          color: fiberColors12Hex[0].color, // Azul
+          active: true,
+          inUse: false,
+        }
+      ];
+      
+      const dropFiber = {
+        hash: uuidv4(),
+        label: dropFiberLabel,
+        createdDate: new Date().toISOString(),
+        modifiedDate: new Date().toISOString(),
+        deleted: 0,
+        typeId: 2, // 2F (tipo de fibra de 2 hilos)
+        threads: dropThreads,
+        buffers: [],
+        nodeId: newNode.hash, // Asociar la fibra con el nodo UNIT
+        isSystemFiber: true, // Marcar como fibra del sistema (no editable/eliminable)
+      };
+      
+      console.log('🔷 Creating DROP fiber for UNIT:', dropFiberLabel);
+      setFibers((prev) => [...prev, dropFiber]);
+    }
+    
     // Actualizar TODOS los nodos
     setAllNodes((prev) => {
       const updated = [...prev, newNode];
@@ -1049,6 +1086,7 @@ const CreateProject = ({ navigation, route, theme }) => {
       typeId: fiber.typeId || sinleFiberTpeId,
       description: "",
       metadata: meta,
+      nodeId: fiber.nodeId || null,
       createdDate: fiber.createdDate,
       modifiedDate: fiber.modifiedDate,
     });
@@ -1153,7 +1191,19 @@ const CreateProject = ({ navigation, route, theme }) => {
                 ...node,
                 projectId: projectId,
               };
-              await doCreateNode(newObj);
+              const createdNode = await doCreateNode(newObj);
+              
+              // Si es una UNIT, actualizar el nodeId de su fibra DROP con el ID de BD
+              if (node.typeId === 4 && createdNode.id) {
+                const dropFiberIndex = fibers.findIndex(f => f.nodeId === node.hash);
+                if (dropFiberIndex !== -1) {
+                  console.log('🔷 Updating DROP fiber nodeId from hash to DB id:', node.hash, '→', createdNode.id);
+                  fibers[dropFiberIndex] = {
+                    ...fibers[dropFiberIndex],
+                    nodeId: createdNode.id, // Actualizar con el ID de BD
+                  };
+                }
+              }
             }
           } else {
             const links = node.fusionLinks || [];
@@ -1221,9 +1271,26 @@ const CreateProject = ({ navigation, route, theme }) => {
         // Clear deleted fibers list after deletion
         setDeletedFiberIds([]);
 
+        /**Actualizar nodeId de fibras DROP con los IDs de BD de los nodos UNIT */
+        const updatedFibers = fibers.map(fiber => {
+          if (fiber.nodeId && typeof fiber.nodeId === 'string') {
+            // Esta fibra DROP tiene un hash, buscar el nodo para obtener su ID de BD
+            const unitNode = allNodes.find(n => n.hash === fiber.nodeId && n.typeId === 4);
+            if (unitNode && unitNode.id) {
+              console.log('🔷 Mapping DROP fiber nodeId from hash to DB id:', fiber.label, fiber.nodeId, '→', unitNode.id);
+              return {
+                ...fiber,
+                nodeId: unitNode.id
+              };
+            }
+          }
+          return fiber;
+        });
+        setFibers(updatedFibers);
+
         /**Persist new fibers */
-        for (let i = 0; i < fibers.length; i++) {
-          const fiber = fibers[i];
+        for (let i = 0; i < updatedFibers.length; i++) {
+          const fiber = updatedFibers[i];
           if (fiber.id == undefined) {
             let newObj = {
               ...fiber,
@@ -1231,16 +1298,29 @@ const CreateProject = ({ navigation, route, theme }) => {
             };
             await doCreateFiber(newObj);
           } else {
-            await updateFiber(fiber.id, {
-              label: fiber.label,
-              metadata: JSON.stringify(fiber.threads),
-            });
+            // Para fibras existentes, verificar si necesita actualizar nodeId
+            const needsNodeIdUpdate = fiber.nodeId && updatedFibers[i].nodeId !== fibers[i].nodeId;
+            
+            if (needsNodeIdUpdate) {
+              console.log('🔷 Updating existing DROP fiber in DB:', fiber.label, 'nodeId:', updatedFibers[i].nodeId);
+              // Actualizar con el nuevo nodeId
+              await updateFiber(fiber.id, {
+                label: fiber.label,
+                metadata: JSON.stringify(fiber.threads),
+                nodeId: updatedFibers[i].nodeId, // Actualizar nodeId en BD
+              });
+            } else {
+              await updateFiber(fiber.id, {
+                label: fiber.label,
+                metadata: JSON.stringify(fiber.threads),
+              });
+            }
             console.log('✅ Updated fiber:', fiber.label, 'ID:', fiber.id);
           }
 
           /**Save buffers */
-          for (let j = 0; j < fiber.buffers.length; j++) {
-            const buffer = fiber.buffers[j];
+          for (let j = 0; j < updatedFibers[i].buffers.length; j++) {
+            const buffer = updatedFibers[i].buffers[j];
 
             if (buffer.id == undefined) {
               let newObj = {
@@ -1270,20 +1350,43 @@ const CreateProject = ({ navigation, route, theme }) => {
         for (let i = 0; i < nodesList.length; i++) {
           const node = nodesList[i];
 
-          await doCreateNode({
+          const createdNode = await doCreateNode({
             ...node,
             projectId: project.id,
           });
+          
+          // Actualizar el nodo en la lista con el ID de BD
+          nodesList[i] = {
+            ...nodesList[i],
+            id: createdNode.id
+          };
+          console.log('✅ Node created with DB ID:', createdNode.label, 'ID:', createdNode.id, 'Hash:', createdNode.hash);
         }
         
         console.log('✅ Saved', nodesList.length, 'nodes to project ID:', project.id);
         console.log('📋 Nodes saved:', nodesList.map(n => n.label).join(', '));
 
+        /**Actualizar nodeId de fibras DROP con los IDs de BD */
+        const fibersToSave = fibers.map(fiber => {
+          if (fiber.nodeId && typeof fiber.nodeId === 'string') {
+            // Esta fibra DROP tiene un hash, buscar el nodo para obtener su ID de BD
+            const unitNode = nodesList.find(n => n.hash === fiber.nodeId && n.typeId === 4);
+            if (unitNode && unitNode.id) {
+              console.log('🔷 Mapping DROP fiber nodeId for new project:', fiber.label, fiber.nodeId, '→', unitNode.id);
+              return {
+                ...fiber,
+                nodeId: unitNode.id
+              };
+            }
+          }
+          return fiber;
+        });
+
         /**Persist fibers */
         let saveFibers = [];
 
-        for (let i = 0; i < fibers.length; i++) {
-          const fiber = fibers[i];
+        for (let i = 0; i < fibersToSave.length; i++) {
+          const fiber = fibersToSave[i];
 
           const f = await doCreateFiber({
             ...fiber,
@@ -1749,6 +1852,23 @@ const CreateProject = ({ navigation, route, theme }) => {
   });
 
   const handleRemoveNode = (node) => {
+    // Si es una UNIT (typeId === 4), también eliminar su fibra DROP
+    if (node.typeId === 4) {
+      const nodeIdentifier = node.id || node.hash; // Usar id de BD si existe, sino hash
+      const dropFiber = fibers.find(f => f.nodeId === nodeIdentifier);
+      
+      if (dropFiber) {
+        console.log('🔷 Removing DROP fiber for UNIT:', dropFiber.label);
+        const updatedFibers = fibers.filter(f => f.nodeId !== nodeIdentifier);
+        setFibers(updatedFibers);
+        
+        // Track for deletion if it has DB id
+        if (dropFiber.id) {
+          setDeletedFiberIds((prev) => [...prev, dropFiber.id]);
+        }
+      }
+    }
+    
     // Actualizar en allNodes
     const allIndex = node.id 
       ? allNodes.findIndex((x) => x.id == node.id)
@@ -1785,7 +1905,9 @@ const CreateProject = ({ navigation, route, theme }) => {
       <View style={combinedStyles.fiberCard}>
         <View style={combinedStyles.deviceHeader}>
           <View style={combinedStyles.deviceInfo}>
-            <Text style={combinedStyles.deviceName}>{fiber.label} </Text>
+            <Text style={combinedStyles.deviceName}>
+              {fiber.label} {fiber.isSystemFiber && '🔒'}
+            </Text>
             <Text style={combinedStyles.deviceDescription}>{fiber.typeId}</Text>
           </View>
           <TouchableOpacity
@@ -1794,12 +1916,14 @@ const CreateProject = ({ navigation, route, theme }) => {
           >
             <Ionicons name="information-circle" size={24} color={"#504d4cff"} />
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={dynamicStyles.removeButton}
-            onPress={() => handleRemoveFiber(fiber)}
-          >
-            <Ionicons name="trash" size={24} color={"#666261ff"} />
-          </TouchableOpacity>
+          {!fiber.isSystemFiber && !fiber.nodeId && (
+            <TouchableOpacity 
+              style={dynamicStyles.removeButton}
+              onPress={() => handleRemoveFiber(fiber)}
+            >
+              <Ionicons name="trash" size={24} color={"#666261ff"} />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );
@@ -1872,6 +1996,16 @@ const CreateProject = ({ navigation, route, theme }) => {
   };
 
   const handleRemoveFiber = (fiber) => {
+    // Verificar si es una fibra del sistema (DROP de UNIT) - no se puede eliminar
+    if (fiber.isSystemFiber || fiber.nodeId) {
+      Alert.alert(
+        t('error') || 'Error',
+        'Esta fibra DROP pertenece a una UNIT y no puede ser eliminada. Solo se eliminará cuando se elimine la UNIT.',
+        [{ text: t('ok') || 'OK' }]
+      );
+      return;
+    }
+    
     // Verificar si la fibra tiene fusiones en algún nodo
     const fiberId = fiber.id || fiber.hash;
     let fusionCount = 0;

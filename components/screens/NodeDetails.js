@@ -364,6 +364,7 @@ const NodeDetails = ({ route, navigation }) => {
   const handleDeviceLinks = (device) => {
     navigation.navigate("DeviceLinks", {
       device: device,
+      node: nodeData,
       projectId: node.projectId != undefined ? node.projectId : 0,
       onSaveDeviceData: (data) => {
         updateDevice(data);
