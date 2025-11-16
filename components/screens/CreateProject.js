@@ -200,8 +200,8 @@ const CreateProject = ({ navigation, route, theme }) => {
     { id: 0, name: t("allNodeFilter"), type: "ALL" },
     { id: 1, name: "MDF", type: "MDF" },
     { id: 2, name: "IDF", type: "IDF" },
-    { id: 3, name: t("unit"), type: "U" },
-    { id: 4, name: t("Pedestal"), type: "P" },
+    { id: 3, name: t("pedestal"), type: "P"},
+    { id: 4, name: t("unit"), type: "U"},
   ];
 
   const showAlert = (title, message) => {
@@ -802,22 +802,7 @@ const CreateProject = ({ navigation, route, theme }) => {
   };
 
   const addNode = async () => {
-    let src = [];
-    if (projectId != undefined) {
-      src = await getNodes(projectId);
-    } else {
-      src = nodes;
-    }
-
-    src = src.filter((x) => x.typeId == 3);
-    const unitsCount = src.length;
-    const maxUnits = calculateTotalUnits();
-
-    if (unitsCount < maxUnits) {
-      setShowAddNodeModal(true);
-    } else {
-      showAlert(t("error"), t("maxUnits"));
-    }
+    setShowAddNodeModal(true);
   };
 
   const handleConnectionMap = () => {};
@@ -877,7 +862,28 @@ const CreateProject = ({ navigation, route, theme }) => {
     setShowAddFiberModal(false);
   };
 
-  const handleNodeSelect = (nodeType) => {
+  const handleNodeSelect = async (nodeType) => {
+    // Validar límite de unidades solo para nodos tipo Unit
+    const unitType = nodesTypesList().find((x) => x.type == "U");
+    
+    if (nodeType.id === unitType.id) {
+      let src = [];
+      if (projectId != undefined) {
+        src = await getNodes(projectId);
+      } else {
+        src = nodes;
+      }
+
+      src = src.filter((x) => x.typeId == unitType.id && !x.deleted);
+      const unitsCount = src.length;
+      const maxUnits = calculateTotalUnits();
+
+      if (unitsCount >= maxUnits) {
+        showAlert(t("error"), t("maxUnits"));
+        return;
+      }
+    }
+
     const newNode = {
       label: `${nodeType.name} - ${nodes.length + 1}`,
       createdDate: new Date().toISOString(),

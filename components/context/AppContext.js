@@ -458,7 +458,7 @@ export const AppProvider = ({ children }) => {
       configureAll: "Configure all",
       fibers: "fibers",
       addNode: "Add Node",
-      pedestal: "Pedestal",
+      pedestal: "Pereston",
       unit: "Unit",
       saveNetwork: "Save Network",
       clearAll: "Clear all",
@@ -1471,8 +1471,8 @@ export const AppProvider = ({ children }) => {
     return [
       { id: 1, name: "MDF", type: "MDF", visible: false, alowDevices: true },
       { id: 2, name: "IDF", type: "IDF", visible: true, alowDevices: false },
-      { id: 3, name: t("unit"), type: "U", visible: true, alowDevices: true },
-      { id: 4, name: "Pedestal", type: "P", visible: true, alowDevices: false },
+      { id: 3, name: t("pedestal"), type: "P", visible: true, alowDevices: false},
+      { id: 4, name: t("unit"), type: "U", visible: true, alowDevices: true },
     ];
   };
 
