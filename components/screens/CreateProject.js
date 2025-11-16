@@ -1738,12 +1738,7 @@ const CreateProject = ({ navigation, route, theme }) => {
     const mdfType = nodesTypesList().find((x) => x.type == "MDF");
     const mdf = allNodes.find(x => x.typeId == mdfType.id);
 
-    //allNodes = allNodes.filter((x) => (x.id != node.id || x.hash != node.hash) && x.id != mdf.id);
-
-    console.log(node);
-    console.log(mdf);
-    console.log(allNodes);
-    console.log(fibers);
+    allNodes = allNodes.filter((x) => (x.id != node.id || x.hash != node.hash) && x.id != mdf.id);
 
     navigation.navigate("NodePath", {
       mdf: mdf,
@@ -1901,7 +1896,7 @@ const CreateProject = ({ navigation, route, theme }) => {
           </Text>
 
           <View style={combinedStyles.formCard}>
-            <View style={{ flex: isTablet ? 1 : undefined }}>
+            <View style={styles.inputGroup}>
               <Text style={[combinedStyles.label, { color: colors.text }]}>
                 {t("propertyName")} *
               </Text>
@@ -1915,69 +1910,63 @@ const CreateProject = ({ navigation, route, theme }) => {
               />
             </View>
 
-            {/** HABILITAR ESTO CUADO NO ES WEB POR LA VISIBILIDAD */}
+            <View style={styles.inputGroup}>
+              <Text style={combinedStyles.label}>
+                {t("propertyAddress")} *
+              </Text>
+              <TextInput
+                style={combinedStyles.input}
+                value={projectData.address}
+                onChangeText={(text) => handleInputChange("address", text)}
+                placeholder={t("enterAddress")}
+                editable={!saving}
+                placeholderTextColor={colors.placeholder}
+              />
+            </View>
 
-            {Platform.OS !== "web" && (
-              <View>
-                <View style={styles.inputGroup}>
-                  <Text style={combinedStyles.label}>
-                    {t("propertyAddress")} *
-                  </Text>
-                  <TextInput
-                    style={combinedStyles.input}
-                    value={projectData.address}
-                    onChangeText={(text) => handleInputChange("address", text)}
-                    placeholder={t("enterAddress")}
-                    editable={!saving}
-                    placeholderTextColor={colors.placeholder}
-                  />
-                </View>
-
-                <View style={styles.row}>
-                  <View
-                    style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}
-                  >
-                    <Text style={combinedStyles.label}>{t("city")}</Text>
-                    <TextInput
-                      style={combinedStyles.input}
-                      value={projectData.city}
-                      onChangeText={(text) => handleInputChange("city", text)}
-                      placeholder={t("city")}
-                      editable={!saving}
-                      placeholderTextColor={colors.placeholder}
-                    />
-                  </View>
-
-                  <View style={[styles.inputGroup, { flex: 1 }]}>
-                    <Text style={combinedStyles.label}>{t("state")}</Text>
-                    <TextInput
-                      style={combinedStyles.input}
-                      value={projectData.state}
-                      onChangeText={(text) => handleInputChange("state", text)}
-                      placeholder={t("state")}
-                      maxLength={2}
-                      editable={!saving}
-                      placeholderTextColor={colors.placeholder}
-                    />
-                  </View>
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={combinedStyles.label}>{t("description")}</Text>
-                  <TextInput
-                    style={[combinedStyles.input, styles.textArea]}
-                    value={projectData.description}
-                    onChangeText={(text) =>
-                      handleInputChange("description", text)
-                    }
-                    placeholder={t("projectDescription")}
-                    multiline={true}
-                    editable={!saving}
-                    placeholderTextColor={colors.placeholder}
-                  />
-                </View>
+            <View style={styles.row}>
+              <View
+                style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}
+              >
+                <Text style={combinedStyles.label}>{t("city")}</Text>
+                <TextInput
+                  style={combinedStyles.input}
+                  value={projectData.city}
+                  onChangeText={(text) => handleInputChange("city", text)}
+                  placeholder={t("city")}
+                  editable={!saving}
+                  placeholderTextColor={colors.placeholder}
+                />
               </View>
-            )}
+
+              <View style={[styles.inputGroup, { flex: 1 }]}>
+                <Text style={combinedStyles.label}>{t("state")}</Text>
+                <TextInput
+                  style={combinedStyles.input}
+                  value={projectData.state}
+                  onChangeText={(text) => handleInputChange("state", text)}
+                  placeholder={t("state")}
+                  maxLength={2}
+                  editable={!saving}
+                  placeholderTextColor={colors.placeholder}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={combinedStyles.label}>{t("description")}</Text>
+              <TextInput
+                style={[combinedStyles.input, styles.textArea]}
+                value={projectData.description}
+                onChangeText={(text) =>
+                  handleInputChange("description", text)
+                }
+                placeholder={t("projectDescription")}
+                multiline={true}
+                editable={!saving}
+                placeholderTextColor={colors.placeholder}
+              />
+            </View>
           </View>
         </View>
 
@@ -2083,11 +2072,11 @@ const CreateProject = ({ navigation, route, theme }) => {
             </Text>
           )}
 
-          <FlatList
-            data={nodes.filter((x) => (x.deleted || false) == false)}
-            keyExtractor={(item) => nodes.id}
-            renderItem={({ item }) => <RenderNode node={item}></RenderNode>}
-          />
+          <View>
+            {nodes.filter((x) => (x.deleted || false) == false).map((item, index) => (
+              <RenderNode key={item.id || index} node={item} />
+            ))}
+          </View>
         </View>
 
         {/* Fibras */}
@@ -2109,11 +2098,11 @@ const CreateProject = ({ navigation, route, theme }) => {
             </Text>
           )}
 
-          <FlatList
-            data={fibers}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => <RenderFiber fiber={item}></RenderFiber>}
-          />
+          <View>
+            {fibers.map((item, index) => (
+              <RenderFiber key={item.id || index} fiber={item} />
+            ))}
+          </View>
         </View>
       </ScrollView>
 

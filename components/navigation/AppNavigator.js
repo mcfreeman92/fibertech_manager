@@ -8,6 +8,7 @@ import Tools from "../screens/Tools";
 import Settings from "../screens/Settings";
 import CreateProject from "../screens/CreateProject";
 import ScanQr from "../screens/ScanQr";
+import MacAddressScanner from "../screens/MacAddressScanner";
 import ViewOnMap from "../screens/ViewOnMap";
 import CreateMaintenance from "../screens/CreateMaintenance";
 import ConnectivityDevices from "../screens/ConnectivityDevices";
@@ -28,6 +29,7 @@ const Stack = createStackNavigator();
 
 const AppNavigator = () => {
   const { isAuthenticated, isLoading } = useApp();
+  
   // console.log('AppNavigator - isAuthenticated:', isAuthenticated);
   // console.log('AppNavigator - isLoading:', isLoading);
 
@@ -54,6 +56,11 @@ const AppNavigator = () => {
           <Stack.Screen name="Settings" component={Settings} />
           <Stack.Screen name="CreateProject" component={CreateProject} />
           <Stack.Screen name="ScanQr" component={ScanQr} />
+          <Stack.Screen 
+            name="MacAddressScanner" 
+            component={MacAddressScanner}
+            options={{ title: "Escanear MAC" }}
+          />
           <Stack.Screen name="ViewOnMap" component={ViewOnMap} />
           <Stack.Screen
             name="CreateMaintenance"

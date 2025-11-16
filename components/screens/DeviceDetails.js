@@ -177,15 +177,19 @@ const DeviceDetails = ({ route, navigation }) => {
       color: colors.text,
     },
     scanButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
       backgroundColor: colors.purple,
-      padding: 8,
-      borderRadius: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 14,
+      borderRadius: 10,
+      justifyContent: 'center',
     },
     scanButtonText: {
       color: '#ffffff',
-      fontSize: 12,
-      fontWeight: '500',
-      flexShrink: 0,
+      fontSize: 14,
+      fontWeight: '600',
+      marginLeft: 6,
     },
     macAddressInput: {
       borderWidth: 1,
@@ -461,12 +465,22 @@ const DeviceDetails = ({ route, navigation }) => {
                     mac: text
                   }));
                 }}
+                placeholder={t('enterMacAddress') || 'Ingresa dirección MAC'}
               />
-              <Button
-                title={t('scanQR')}
-                style = {styles.scanButton}
-                accessibilityLabel="Learn more about this purple button"
-              />
+              <TouchableOpacity
+                style={styles.scanButton}
+                onPress={() => navigation.navigate('MacAddressScanner', {
+                  onMacAddressScanned: (macAddress) => {
+                    setData(prev => ({
+                      ...prev,
+                      mac: macAddress
+                    }));
+                  }
+                })}
+              >
+                <Ionicons name="scan" size={20} color="#ffffff" />
+                <Text style={styles.scanButtonText}>{t('scan') || 'Escanear'}</Text>
+              </TouchableOpacity>
 
             </View>
 
@@ -546,11 +560,9 @@ const DeviceDetails = ({ route, navigation }) => {
 
         <View style={[styles.card, { backgroundColor: colors.card }]}>
 
-          <FlatList
-            data={data.ports}
-            keyExtractor={item => item.number}
-            renderItem={({ item }) => (
-              <View>
+          <View>
+            {data.ports.map((item, index) => (
+              <View key={item.number || index}>
                 <View style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -573,10 +585,8 @@ const DeviceDetails = ({ route, navigation }) => {
                   />
                 </View>
               </View>
-            )}
-          />
-
-
+            ))}
+          </View>
 
         </View>
 

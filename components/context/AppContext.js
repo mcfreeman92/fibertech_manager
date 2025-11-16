@@ -2,7 +2,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useColorScheme, Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { NodePath } from "@babel/core";
 
 const AppContext = createContext();
 
@@ -39,6 +38,8 @@ export const AppProvider = ({ children }) => {
 
   const initializeApp = async () => {
     try {
+      setIsLoading(true);
+      
       // Cargar todas las preferencias en paralelo
       const [authStatus, themePreference, languagePreference] =
         await Promise.all([
@@ -46,9 +47,9 @@ export const AppProvider = ({ children }) => {
           AsyncStorage.getItem("@theme_preference"),
           AsyncStorage.getItem("@language_preference"),
         ]);
-      // Establecer estados
-      setIsAuthenticated(false);
-      setIsLoading(false);
+      
+      // Establecer estado de autenticación correctamente
+      setIsAuthenticated(authStatus === "true");
 
       if (themePreference) {
         setTheme(themePreference);
@@ -59,9 +60,9 @@ export const AppProvider = ({ children }) => {
       }
     } catch (error) {
       console.error("Error initializing app:", error);
+      setIsAuthenticated(false);
     } finally {
-      // Solo un setTimeout para isLoading
-      setTimeout(() => setIsLoading(false), 1000);
+      setIsLoading(false);
     }
   };
 
@@ -719,6 +720,34 @@ export const AppProvider = ({ children }) => {
       dejarEnlace: "Stop linking",
       macAddressScanned: "Mac address scanned",
       macAddress: "MAC",
+      scanMacAddress: "Scan MAC",
+      enterMacAddress: "Enter MAC address",
+      scan: "Scan",
+      fromGallery: "From Gallery",
+      noMacAddressFound: "No MAC address found",
+      noMacAddressFoundMessage: "No valid MAC address was detected in the scanned content. Would you like to view the full content?",
+      viewContent: "View content",
+      noCodeFound: "Code not found",
+      noCodeFoundMessage: "No QR code or barcode was detected in the image",
+      errorProcessingData: "Error processing data",
+      cameraPermissionRequired: "Camera permission required",
+      cameraPermissionMessage: "Camera access is needed to scan barcodes and QR codes",
+      grantPermission: "Grant permission",
+      useGallery: "Use gallery instead",
+      alignCodeInFrame: "Align the code in the frame",
+      macScanInstruction: "Scan QR codes or barcodes that contain MAC addresses",
+      macAddressFound: "MAC Address Found",
+      useMacAddress: "Use this MAC address",
+      noMacDetected: "No valid MAC address detected. You can enter one manually.",
+      enterManually: "Enter manually",
+      manualMacInput: "Manual MAC input",
+      enterMacAddressManually: "Enter the MAC address:",
+      use: "Use",
+      invalidMac: "Invalid MAC",
+      invalidMacMessage: "The entered MAC address is not valid",
+      processingImage: "Processing image...",
+      codeProcessed: "Code processed",
+      scanAnotherCode: "Scan another code",
       warning: "Warning",
       continueAnyway: "Continue anyway",
       someDevicesMissingMac: "Some Device Missing Mac",
@@ -759,7 +788,7 @@ export const AppProvider = ({ children }) => {
     },
     es: {
       thread: "Hilo",
-      device: "Equipo",
+      device: "Dispositivo",
       nodePath: "Ruta del nodo hasta el MDF",
       maxUnits: "Ya ha creado el máximo número de unidades permitidas.",
       buttonNo: "No, regresar",
@@ -837,6 +866,34 @@ export const AppProvider = ({ children }) => {
       warning: "Alerta",
       macAddress: "MAC",
       macAddressScanned: "Dirección MAC escaneada",
+      scanMacAddress: "Escanear MAC",
+      enterMacAddress: "Ingresar dirección MAC",
+      scan: "Escanear",
+      fromGallery: "Desde Galería",
+      noMacAddressFound: "Dirección MAC no encontrada",
+      noMacAddressFoundMessage: "No se detectó una dirección MAC válida en el contenido escaneado. ¿Deseas ver el contenido completo?",
+      viewContent: "Ver contenido",
+      noCodeFound: "Código no encontrado",
+      noCodeFoundMessage: "No se detectó código QR o de barras en la imagen",
+      errorProcessingData: "Error al procesar los datos",
+      cameraPermissionRequired: "Permiso de cámara requerido",
+      cameraPermissionMessage: "Se necesita acceso a la cámara para escanear códigos de barras y QR",
+      grantPermission: "Conceder permiso",
+      useGallery: "Usar galería en su lugar",
+      alignCodeInFrame: "Alinea el código en el marco",
+      macScanInstruction: "Escanea códigos QR o de barras que contengan direcciones MAC",
+      macAddressFound: "Dirección MAC Encontrada",
+      useMacAddress: "Usar esta dirección MAC",
+      noMacDetected: "No se detectó una dirección MAC válida. Puedes ingresar una manualmente.",
+      enterManually: "Ingresar manualmente",
+      manualMacInput: "Entrada manual de MAC",
+      enterMacAddressManually: "Ingresa la dirección MAC:",
+      use: "Usar",
+      invalidMac: "MAC inválida",
+      invalidMacMessage: "La dirección MAC ingresada no es válida",
+      processingImage: "Procesando imagen...",
+      codeProcessed: "Código procesado",
+      scanAnotherCode: "Escanear otro",
       dejarEnlace: "Dejar de enlazar",
       newNode:
         "Los nuevos nodos que crees se conectarán automáticamente a este nodo. Selecciona un tipo de nodo para comenzar.",

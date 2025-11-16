@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import {
   View,
@@ -32,7 +31,11 @@ const createLoginSchema = (t) => yup.object({
 const LoginScreen = ({ navigation }) => {
   const { t } = useTranslation();
   const { isDarkMode, isAuthenticated, isLoading, setIsLoading, login } = useApp();
-  // const [isLoading, setIsLoading] = useState(false);
+  
+  // console.log('LoginScreen - isDarkMode:', isDarkMode);
+  // console.log('LoginScreen - isAuthenticated:', isAuthenticated);
+  // console.log('LoginScreen - isLoading:', isLoading);
+  
   const [showPassword, setShowPassword] = useState(false);
   const passwordRef = useRef(null);
 
@@ -47,14 +50,10 @@ const LoginScreen = ({ navigation }) => {
   });
 
   const handleLogin = async (data) => {
-    // setIsLoading(true);
     try {
-
       await login(data.username, data.password);
-      
     } catch (error) {
       console.error('Error en login:', error);
-      // Alert.alert(t('error'), t('loginError'));
     }
   };
 
@@ -65,12 +64,12 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <Pressable>
-      <KeyboardAvoidingView 
-        style={[styles.container, isDarkMode && styles.darkContainer]}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
-      >
+    <KeyboardAvoidingView 
+      style={[styles.container, isDarkMode && styles.darkContainer]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
+    >
+      <Pressable style={{ flex: 1 }} onPress={Keyboard.dismiss}>
         <ScrollView 
           contentContainerStyle={styles.scrollContainer}
           keyboardShouldPersistTaps="handled"
@@ -162,7 +161,7 @@ const LoginScreen = ({ navigation }) => {
             </View>
 
             {/* Información de credenciales (solo para desarrollo) */}
-            <View style={styles.credentialsInfo}>
+            <View style={[styles.credentialsInfo, isDarkMode && styles.darkCredentialsInfo]}>
               <Text style={[styles.credentialsText, isDarkMode && styles.darkCredentialsText]}>
                 Usuario: admin | Contraseña: 123456
               </Text>
@@ -194,8 +193,8 @@ const LoginScreen = ({ navigation }) => {
             </Text>
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
-    </Pressable>
+      </Pressable>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -336,6 +335,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 5,
     marginTop: 10,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: '#ffeaa7',
   },
