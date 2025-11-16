@@ -1738,7 +1738,12 @@ const CreateProject = ({ navigation, route, theme }) => {
     const mdfType = nodesTypesList().find((x) => x.type == "MDF");
     const mdf = allNodes.find(x => x.typeId == mdfType.id);
 
-    allNodes = allNodes.filter((x) => (x.id != node.id || x.hash != node.hash) && x.id != mdf.id);
+    //allNodes = allNodes.filter((x) => (x.id != node.id || x.hash != node.hash) && x.id != mdf.id);
+
+    console.log(node);
+    console.log(mdf);
+    console.log(allNodes);
+    console.log(fibers);
 
     navigation.navigate("NodePath", {
       mdf: mdf,

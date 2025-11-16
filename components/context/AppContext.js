@@ -119,6 +119,8 @@ export const AppProvider = ({ children }) => {
   // Traducciones
   const translations = {
     en: {
+      thread: "Thread",
+      device: "Device",
       nodePath: "Node path to MDF",
       maxUnits: "You have already created the maximum number of units allowed.",
       buttonNo: "No, go back",
@@ -756,6 +758,8 @@ export const AppProvider = ({ children }) => {
       copiedToClipboard: "Copied to clipboard",
     },
     es: {
+      thread: "Hilo",
+      device: "Equipo",
       nodePath: "Ruta del nodo hasta el MDF",
       maxUnits: "Ya ha creado el máximo número de unidades permitidas.",
       buttonNo: "No, regresar",
