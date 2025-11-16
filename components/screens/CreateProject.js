@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 
 import {
   View,
@@ -60,6 +60,7 @@ const CreateProject = ({ navigation, route, theme }) => {
     updateNode,
     updateFiberThread,
     deleteNode,
+    deleteFiber,
   } = useAdapter()();
 
   const { topInset, isTablet, bottomInset, stylesFull } = useDevice();
@@ -118,6 +119,7 @@ const CreateProject = ({ navigation, route, theme }) => {
   const [showFilterNodesModal, setShowFilterNodesModal] = useState(false);
 
   const [fibers, setFibers] = useState([]);
+  const [deletedFiberIds, setDeletedFiberIds] = useState([]); // Track deleted fiber IDs
   const [nodes, setNodes] = useState([]);
   const [allNodes, setAllNodes] = useState([]); // Estado completo sin filtrar
 
@@ -545,6 +547,28 @@ const CreateProject = ({ navigation, route, theme }) => {
     }
   }, [projectId]);
 
+  // COMENTADO: Este listener causaba que se recargaran los datos desde DB
+  // cada vez que volvías de NodeDetails/DeviceLinks, perdiendo los cambios en memoria
+  // Solo se debe recargar cuando se abre el proyecto inicialmente (useEffect con projectId)
+  
+  // useEffect(() => {
+  //   const unsubscribe = navigation.addListener('focus', () => {
+  //     console.log('🔍 CreateProject screen focused');
+  //     if (isEditMode && projectId) {
+  //       console.log('🔄 Recargando datos del proyecto por focus:', projectId);
+  //       loadProjectData(projectId)
+  //         .then((r) => {
+  //           console.info("loadProjectData [OK] after focus");
+  //         })
+  //         .catch((e) => {
+  //           console.error("loadProjectData [ERROR] after focus:", e);
+  //         });
+  //     }
+  //   });
+
+  //   return unsubscribe;
+  // }, [navigation, isEditMode, projectId]);
+
   const loadExistingProjects = async () => {
     try {
       const projects = await ProjectService.getProjects();
@@ -556,6 +580,9 @@ const CreateProject = ({ navigation, route, theme }) => {
 
   const loadProjectData = async (id) => {
     try {
+      // Clear deleted fibers list when loading a project
+      setDeletedFiberIds([]);
+      
       // Cargar datos del proyecto
       const data = await getProjectById(id);
       const project = data.meta;
@@ -574,6 +601,7 @@ const CreateProject = ({ navigation, route, theme }) => {
       /**Load nodes and fibers */
       const dbNodes = await getNodes(id);
       console.log('📦 Loaded nodes from DB:', dbNodes);
+      console.log('📦 First node details:', dbNodes[0]);
       
       // Mapear campos de DB - el adapter web ya retorna en camelCase
       // pero el adapter REST retorna PascalCase, por eso chequeamos ambos
@@ -599,11 +627,15 @@ const CreateProject = ({ navigation, route, theme }) => {
       
       console.log('✅ Loaded', mappedNodes.length, 'nodes successfully');
 
+      // Cargar solo fibras principales (sin parentId)
       let records = await getFibers(id, null);
+      console.log('📦 Loaded main fibers from DB:', records.length);
       let dbFibers = [];
 
       for (let f of records) {
+        // Cargar buffers de esta fibra (si tiene)
         const buffers = await getFibers(id, f.id);
+        console.log(`📦 Fiber "${f.label}" has ${buffers.length} buffer(s)`);
         dbFibers.push({
           ...f,
           buffers: buffers,
@@ -611,6 +643,7 @@ const CreateProject = ({ navigation, route, theme }) => {
       }
 
       setFibers(dbFibers);
+      console.log('✅ Total fibers loaded:', dbFibers.length);
 
       // Cargar información de unidades
       const units = project.unitsInfo;
@@ -863,8 +896,16 @@ const CreateProject = ({ navigation, route, theme }) => {
     const existingFibersOfType = fibers.filter(
       (x) => x.typeId === fiberType.typeId && !x.deleted
     );
-    const fiberNumber = existingFibersOfType.length + 1;
-    const fiberLabel = `${fiberType.name} - ${fiberNumber}`;
+    
+    // Generar nombre único validando que no exista
+    let fiberNumber = existingFibersOfType.length + 1;
+    let fiberLabel = `${fiberType.name}_${fiberNumber}`;
+    
+    // Validar que el nombre no esté duplicado
+    while (fibers.some(f => f.label === fiberLabel && !f.deleted)) {
+      fiberNumber++;
+      fiberLabel = `${fiberType.name}_${fiberNumber}`;
+    }
     
     let fiber = buildFiber(fiberLabel, fiberType.typeId);
 
@@ -874,7 +915,7 @@ const CreateProject = ({ navigation, route, theme }) => {
       /**Build buffers */
       for (let i = 0; i < fiberType.buffersCount - 1; i++) {
         const buffer = buildFiber(
-          `${fiberLabel} Buffer ${i + 1}`,
+          `${fiberLabel}_Buffer_${i + 1}`,
           sinleFiberTpeId
         );
         buffers.push(buffer);
@@ -910,7 +951,16 @@ const CreateProject = ({ navigation, route, theme }) => {
     } else {
       // Para otros tipos (IDF, Pedestal), contar del mismo tipo
       const sameTypeNodes = allNodes.filter((x) => x.typeId == nodeType.id && !x.deleted);
-      nodeLabel = `${nodeType.name} - ${sameTypeNodes.length + 1}`;
+      
+      // Generar nombre único validando que no exista
+      let nodeNumber = sameTypeNodes.length + 1;
+      nodeLabel = `${nodeType.name}_${nodeNumber}`;
+      
+      // Validar que el nombre no esté duplicado
+      while (allNodes.some(n => n.label === nodeLabel && !n.deleted)) {
+        nodeNumber++;
+        nodeLabel = `${nodeType.name}_${nodeNumber}`;
+      }
     }
 
     const newNode = {
@@ -1132,15 +1182,17 @@ const CreateProject = ({ navigation, route, theme }) => {
                 fusionLinks: updateLinks,
               };
 
-              await updateNode(node.id, {
-                Label: node.label,
-                TypeId: node.typeId,
-                Description: node.description || "",
-                Metadata: meta,
-                ModifiedDate: new Date().toISOString(),
-              });
+              const updateData = {
+                label: node.label,
+                typeId: node.typeId,
+                description: node.description || "",
+                metadata: JSON.stringify(meta),
+                modifiedDate: new Date().toISOString(),
+              };
               
-              console.log('✅ Updated node:', node.label);
+              await updateNode(node.id, updateData);
+              
+              console.log('✅ Updated node:', node.label, 'with typeId:', node.typeId, 'ID:', node.id, 'Devices:', (node.devices || []).length);
             } else {
               for (let i = 0; i < links.length; i++) {
                 const link = links[i];
@@ -1154,6 +1206,21 @@ const CreateProject = ({ navigation, route, theme }) => {
           }
         }
 
+        /**Delete removed fibers */
+        console.log('🗑️ Deleting', deletedFiberIds.length, 'fiber(s)');
+        for (let i = 0; i < deletedFiberIds.length; i++) {
+          const fiberId = deletedFiberIds[i];
+          try {
+            await deleteFiber(fiberId);
+            console.log('✅ Deleted fiber ID:', fiberId);
+          } catch (error) {
+            console.error('❌ Error deleting fiber:', fiberId, error);
+          }
+        }
+        
+        // Clear deleted fibers list after deletion
+        setDeletedFiberIds([]);
+
         /**Persist new fibers */
         for (let i = 0; i < fibers.length; i++) {
           const fiber = fibers[i];
@@ -1165,9 +1232,10 @@ const CreateProject = ({ navigation, route, theme }) => {
             await doCreateFiber(newObj);
           } else {
             await updateFiber(fiber.id, {
-              ...fiber,
+              label: fiber.label,
               metadata: JSON.stringify(fiber.threads),
             });
+            console.log('✅ Updated fiber:', fiber.label, 'ID:', fiber.id);
           }
 
           /**Save buffers */
@@ -1182,9 +1250,10 @@ const CreateProject = ({ navigation, route, theme }) => {
               await doCreateFiber(newObj);
             } else {
               await updateFiber(buffer.id, {
-                ...buffer,
+                label: buffer.label,
                 metadata: JSON.stringify(buffer.threads),
               });
+              console.log('✅ Updated buffer:', buffer.label, 'ID:', buffer.id);
             }
           }
         }
@@ -1725,7 +1794,10 @@ const CreateProject = ({ navigation, route, theme }) => {
           >
             <Ionicons name="information-circle" size={24} color={"#504d4cff"} />
           </TouchableOpacity>
-          <TouchableOpacity style={dynamicStyles.removeButton}>
+          <TouchableOpacity 
+            style={dynamicStyles.removeButton}
+            onPress={() => handleRemoveFiber(fiber)}
+          >
             <Ionicons name="trash" size={24} color={"#666261ff"} />
           </TouchableOpacity>
         </View>
@@ -1734,6 +1806,8 @@ const CreateProject = ({ navigation, route, theme }) => {
   };
 
   const updateLocalNode = (node) => {
+    console.log('📝 Updating node:', node.label, 'Devices count:', node.devices?.length || 0);
+    
     // Actualizar en allNodes
     const allIndex = node.hash != undefined
       ? allNodes.findIndex((x) => x.hash == node.hash)
@@ -1743,6 +1817,9 @@ const CreateProject = ({ navigation, route, theme }) => {
       const tmpAll = [...allNodes];
       tmpAll[allIndex] = node;
       setAllNodes(tmpAll);
+      console.log('✅ Updated in allNodes at index:', allIndex);
+    } else {
+      console.warn('⚠️ Node not found in allNodes');
     }
     
     // Actualizar en nodes (vista filtrada)
@@ -1754,14 +1831,22 @@ const CreateProject = ({ navigation, route, theme }) => {
       const tmp = [...nodes];
       tmp[index] = node;
       setNodes(tmp);
+      console.log('✅ Updated in visible nodes at index:', index);
     }
     
     console.log('🔄 Node updated:', node.label);
   };
 
   const handleSeeNodeInfo = (node) => {
+    // Buscar el nodo actualizado en allNodes para asegurar que tiene los últimos cambios
+    const currentNode = allNodes.find(n => 
+      (n.id && n.id === node.id) || (n.hash && n.hash === node.hash)
+    ) || node;
+    
+    console.log('🔍 Opening node details:', currentNode.label, 'Devices:', currentNode.devices?.length || 0);
+    
     const tmp = {
-      node: node,
+      node: currentNode,
       onSaveNode: (data) => {
         updateLocalNode(data);
       },
@@ -1784,6 +1869,107 @@ const CreateProject = ({ navigation, route, theme }) => {
       tmp[index] = fiber;
       setFibers(tmp);
     }
+  };
+
+  const handleRemoveFiber = (fiber) => {
+    // Verificar si la fibra tiene fusiones en algún nodo
+    const fiberId = fiber.id || fiber.hash;
+    let fusionCount = 0;
+    
+    // Buscar fusiones en todos los nodos
+    allNodes.forEach(node => {
+      if (node.fusionLinks && Array.isArray(node.fusionLinks)) {
+        const fusions = node.fusionLinks.filter(link => 
+          link.fiberId === fiberId || 
+          link.src?.fiberId === fiberId || 
+          link.dst?.fiberId === fiberId
+        );
+        fusionCount += fusions.length;
+      }
+    });
+
+    if (fusionCount > 0) {
+      // Mostrar diálogo de confirmación
+      Alert.alert(
+        t('warning'),
+        t('fiberHasFusions', { count: fusionCount }) || 
+        `Esta fibra tiene ${fusionCount} fusión(es) activa(s). Si la eliminas, también se eliminarán todas sus fusiones. ¿Deseas continuar?`,
+        [
+          {
+            text: t('cancel') || 'Cancelar',
+            style: 'cancel'
+          },
+          {
+            text: t('delete') || 'Eliminar',
+            style: 'destructive',
+            onPress: () => removeFiberAndFusions(fiber, fiberId)
+          }
+        ]
+      );
+    } else {
+      // No tiene fusiones, eliminar directamente
+      removeFiberAndFusions(fiber, fiberId);
+    }
+  };
+
+  const removeFiberAndFusions = (fiber, fiberId) => {
+    // 1. Eliminar la fibra (filtrar en lugar de marcar como deleted)
+    const updatedFibers = fibers.filter(f => {
+      const fId = f.id || f.hash;
+      return fId !== fiberId;
+    });
+    
+    console.log(`🗑️ Fiber deleted. Total fibers: ${fibers.length} -> ${updatedFibers.length}`);
+    setFibers(updatedFibers);
+    
+    // Track fiber ID and buffer IDs for deletion on save (only if they have DB ids)
+    const idsToDelete = [];
+    if (fiber.id) {
+      idsToDelete.push(fiber.id);
+      console.log(`📝 Added fiber ID ${fiber.id} to deletion list`);
+    }
+    
+    // Also track buffer IDs
+    if (fiber.buffers && Array.isArray(fiber.buffers)) {
+      fiber.buffers.forEach(buffer => {
+        if (buffer.id) {
+          idsToDelete.push(buffer.id);
+          console.log(`📝 Added buffer ID ${buffer.id} to deletion list`);
+        }
+      });
+    }
+    
+    if (idsToDelete.length > 0) {
+      setDeletedFiberIds(prev => [...prev, ...idsToDelete]);
+    }
+
+    // 2. Limpiar fusiones de todos los nodos
+    const updatedAllNodes = allNodes.map(node => {
+      if (node.fusionLinks && Array.isArray(node.fusionLinks)) {
+        const cleanedLinks = node.fusionLinks.filter(link => {
+          const linkFiberId = link.fiberId || link.src?.fiberId || link.dst?.fiberId;
+          return linkFiberId !== fiberId;
+        });
+        
+        if (cleanedLinks.length !== node.fusionLinks.length) {
+          console.log(`🧹 Cleaned ${node.fusionLinks.length - cleanedLinks.length} fusion(s) from node: ${node.label}`);
+          return { ...node, fusionLinks: cleanedLinks };
+        }
+      }
+      return node;
+    });
+    setAllNodes(updatedAllNodes);
+
+    // 3. Actualizar vista filtrada
+    const updatedNodes = nodes.map(node => {
+      const updated = updatedAllNodes.find(n => 
+        (n.id && n.id === node.id) || (n.hash && n.hash === node.hash)
+      );
+      return updated || node;
+    });
+    setNodes(updatedNodes);
+
+    console.log('🗑️ Fiber deleted:', fiber.label);
   };
 
   const handleSeeFiberInfo = (fiber) => {
@@ -1878,9 +2064,9 @@ const CreateProject = ({ navigation, route, theme }) => {
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="#666261ff"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
                 <path d="M3 17h4v4h-4z" />
                 <path d="M17 3h4v4h-4z" />
@@ -1889,22 +2075,29 @@ const CreateProject = ({ navigation, route, theme }) => {
             </TouchableOpacity>
           )}
 
-          {/**FUSION LINK */}
-          <TouchableOpacity
-            disabled={projectId == undefined}
-            style={{ marginRight: 3 }}
-            onPress={() => handleSeeNodeLinks(node)}
-          >
-            <Ionicons
-              name="git-network"
-              size={24}
-              color={
-                projectId == undefined || projectId == null
-                  ? "#cfcbcaff"
-                  : "#666261ff"
-              }
-            />
-          </TouchableOpacity>
+          {/**FUSION LINK - No mostrar para MDF y UNIT */}
+          {(() => {
+            const unitType = nodesTypesList().find((x) => x.type === "unit");
+            const showFusionLink = node.typeId != mdfType.id && node.typeId != unitType?.id;
+            
+            return showFusionLink && (
+              <TouchableOpacity
+                disabled={projectId == undefined}
+                style={{ marginRight: 3 }}
+                onPress={() => handleSeeNodeLinks(node)}
+              >
+                <Ionicons
+                  name="git-network"
+                  size={24}
+                  color={
+                    projectId == undefined || projectId == null
+                      ? "#cfcbcaff"
+                      : "#666261ff"
+                  }
+                />
+              </TouchableOpacity>
+            );
+          })()}
 
           {/**LOCATION */}
           {/* <TouchableOpacity style={{ marginRight: 3 }}>

@@ -749,6 +749,7 @@ export const AppProvider = ({ children }) => {
       codeProcessed: "Code processed",
       scanAnotherCode: "Scan another code",
       warning: "Warning",
+      fiberHasFusions: "This fiber has {{count}} active fusion link(s). If you delete it, all associated fusion links will also be removed. Do you want to continue?",
       continueAnyway: "Continue anyway",
       someDevicesMissingMac: "Some Device Missing Mac",
       alignQrInFrame: "Align QR in frame",
@@ -864,6 +865,7 @@ export const AppProvider = ({ children }) => {
       someDevicesMissingMac: "Falta algún dispositivo Mac",
       continueAnyway: "Continue guardando",
       warning: "Alerta",
+      fiberHasFusions: "Esta fibra tiene {{count}} fusión(es) activa(s). Si la eliminas, todos los enlaces de fusión asociados también serán eliminados. ¿Deseas continuar?",
       macAddress: "MAC",
       macAddressScanned: "Dirección MAC escaneada",
       scanMacAddress: "Escanear MAC",
@@ -1463,8 +1465,16 @@ export const AppProvider = ({ children }) => {
     },
   };
 
-  const t = (key) => {
-    return translations[language]?.[key] || key;
+  const t = (key, params = {}) => {
+    let translation = translations[language]?.[key] || key;
+    
+    // Replace {{variable}} placeholders with actual values
+    Object.keys(params).forEach(param => {
+      const regex = new RegExp(`{{${param}}}`, 'g');
+      translation = translation.replace(regex, params[param]);
+    });
+    
+    return translation;
   };
 
   const nodesTypesList = () => {

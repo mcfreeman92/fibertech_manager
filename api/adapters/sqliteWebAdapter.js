@@ -140,11 +140,21 @@ export const sqliteWebAdapter = {
       }
 
       return nodes.map(node => {
-        const meta = JSON.parse(node.metadata);
+        let meta = { devices: [], fusionLinks: [] };
+        
+        // Validar metadata antes de parsear
+        if (node.metadata && node.metadata !== 'undefined' && node.metadata !== 'null') {
+          try {
+            meta = JSON.parse(node.metadata);
+          } catch (e) {
+            console.warn('Invalid metadata for node:', node.id, e);
+          }
+        }
+        
         const outNode = {
           ...node,
-          devices: meta.devices,
-          fusionLinks: meta.fusionLinks
+          devices: meta.devices || [],
+          fusionLinks: meta.fusionLinks || []
         }
         return outNode;
       });
@@ -163,12 +173,21 @@ export const sqliteWebAdapter = {
         return null;
       }
 
-      const meta = JSON.parse(node.metadata);
+      let meta = { devices: [], fusionLinks: [] };
+      
+      // Validar metadata antes de parsear
+      if (node.metadata && node.metadata !== 'undefined' && node.metadata !== 'null') {
+        try {
+          meta = JSON.parse(node.metadata);
+        } catch (e) {
+          console.warn('Invalid metadata for node:', node.id, e);
+        }
+      }
 
       return {
         ...node,
-        devices: meta.devices,
-        fusionLinks: meta.fusionLinks
+        devices: meta.devices || [],
+        fusionLinks: meta.fusionLinks || []
       };
     } catch (error) {
       console.error('Error getting node by id:', error);
@@ -238,16 +257,27 @@ export const sqliteWebAdapter = {
       if (projectId !== null) {
         fibers = await db.fibers
           .where('projectId').equals(projectId)
-          .and(node => node.deleted === 0 && node.parentId === parentId)
+          .and(fiber => fiber.deleted === 0 && fiber.parentId === parentId)
           .toArray();
       }
 
       fibers = fibers.map(fiber => {
+        let threads = [];
+        
+        // Validar metadata antes de parsear
+        if (fiber.metadata && fiber.metadata !== 'undefined' && fiber.metadata !== 'null') {
+          try {
+            threads = JSON.parse(fiber.metadata);
+          } catch (e) {
+            console.warn('Invalid metadata for fiber:', fiber.id, e);
+          }
+        }
+        
         const outfiber = {
           ...fiber,
-          threads: JSON.parse(fiber.metadata)
+          threads: threads
         }
-        return outfiber;;
+        return outfiber;
       });
 
       // Ordenar por Label y parsear Metadata
@@ -360,7 +390,7 @@ export const sqliteWebAdapter = {
   deleteFiber: async (id) => {
     try {
       // Soft delete
-      await db.fibers.update(id, { Deleted: 1 });
+      await db.fibers.update(id, { deleted: 1 });
       return { success: true };
     } catch (error) {
       console.error('Error deleting fiber:', error);

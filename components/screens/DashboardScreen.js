@@ -15,6 +15,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import { useApp } from '../context/AppContext';
 import { useDevice } from '../context/DeviceContext';
 import { ProjectService, NetworkMapService, UnitsService, ProjectTypeService, NodeService, FileService } from '../../service/storage';
+import { useAdapter } from '@/api/contexts/DatabaseContext';
 
 const DashboardScreen = ({ navigation, theme }) => {
   const { t } = useTranslation();
@@ -24,12 +25,19 @@ const DashboardScreen = ({ navigation, theme }) => {
   const [existingMaps, setExistingMaps] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
 
+  const { getProjects } = useAdapter()();
+
   const loadExistingProjects = async () => {
     try {
-      const projects = await ProjectService.getProjects();
-      setExistingProjects(projects);
+      console.log('\ud83d\udccb Loading projects for dashboard...');
+      const projects = await getProjects();
+      console.log('\ud83d\udccb Projects loaded:', projects.length);
+      // Filtrar proyectos no eliminados (por si acaso el adaptador devuelve algunos eliminados)
+      const activeProjects = projects.filter(p => p.deleted === 0 || p.deleted === undefined);
+      console.log('\ud83d\udccb Active projects:', activeProjects.length);
+      setExistingProjects(activeProjects);
     } catch (error) {
-      console.log('Error loading projects:', error);
+      console.log('\u274c Error loading projects:', error);
       Alert.alert(t('error'), t('couldNotLoadProjects'));
     }
   };

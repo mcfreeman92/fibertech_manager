@@ -385,7 +385,7 @@ const DeviceLinks = ({ route, navigation }) => {
       backgroundColor: "#F9FAFB",
       paddingRight: 50,
       marginVertical: 8,
-      outline: "none", // Importante para web
+      // outline: "none", // No soportado en React Native - removido
       cursor: "pointer",
     },
     inputIOS: {
@@ -441,11 +441,14 @@ const DeviceLinks = ({ route, navigation }) => {
   };
 
   const handleSave = () => {
+    console.log('💾 Saving device links. Device:', deviceData.label || deviceData.name, 'Ports:', deviceData.ports?.length || 0);
     // Ejecutar el callback si existe
     if (route.params?.onSaveDeviceData) {
       route.params.onSaveDeviceData(deviceData);
+      console.log('✅ Device data sent to callback');
       navigation.goBack();
     } else {
+      console.warn('⚠️ No callback found for onSaveDeviceData');
       navigation.goBack();
     }
   };

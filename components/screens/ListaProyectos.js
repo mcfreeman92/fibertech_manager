@@ -8,7 +8,9 @@ import {
   FlatList,
   Alert,
   ActivityIndicator,
-  TextInput
+  TextInput,
+  Modal,
+  Button
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
@@ -30,8 +32,11 @@ const ListaProyectos = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const { getProjects } = useAdapter()();
+  const { getProjects, hardDeleteProject } = useAdapter()();
 
   const colors = {
     background: isDarkMode ? '#121212' : '#ffffff',
@@ -80,65 +85,83 @@ const ListaProyectos = ({ navigation }) => {
   };
 
   const openProject = (proyecto) => {
+      console.log('🚀 Abriendo proyecto:', proyecto.id, proyecto.name);
+      console.log('📊 Estado actual - deleteModalVisible:', deleteModalVisible, 'projectToDelete:', projectToDelete);
       navigation.navigate('CreateProject', {
         projectId: proyecto.id
-      })
+      });
   };  
 
   const deleteProyecto = async (proyecto) => {
-    Alert.alert(
-      t('confirmDelete'),
-      t('confirmDeleteProjectMessage', { name: getProjectDisplayName(proyecto) }),
-      [
-        {
-          text: t('cancel'),
-          style: 'cancel'
-        },
-        {
-          text: t('delete'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await ProjectService.deleteProject(proyecto.id);
-              Alert.alert(t('success'), t('projectDeletedSuccessfully'));
-              loadProyectos();
-            } catch (error) {
-              console.error('Error deleting project:', error);
-              Alert.alert(t('error'), t('couldNotDeleteProject'));
-            }
-          }
-        }
-      ]
-    );
+    console.log('\ud83d\udc40 deleteProyecto called with proyecto:', proyecto);
+    console.log('\ud83d\udc40 proyecto.id:', proyecto.id);
+    console.log('\ud83d\udc40 proyecto.name:', proyecto.name);
+    
+    // Abrir modal de confirmación
+    setProjectToDelete(proyecto);
+    setDeleteModalVisible(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!projectToDelete) {
+      console.log('⚠️ confirmDelete: No hay proyecto para eliminar');
+      return;
+    }
+    
+    try {
+      setIsDeleting(true);
+      console.log('🗑️ Confirmando eliminación del proyecto:', projectToDelete.id);
+      const result = await hardDeleteProject(projectToDelete.id);
+      console.log('✅ Proyecto eliminado exitosamente:', result);
+      setDeleteModalVisible(false);
+      setProjectToDelete(null);
+      setIsDeleting(false);
+      Alert.alert(t('success') || 'Éxito', 'Proyecto eliminado exitosamente');
+      console.log('🔄 Recargando lista de proyectos...');
+      await loadProyectos();
+    } catch (error) {
+      console.error('❌ Error eliminando proyecto:', error);
+      Alert.alert(t('error') || 'Error', 'No se pudo eliminar el proyecto: ' + error.message);
+      setIsDeleting(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    console.log('🚫 Cancelando eliminación de proyecto');
+    setDeleteModalVisible(false);
+    setProjectToDelete(null);
+    setIsDeleting(false);
   };
 
   const deleteAllProyectos = async () => {
     if (proyectos.length === 0) {
-      Alert.alert(t('info'), t('noProjectsToDelete'));
+      Alert.alert(t('info') || 'Información', 'No hay proyectos para eliminar');
       return;
     }
 
     Alert.alert(
-      t('confirmDeleteAll'),
-      t('confirmDeleteAllProjectsMessage', { count: proyectos.length }),
+      t('warning') || 'Advertencia',
+      `¿Estás seguro de que deseas eliminar TODOS los ${proyectos.length} proyecto(s)? Esta acción no se puede deshacer.`,
       [
         {
-          text: t('cancel'),
+          text: t('cancel') || 'Cancelar',
           style: 'cancel'
         },
         {
-          text: t('deleteAll'),
+          text: t('delete') || 'Eliminar todos',
           style: 'destructive',
           onPress: async () => {
             try {
+              console.log('🗑️ Deleting all projects...');
               for (const proyecto of proyectos) {
-                await ProjectService.deleteProject(proyecto.id);
+                await hardDeleteProject(proyecto.id);
+                console.log('✅ Deleted project:', proyecto.id);
               }
-              Alert.alert(t('success'), t('allProjectsDeletedSuccessfully'));
+              Alert.alert(t('success') || 'Éxito', 'Todos los proyectos han sido eliminados');
               loadProyectos();
             } catch (error) {
-              console.error('Error deleting all projects:', error);
-              Alert.alert(t('error'), t('couldNotDeleteAllProjects'));
+              console.error('❌ Error deleting all projects:', error);
+              Alert.alert(t('error') || 'Error', 'No se pudieron eliminar todos los proyectos: ' + error.message);
             }
           }
         }
@@ -194,19 +217,33 @@ const ListaProyectos = ({ navigation }) => {
             {getProjectDisplayName(item)}
           </Text>
           <TouchableOpacity
-            onPress={() => openProject(item)}
+            onPress={(e) => {
+              console.log('📂 Open button pressed');
+              if (e && e.stopPropagation) e.stopPropagation();
+              openProject(item);
+            }}
             style={styles.qrButton}
           >
             <Ionicons name="folder-open" size={20} color="#3498db" />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => generateQRCode(item)}
+            onPress={(e) => {
+              console.log('📱 QR button pressed');
+              if (e && e.stopPropagation) e.stopPropagation();
+              generateQRCode(item);
+            }}
             style={styles.qrButton}
           >
             <Ionicons name="qr-code" size={20} color="#3b3f42ff" />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => deleteProyecto(item)}
+            onPress={(e) => {
+              console.log('\ud83d\udc40 Delete button pressed for project:', item.id);
+              if (e && e.stopPropagation) {
+                e.stopPropagation();
+              }
+              deleteProyecto(item);
+            }}
             style={styles.deleteButton}
           >
             <Ionicons name="trash" size={20} color="#e74c3c" />
@@ -318,6 +355,45 @@ const ListaProyectos = ({ navigation }) => {
         onClose={() => setQrModalVisible(false)}
         project={selectedProject}
       />
+
+      {/* Modal de Confirmación de Eliminación */}
+      <Modal
+        visible={deleteModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={cancelDelete}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              {t('warning') || 'Advertencia'}
+            </Text>
+            
+            <Text style={[styles.modalMessage, { color: colors.text }]}>
+              {projectToDelete && `¿Estás seguro de que deseas eliminar el proyecto "${getProjectDisplayName(projectToDelete)}"? Esta acción no se puede deshacer.`}
+            </Text>
+
+            {isDeleting && (
+              <ActivityIndicator size="large" color="#3498db" style={{ marginVertical: 20 }} />
+            )}
+
+            <View style={styles.modalButtons}>
+              <Button
+                onPress={cancelDelete}
+                title={t('cancel') || 'Cancelar'}
+                color="#95a5a6"
+                disabled={isDeleting}
+              />
+              <Button
+                onPress={confirmDelete}
+                title={t('delete') || 'Eliminar'}
+                color="#e74c3c"
+                disabled={isDeleting}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -477,6 +553,43 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     padding: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 24,
+    width: '80%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#2c3e50',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: '#2c3e50',
+    marginBottom: 24,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: 12,
   },
 });
 

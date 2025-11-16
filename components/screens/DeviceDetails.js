@@ -50,7 +50,7 @@ const DeviceDetails = ({ route, navigation }) => {
       backgroundColor: '#F9FAFB',
       paddingRight: 50,
       marginVertical: 8,
-      outline: 'none', // Importante para web
+      // outline: 'none', // No soportado en React Native - removido
       cursor: 'pointer',
     },
     inputIOS: {

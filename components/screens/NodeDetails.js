@@ -277,7 +277,9 @@ const NodeDetails = ({ route, navigation }) => {
       devices: devicesData,
     };
 
+    console.log('💾 Saving node:', savedNode.label, 'Devices:', devicesData.length);
     route.params.onSaveNode(savedNode);
+    console.log('✅ Node saved via callback');
     navigation.goBack();
   };
 
@@ -301,6 +303,7 @@ const NodeDetails = ({ route, navigation }) => {
   };
 
   const updateDevice = (device) => {
+    console.log('🔧 Updating device:', device.label || device.name, 'Ports:', device.ports?.length || 0);
     let index = -1;
 
     if (device.hash != undefined) {
@@ -313,6 +316,15 @@ const NodeDetails = ({ route, navigation }) => {
       let tmp = [...devicesData];
       tmp[index] = device;
       setDevicesData(tmp);
+      console.log('✅ Device updated in devicesData at index:', index);
+      
+      // Actualizar inmediatamente el nodo en CreateProject
+      const updatedNode = {
+        ...nodeData,
+        devices: tmp,
+      };
+      route.params.onSaveNode(updatedNode);
+      console.log('✅ Node updated in CreateProject with new device data');
     }
   };
 
@@ -361,7 +373,8 @@ const NodeDetails = ({ route, navigation }) => {
 
   const RenderDevices = () => {
     const ar = nodesTypesList();
-    const alowDevices = ar.find((x) => x.id == nodeData.typeId).alowDevices;
+    const nodeType = ar.find((x) => x.id == nodeData.typeId);
+    const alowDevices = nodeType?.alowDevices;
 
     if (alowDevices == undefined || alowDevices == false) return <View></View>;
 
