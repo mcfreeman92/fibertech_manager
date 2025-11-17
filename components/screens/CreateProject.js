@@ -1952,7 +1952,7 @@ const CreateProject = ({ navigation, route, theme }) => {
               style={dynamicStyles.removeButton}
               onPress={() => handleRemoveFiber(fiber)}
             >
-              <Ionicons name="trash" size={24} color={"#666261ff"} />
+              <Ionicons name="trash" size={24} color={"salmon"} />
             </TouchableOpacity>
           )}
         </View>
@@ -2311,6 +2311,17 @@ const CreateProject = ({ navigation, route, theme }) => {
             <Ionicons name="location" size={24} color={"#666261ff"} />
           </TouchableOpacity> */}
 
+          {/**MEDIA */}
+          <TouchableOpacity
+            onPress={() => {
+              handleSeeNodeInfo(node);
+            }}
+            style={{ marginRight: 3 }}
+          >
+            <Ionicons name="attach" size={24} color={"#666261ff"} />
+          </TouchableOpacity>
+
+
           {/**INFO */}
           <TouchableOpacity
             onPress={() => {
@@ -2327,7 +2338,7 @@ const CreateProject = ({ navigation, route, theme }) => {
               style={dynamicStyles.removeButton}
               onPress={() => handleRemoveNode(node)}
             >
-              <Ionicons name="trash" size={24} color={"#666261ff"} />
+              <Ionicons name="trash" size={24} color={"salmon"} />
             </TouchableOpacity>
           )}
         </View>

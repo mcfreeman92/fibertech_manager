@@ -721,40 +721,6 @@ const NodePath = ({ route, navigation }) => {
     compute();
   }, []);
 
-  const timelineData = [
-    {
-      title: 'Pedido confirmado',
-      description: 'Tu pedido ha sido confirmado y está siendo preparado Tu pedido ha sido confirmado y está siendo preparado ',
-      date: '10:30 AM • Hoy',
-      status: 'completed',
-    },
-    {
-      title: 'En preparación',
-      description: 'El restaurante está preparando tu pedido',
-      date: '10:45 AM • Hoy',
-      status: 'completed',
-    },
-    {
-      title: 'Listo para entrega',
-      description: 'Tu pedido está listo para ser entregado',
-      date: '11:15 AM • Hoy',
-      status: 'current',
-    },
-    {
-      title: 'En camino',
-      description: 'El repartidor está en camino a tu ubicación',
-      date: 'Próximamente',
-      status: 'pending',
-    },
-    {
-      title: 'Entregado',
-      description: 'Pedido entregado satisfactoriamente',
-      date: 'Estimado: 11:45 AM',
-      status: 'pending',
-    },
-  ];
-
-
 
   return (
     <View
