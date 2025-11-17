@@ -36,6 +36,7 @@ import { useDevice } from "../context/DeviceContext";
 import { useAdapter } from "@/api/contexts/DatabaseContext";
 
 import { generateHash } from "../../utils/utils";
+import { checkDataConsistency, checkDatabaseParsing } from "../../utils/dataConsistencyChecker";
 
 import { v4 as uuidv4 } from "uuid";
 
@@ -603,21 +604,41 @@ const CreateProject = ({ navigation, route, theme }) => {
       console.log('📦 Loaded nodes from DB:', dbNodes);
       console.log('📦 First node details:', dbNodes[0]);
       
+      // 🔍 DIAGNÓSTICO: Verificar cómo vienen los datos de la BD
+      checkDatabaseParsing(dbNodes);
+      
       // Mapear campos de DB - el adapter web ya retorna en camelCase
       // pero el adapter REST retorna PascalCase, por eso chequeamos ambos
-      const mappedNodes = dbNodes.map(node => ({
-        id: node.id || node.Id,
-        hash: node.hash || node.Hash,
-        label: node.label || node.Label,
-        projectId: node.projectId || node.ProjectId,
-        typeId: node.typeId || node.TypeId,
-        description: node.description || node.Description,
-        createdDate: node.createdDate || node.CreatedDate,
-        modifiedDate: node.modifiedDate || node.ModifiedDate,
-        deleted: node.deleted || node.Deleted || 0,
-        devices: node.devices || node.Metadata?.devices || [],
-        fusionLinks: node.fusionLinks || node.Metadata?.fusionLinks || [],
-      }));
+      const mappedNodes = dbNodes.map(node => {
+        // Parsear metadata si es string
+        let parsedMetadata = null;
+        const metadataStr = node.metadata || node.Metadata;
+        
+        if (metadataStr && typeof metadataStr === 'string') {
+          try {
+            parsedMetadata = JSON.parse(metadataStr);
+            console.log(`✅ Parsed metadata for node ${node.label || node.Label}`);
+          } catch (e) {
+            console.error(`❌ Error parsing metadata for node ${node.label || node.Label}:`, e);
+          }
+        } else if (metadataStr && typeof metadataStr === 'object') {
+          parsedMetadata = metadataStr;
+        }
+        
+        return {
+          id: node.id || node.Id,
+          hash: node.hash || node.Hash,
+          label: node.label || node.Label,
+          projectId: node.projectId || node.ProjectId,
+          typeId: node.typeId || node.TypeId,
+          description: node.description || node.Description,
+          createdDate: node.createdDate || node.CreatedDate,
+          modifiedDate: node.modifiedDate || node.ModifiedDate,
+          deleted: node.deleted || node.Deleted || 0,
+          devices: parsedMetadata?.devices || [],
+          fusionLinks: parsedMetadata?.fusionLinks || [],
+        };
+      });
       
       // Guardar TODOS los nodos
       setAllNodes(mappedNodes);
@@ -626,6 +647,13 @@ const CreateProject = ({ navigation, route, theme }) => {
       setNodes(mappedNodes);
       
       console.log('✅ Loaded', mappedNodes.length, 'nodes successfully');
+      
+      // Log detallado de devices por nodo
+      mappedNodes.forEach(node => {
+        const devCount = node.devices?.length || 0;
+        const fusCount = node.fusionLinks?.length || 0;
+        console.log(`   📍 ${node.label}: ${devCount} devices, ${fusCount} fusions`);
+      });
 
       // Cargar solo fibras principales (sin parentId)
       let records = await getFibers(id, null);
@@ -644,6 +672,12 @@ const CreateProject = ({ navigation, route, theme }) => {
 
       setFibers(dbFibers);
       console.log('✅ Total fibers loaded:', dbFibers.length);
+      
+      // 🔍 DIAGNÓSTICO: Verificar consistencia de datos después de mapear
+      const consistency = checkDataConsistency(mappedNodes, dbFibers);
+      if (!consistency.isValid) {
+        console.error('⚠️  Se encontraron problemas de consistencia en los datos');
+      }
 
       // Cargar información de unidades
       const units = project.unitsInfo;
@@ -1953,6 +1987,40 @@ const CreateProject = ({ navigation, route, theme }) => {
       tmp[index] = node;
       setNodes(tmp);
       console.log('✅ Updated in visible nodes at index:', index);
+    }
+    
+    // 💾 PERSISTIR EN BASE DE DATOS
+    if (node.id) {
+      console.log('💾 Persisting node to database...');
+      console.log('   Node ID:', node.id);
+      console.log('   Devices:', node.devices?.length || 0);
+      console.log('   FusionLinks:', node.fusionLinks?.length || 0);
+      
+      // Preparar metadata para guardar
+      const metadata = JSON.stringify({
+        devices: node.devices || [],
+        fusionLinks: node.fusionLinks || []
+      });
+      
+      const nodeToUpdate = {
+        ...node,
+        metadata: metadata
+      };
+      
+      updateNode(node.id, nodeToUpdate)
+        .then(() => {
+          console.log('✅ Node persisted to database successfully');
+        })
+        .catch((error) => {
+          console.error('❌ Error persisting node to database:', error);
+          Alert.alert(
+            t('error') || 'Error',
+            'No se pudo guardar el nodo en la base de datos',
+            [{ text: t('ok') || 'OK' }]
+          );
+        });
+    } else {
+      console.log('⚠️ Node has no ID, cannot persist to database yet');
     }
     
     console.log('🔄 Node updated:', node.label);

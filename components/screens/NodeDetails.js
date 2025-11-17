@@ -354,9 +354,19 @@ const NodeDetails = ({ route, navigation }) => {
         ports: [],
       },
       onSaveDevice: (data) => {
+        console.log('➕ Adding new device:', data.label || data.name);
         let devs = [...devicesData];
         devs.push(data);
         setDevicesData(devs);
+        console.log('✅ New device added to devicesData. Total devices:', devs.length);
+        
+        // Actualizar inmediatamente el nodo en CreateProject
+        const updatedNode = {
+          ...nodeData,
+          devices: devs,
+        };
+        route.params.onSaveNode(updatedNode);
+        console.log('✅ Node updated in CreateProject with new device');
       },
     });
   };

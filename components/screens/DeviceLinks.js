@@ -11,7 +11,7 @@ import {
   Alert,
   Modal,
   Share,
-  Platform,
+  Platform, 
   PermissionsAndroid,
   FlatList,
   Switch,
