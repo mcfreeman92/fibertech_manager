@@ -423,6 +423,18 @@ const FusionLink = ({ route, navigation }) => {
     if (link == undefined) result.hash = linkHash;
     else result.hash = link.hash;
 
+    console.log('🔗 ==================== GUARDANDO FUSION ====================');
+    console.log('🔗 Nodo:', node?.label, '(ID:', node?.id, ')');
+    console.log('🔗 SRC:');
+    console.log('🔗   Fibra ID:', srcLink.fiber?.id, '| Label:', srcLink.fiber?.label);
+    console.log('🔗   Buffer:', srcLink.buffer);
+    console.log('🔗   Hilo:', srcLink.thread - 1, '(mostrado como:', srcLink.thread, ')');
+    console.log('🔗 DST:');
+    console.log('🔗   Fibra ID:', dstLink.fiber?.id, '| Label:', dstLink.fiber?.label);
+    console.log('🔗   Buffer:', dstLink.buffer);
+    console.log('🔗   Hilo:', dstLink.thread - 1, '(mostrado como:', dstLink.thread, ')');
+    console.log('🔗 ===========================================================');
+
     route.params.onSaveFusionLink(result);
     navigation.goBack();
   };

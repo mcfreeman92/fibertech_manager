@@ -442,7 +442,18 @@ const DeviceLinks = ({ route, navigation }) => {
   };
 
   const handleSave = () => {
-    console.log('💾 Saving device links. Device:', deviceData.label || deviceData.name, 'Ports:', deviceData.ports?.length || 0);
+    console.log('💾 ==================== GUARDANDO DEVICE ====================');
+    console.log('💾 Nodo:', node?.label, '(ID:', node?.id, ')');
+    console.log('💾 Dispositivo:', deviceData?.label, deviceData?.description);
+    console.log('💾 Total links:', deviceData.links?.length || 0);
+    if (deviceData.links && deviceData.links.length > 0) {
+      console.log('💾 Links detallados:');
+      deviceData.links.forEach((link, idx) => {
+        console.log(`💾   [${idx + 1}] Puerto: ${link.port} | Fiber: ${link.src?.fiberId} | Thread: ${link.src?.thread}`);
+      });
+    }
+    console.log('💾 ===========================================================');
+    
     // Ejecutar el callback si existe
     if (route.params?.onSaveDeviceData) {
       route.params.onSaveDeviceData(deviceData);
@@ -817,7 +828,8 @@ const DeviceLinks = ({ route, navigation }) => {
     if (link != null) {
       // Verificar que thread sea válido antes de acceder al array
       const threadIndex = link.src.thread != null && link.src.thread > 0 ? link.src.thread - 1 : 0;
-      bkColor = fiberColors12Hex[threadIndex] ? fiberColors12Hex[threadIndex].color : fiberColors12Hex[0];
+      const colorObj = fiberColors12Hex[threadIndex] || fiberColors12Hex[0];
+      bkColor = colorObj.color;
       textColor = getContrastColor(bkColor);
       prop = { ...styles.link, color: textColor };
       fiberLabel = getFiberLabel(link.src.fiberId);
@@ -871,6 +883,12 @@ const DeviceLinks = ({ route, navigation }) => {
   const handleCloseModal = () => {
     setShowLinkSetupModal(false);
 
+    // ✅ VALIDACIÓN: Solo guardar si hay fibra Y hilo seleccionados
+    if (!srcLink.fiber || srcLink.thread == null) {
+      console.log('⚠️ Link incompleto - no se guardará. Fiber:', srcLink.fiber?.label, 'Thread:', srcLink.thread);
+      return;
+    }
+
     let links = [];
 
     const src = {
@@ -891,8 +909,19 @@ const DeviceLinks = ({ route, navigation }) => {
           port: selectedPort,
           src: src,
         });
+        
+        console.log('📌 ==================== DEVICE LINK CREADO ====================');
+        console.log('📌 Nodo:', node?.label);
+        console.log('📌 Dispositivo:', deviceData?.label, deviceData?.description);
+        console.log('📌 Puerto:', selectedPort);
+        console.log('📌 Fibra ID:', srcLink.fiber?.id, '| Label:', srcLink.fiber?.label);
+        console.log('📌 Buffer:', srcLink.buffer);
+        console.log('📌 Hilo:', srcLink.thread);
+        console.log('📌 Total links en dispositivo:', links.length);
+        console.log('📌 ===========================================================');
       } else {
         links[index].src = src;
+        console.log('📝 Device link actualizado en puerto:', selectedPort);
       }
     }
 
@@ -1039,7 +1068,8 @@ const DeviceLinks = ({ route, navigation }) => {
         {/* Fusion links */}
         <View style={[styles.card, { backgroundColor: colors.card }]}>
           <FlatList
-            data={device.ports}
+            data={deviceData.ports}
+            extraData={deviceData.links}
             keyExtractor={(item) => item.number}
             renderItem={({ item }) => (
               <View>

@@ -277,7 +277,32 @@ const NodeDetails = ({ route, navigation }) => {
       devices: devicesData,
     };
 
-    console.log('💾 Saving node:', savedNode.label, 'Devices:', devicesData.length);
+    console.log('✅ ==================== GUARDANDO NODO ====================');
+    console.log('✅ Nodo:', nodeData?.label, '(ID:', nodeData?.id, ')');
+    console.log('✅ Total devices:', devicesData?.length || 0);
+    console.log('✅ Total fusiones:', nodeData.fusionLinks?.length || 0);
+    
+    if (devicesData && devicesData.length > 0) {
+      console.log('✅ Devices:');
+      devicesData.forEach((dev, idx) => {
+        const linkCount = dev.links?.length || 0;
+        console.log(`✅   [${idx + 1}] ${dev.label} ${dev.description || ''} | Links: ${linkCount}`);
+        if (dev.links && dev.links.length > 0) {
+          dev.links.forEach((link, linkIdx) => {
+            console.log(`✅       Link ${linkIdx + 1}: Puerto ${link.port} → Fiber ${link.src?.fiberId}:${link.src?.thread}`);
+          });
+        }
+      });
+    }
+    
+    if (nodeData.fusionLinks && nodeData.fusionLinks.length > 0) {
+      console.log('✅ Fusiones:');
+      nodeData.fusionLinks.forEach((fusion, idx) => {
+        console.log(`✅   [${idx + 1}] Fiber ${fusion.src?.fiberId}:${fusion.src?.thread} ↔ Fiber ${fusion.dst?.fiberId}:${fusion.dst?.thread}`);
+      });
+    }
+    console.log('✅ ===========================================================');
+
     route.params.onSaveNode(savedNode);
     console.log('✅ Node saved via callback');
     navigation.goBack();

@@ -604,6 +604,23 @@ const NodePath = ({ route, navigation }) => {
       }
     });
 
+    // Custom renderer para el contenido del timeline
+    const renderCustomContent = (item, index) => {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center' }}>
+          <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 4, color: colors.text }}>
+            {item.title}
+          </Text>
+          <Text style={{ fontSize: 14, color: colors.subText, lineHeight: 20 }}>
+            {item.description}
+          </Text>
+          <Text style={{ fontSize: 12, color: colors.subText, marginTop: 4 }}>
+            {item.date}
+          </Text>
+        </View>
+      );
+    };
+
     return (
       <View style={{ marginBottom: 20 }}>
         <Text style={[styles.sectionTitle, { fontSize: 16, color: colors.success }]}>
@@ -613,6 +630,7 @@ const NodePath = ({ route, navigation }) => {
           data={timelineData}
           circleColor={colors.primary}
           lineColor="#E5E5EA"
+          renderCustomContent={renderCustomContent}
         />
       </View>
     );
@@ -676,17 +694,27 @@ const NodePath = ({ route, navigation }) => {
       const sourceId = node.id || node.hash;
       const destId = mdf.id || mdf.hash;
       
-      console.log('🛤️ NodePath - Buscando rutas:', {
-        desde: node.label,
-        sourceId: sourceId,
-        hasta: mdf.label,
-        destId: destId,
-        totalNodes: nodes?.length,
-        totalFibers: fibers?.length
-      });
+      console.log('🚀 ==================== INICIANDO BÚSQUEDA DE RUTA ====================');
+      console.log('🚀 Desde:', node?.label, '(ID:', sourceId, ')');
+      console.log('🚀 Hasta:', mdf?.label, '(ID:', destId, ')');
+      console.log('🚀 Total nodos en grafo:', nodes?.length || 0);
+      console.log('🚀 Total fibras:', fibers?.length || 0);
+      console.log('🚀 ====================================================================');
       
       const result = findPath(sourceId, destId);
-      console.log('🛤️ Resultado pathfinding:', result);
+      
+      if (result.success) {
+        console.log('🎉 ==================== RUTA ENCONTRADA ====================');
+        console.log('🎉 Total caminos:', result.totalPaths || 1);
+        console.log('🎉 Saltos:', result.paths?.[0]?.hops || result.totalHops || 0);
+        console.log('🎉 ===========================================================');
+      } else {
+        console.log('❌ ==================== NO SE ENCONTRÓ RUTA ====================');
+        console.log('❌ Error:', result.error);
+        console.log('❌ ===============================================================');
+      }
+      
+      console.log('🛤️ Resultado pathfinding completo:', result);
       setFinalPath(result);
     };
 
