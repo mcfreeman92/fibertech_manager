@@ -120,6 +120,9 @@ export const AppProvider = ({ children }) => {
   // Traducciones
   const translations = {
     en: {
+      comment: "Comment",
+      information: "Information",
+      nodeMedia: "Multimedia data",
       thread: "Thread",
       threadShort: "T",
       fiberShort: "F",
@@ -791,6 +794,9 @@ export const AppProvider = ({ children }) => {
       copiedToClipboard: "Copied to clipboard",
     },
     es: {
+      comment: "Commentario",
+      information: "Informacion",
+      nodeMedia: "Datos de multimedia",
       thread: "Hilo",
       threadShort: "H",
       fiberShort: "F",

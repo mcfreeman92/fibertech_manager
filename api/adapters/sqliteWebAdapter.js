@@ -1,23 +1,26 @@
-import Dexie from 'dexie';
+import Dexie from "dexie";
 
 // Crear instancia de la base de datos
-const db = new Dexie('FiberDatabase');
+const db = new Dexie("FiberDatabase");
 
 // Definir esquema de la base de datos
 db.version(1).stores({
-  projects: '++id, name, createdDate, modifiedDate, deleted, metadata',
-  nodes: '++id, label, projectId, typeId, description, createdDate, modifiedDate, deleted',
-  fibers: '++id, typeId, label, projectId, parentId, nodeId, createdDate, modifiedDate, deleted'
+  projects: "++id, name, createdDate, modifiedDate, deleted, metadata",
+  nodes:
+    "++id, label, projectId, typeId, description, createdDate, modifiedDate, deleted",
+  fibers:
+    "++id, typeId, label, projectId, parentId, nodeId, createdDate, modifiedDate, deleted",
+  medias: "++id, nodeId, label, content, createdDate, modifiedDate, deleted",
 });
 
 // Inicializar base de datos
 export const initDatabase = async () => {
   try {
     await db.open();
-    console.log('✅ Database web initialized successfully');
+    console.log("✅ Database web initialized successfully");
     return { success: true };
   } catch (error) {
-    console.error('❌ Failed to initialize web database:', error);
+    console.error("❌ Failed to initialize web database:", error);
     throw error;
   }
 };
@@ -27,20 +30,20 @@ export const sqliteWebAdapter = {
   getProjects: async () => {
     try {
       const projects = await db.projects
-        .where('deleted')
+        .where("deleted")
         .equals(0)
         .reverse()
-        .sortBy('creation_date');
-      return projects.map(item => {
+        .sortBy("creation_date");
+      return projects.map((item) => {
         const p = {
           ...item,
-          meta: JSON.parse(item.metadata)
+          meta: JSON.parse(item.metadata),
         };
 
         return p;
       });
     } catch (error) {
-      console.error('Error getting projects:', error);
+      console.error("Error getting projects:", error);
       throw error;
     }
   },
@@ -51,7 +54,7 @@ export const sqliteWebAdapter = {
 
       const project = {
         ...res,
-        meta: JSON.parse(res.metadata)
+        meta: JSON.parse(res.metadata),
       };
 
       if (project && project.deleted === 0) {
@@ -59,7 +62,7 @@ export const sqliteWebAdapter = {
       }
       return null;
     } catch (error) {
-      console.error('Error getting project by id:', error);
+      console.error("Error getting project by id:", error);
       throw error;
     }
   },
@@ -71,14 +74,14 @@ export const sqliteWebAdapter = {
         name: data.name,
         createdDate: now,
         modifiedDate: now,
-        metadata: data.metadata || '',
-        deleted: 0
+        metadata: data.metadata || "",
+        deleted: 0,
       };
 
       const id = await db.projects.add(projectData);
       return { id, ...projectData };
     } catch (error) {
-      console.error('Error creating project:', error);
+      console.error("Error creating project:", error);
       throw error;
     }
   },
@@ -89,13 +92,13 @@ export const sqliteWebAdapter = {
       const updates = {
         name: data.name,
         modifiedDate: now,
-        metadata: data.metadata || '',
+        metadata: data.metadata || "",
       };
 
       await db.projects.update(id, updates);
       return { id, ...data, modifiedDate: updates.modifiedDate };
     } catch (error) {
-      console.error('Error updating project:', error);
+      console.error("Error updating project:", error);
       throw error;
     }
   },
@@ -106,7 +109,7 @@ export const sqliteWebAdapter = {
       await db.projects.update(id, { deleted: 1 });
       return { success: true };
     } catch (error) {
-      console.error('Error deleting project:', error);
+      console.error("Error deleting project:", error);
       throw error;
     }
   },
@@ -117,7 +120,7 @@ export const sqliteWebAdapter = {
       await db.projects.delete(id);
       return { success: true };
     } catch (error) {
-      console.error('Error hard deleting project:', error);
+      console.error("Error hard deleting project:", error);
       throw error;
     }
   },
@@ -129,38 +132,39 @@ export const sqliteWebAdapter = {
 
       if (projectId !== null) {
         nodes = await db.nodes
-          .where('projectId').equals(projectId)
-          .and(node => node.deleted === 0)
+          .where("projectId")
+          .equals(projectId)
+          .and((node) => node.deleted === 0)
           .toArray();
       } else {
-        nodes = await db.nodes
-          .where('deleted')
-          .equals(0)
-          .toArray();
+        nodes = await db.nodes.where("deleted").equals(0).toArray();
       }
 
-      return nodes.map(node => {
+      return nodes.map((node) => {
         let meta = { devices: [], fusionLinks: [] };
-        
+
         // Validar metadata antes de parsear
-        if (node.metadata && node.metadata !== 'undefined' && node.metadata !== 'null') {
+        if (
+          node.metadata &&
+          node.metadata !== "undefined" &&
+          node.metadata !== "null"
+        ) {
           try {
             meta = JSON.parse(node.metadata);
           } catch (e) {
-            console.warn('Invalid metadata for node:', node.id, e);
+            console.warn("Invalid metadata for node:", node.id, e);
           }
         }
-        
+
         const outNode = {
           ...node,
           devices: meta.devices || [],
-          fusionLinks: meta.fusionLinks || []
-        }
+          fusionLinks: meta.fusionLinks || [],
+        };
         return outNode;
       });
-
     } catch (error) {
-      console.error('Error getting nodes:', error);
+      console.error("Error getting nodes:", error);
       throw error;
     }
   },
@@ -174,23 +178,27 @@ export const sqliteWebAdapter = {
       }
 
       let meta = { devices: [], fusionLinks: [] };
-      
+
       // Validar metadata antes de parsear
-      if (node.metadata && node.metadata !== 'undefined' && node.metadata !== 'null') {
+      if (
+        node.metadata &&
+        node.metadata !== "undefined" &&
+        node.metadata !== "null"
+      ) {
         try {
           meta = JSON.parse(node.metadata);
         } catch (e) {
-          console.warn('Invalid metadata for node:', node.id, e);
+          console.warn("Invalid metadata for node:", node.id, e);
         }
       }
 
       return {
         ...node,
         devices: meta.devices || [],
-        fusionLinks: meta.fusionLinks || []
+        fusionLinks: meta.fusionLinks || [],
       };
     } catch (error) {
-      console.error('Error getting node by id:', error);
+      console.error("Error getting node by id:", error);
       throw error;
     }
   },
@@ -202,18 +210,18 @@ export const sqliteWebAdapter = {
       const nodeData = {
         label: data.label,
         projectId: data.projectId,
-        typeId: data.typeId || '',
-        description: data.description || '',
+        typeId: data.typeId || "",
+        description: data.description || "",
         metadata: data.metadata,
         createdDate: now,
         modifiedDate: now,
-        deleted: 0
+        deleted: 0,
       };
 
       const id = await db.nodes.add(nodeData);
       return { ...nodeData, id: id };
     } catch (error) {
-      console.error('Error creating node:', error);
+      console.error("Error creating node:", error);
       throw error;
     }
   },
@@ -227,13 +235,13 @@ export const sqliteWebAdapter = {
         typeId: data.typeId || null,
         description: data.description || null,
         metadata: data.metadata,
-        modifiedDate: now
+        modifiedDate: now,
       };
 
       await db.nodes.update(id, updates);
       return { id: id, ...data, modifiedDate: updates.modifiedDate };
     } catch (error) {
-      console.error('Error updating node:', error);
+      console.error("Error updating node:", error);
       throw error;
     }
   },
@@ -244,7 +252,7 @@ export const sqliteWebAdapter = {
       await db.nodes.update(id, { deleted: 1 });
       return { success: true };
     } catch (error) {
-      console.error('Error deleting node:', error);
+      console.error("Error deleting node:", error);
       throw error;
     }
   },
@@ -256,39 +264,45 @@ export const sqliteWebAdapter = {
 
       if (projectId !== null) {
         fibers = await db.fibers
-          .where('projectId').equals(projectId)
-          .and(fiber => fiber.deleted === 0 && fiber.parentId === parentId)
+          .where("projectId")
+          .equals(projectId)
+          .and((fiber) => fiber.deleted === 0 && fiber.parentId === parentId)
           .toArray();
       }
 
-      fibers = fibers.map(fiber => {
+      fibers = fibers.map((fiber) => {
         let threads = [];
-        
+
         // Validar metadata antes de parsear
-        if (fiber.metadata && fiber.metadata !== 'undefined' && fiber.metadata !== 'null') {
+        if (
+          fiber.metadata &&
+          fiber.metadata !== "undefined" &&
+          fiber.metadata !== "null"
+        ) {
           try {
             threads = JSON.parse(fiber.metadata);
           } catch (e) {
-            console.warn('Invalid metadata for fiber:', fiber.id, e);
+            console.warn("Invalid metadata for fiber:", fiber.id, e);
           }
         }
-        
+
         const outfiber = {
           ...fiber,
           threads: threads,
           nodeId: fiber.nodeId || null,
           isSystemFiber: fiber.nodeId ? true : false, // Si tiene nodeId, es fibra del sistema
-        }
+        };
         return outfiber;
       });
 
       // Ordenar por Label y parsear Metadata
-      const sortedFibers = fibers
-        .sort((a, b) => a.label.localeCompare(b.label));
+      const sortedFibers = fibers.sort((a, b) =>
+        a.label.localeCompare(b.label)
+      );
 
       return sortedFibers;
     } catch (error) {
-      console.error('Error getting fibers:', error);
+      console.error("Error getting fibers:", error);
       throw error;
     }
   },
@@ -303,7 +317,7 @@ export const sqliteWebAdapter = {
 
       return fiber;
     } catch (error) {
-      console.error('Error getting fiber by id:', error);
+      console.error("Error getting fiber by id:", error);
       throw error;
     }
   },
@@ -311,21 +325,21 @@ export const sqliteWebAdapter = {
   getFibersByParent: async (parentId) => {
     try {
       const fibers = await db.fibers
-        .where(['ParentId', 'Deleted'])
+        .where(["ParentId", "Deleted"])
         .equals([parentId, 0])
         .toArray();
 
       // Ordenar por Label y parsear Metadata
       const sortedFibers = fibers
         .sort((a, b) => a.Label.localeCompare(b.Label))
-        .map(fiber => ({
+        .map((fiber) => ({
           ...fiber,
-          Metadata: fiber.Metadata ? JSON.parse(fiber.Metadata) : null
+          Metadata: fiber.Metadata ? JSON.parse(fiber.Metadata) : null,
         }));
 
       return sortedFibers;
     } catch (error) {
-      console.error('Error getting fibers by parent:', error);
+      console.error("Error getting fibers by parent:", error);
       throw error;
     }
   },
@@ -341,13 +355,13 @@ export const sqliteWebAdapter = {
         nodeId: data.nodeId || null,
         createdDate: data.createdDate,
         modifiedDate: data.modifiedDate,
-        deleted: 0
+        deleted: 0,
       };
 
       const id = await db.fibers.add(fiberData);
       return { id, ...data, deleted: 0 };
     } catch (error) {
-      console.error('Error creating fiber:', error);
+      console.error("Error creating fiber:", error);
       throw error;
     }
   },
@@ -359,7 +373,7 @@ export const sqliteWebAdapter = {
       const updates = {
         label: data.label,
         metadata: data.metadata,
-        modifiedDate: now
+        modifiedDate: now,
       };
 
       // Si se proporciona nodeId, actualizarlo también
@@ -370,7 +384,7 @@ export const sqliteWebAdapter = {
       await db.fibers.update(id, updates);
       return { id: id, ...data, modifiedDate: updates.modifiedDate };
     } catch (error) {
-      console.error('Error updating fiber:', error);
+      console.error("Error updating fiber:", error);
       throw error;
     }
   },
@@ -381,16 +395,16 @@ export const sqliteWebAdapter = {
 
       let threads = [...data.threads];
       threads[threadIndex].inUse = inUse;
-      
+
       const updates = {
         metadata: JSON.stringify(threads),
-        modifiedDate: now
+        modifiedDate: now,
       };
 
       await db.fibers.update(id, updates);
       return true;
     } catch (error) {
-      console.error('Error updating fiber:', error);
+      console.error("Error updating fiber:", error);
       throw error;
     }
   },
@@ -401,7 +415,7 @@ export const sqliteWebAdapter = {
       await db.fibers.update(id, { deleted: 1 });
       return { success: true };
     } catch (error) {
-      console.error('Error deleting fiber:', error);
+      console.error("Error deleting fiber:", error);
       throw error;
     }
   },
@@ -409,12 +423,10 @@ export const sqliteWebAdapter = {
   // ========== NODE TYPES ==========
   getNodeTypes: async () => {
     try {
-      const nodeTypes = await db.nodes_types
-        .orderBy('name')
-        .toArray();
+      const nodeTypes = await db.nodes_types.orderBy("name").toArray();
       return nodeTypes;
     } catch (error) {
-      console.error('Error getting node types:', error);
+      console.error("Error getting node types:", error);
       throw error;
     }
   },
@@ -424,7 +436,7 @@ export const sqliteWebAdapter = {
       const nodeType = await db.nodes_types.get(id);
       return nodeType || null;
     } catch (error) {
-      console.error('Error getting node type by id:', error);
+      console.error("Error getting node type by id:", error);
       throw error;
     }
   },
@@ -433,13 +445,13 @@ export const sqliteWebAdapter = {
     try {
       const nodeTypeData = {
         name: data.name,
-        type: data.type
+        type: data.type,
       };
 
       const id = await db.nodes_types.add(nodeTypeData);
       return { id, ...nodeTypeData };
     } catch (error) {
-      console.error('Error creating node type:', error);
+      console.error("Error creating node type:", error);
       throw error;
     }
   },
@@ -448,13 +460,13 @@ export const sqliteWebAdapter = {
     try {
       const updates = {
         name: data.name,
-        type: data.type
+        type: data.type,
       };
 
       await db.nodes_types.update(id, updates);
       return { id, ...data };
     } catch (error) {
-      console.error('Error updating node type:', error);
+      console.error("Error updating node type:", error);
       throw error;
     }
   },
@@ -464,10 +476,151 @@ export const sqliteWebAdapter = {
       await db.nodes_types.delete(id);
       return { success: true };
     } catch (error) {
-      console.error('Error deleting node type:', error);
+      console.error("Error deleting node type:", error);
       throw error;
     }
-  }
+  },
+  // ========== MEDIAS ==========
+
+  getMedias: async () => {
+    try {
+      const medias = await db.medias
+        .where("deleted")
+        .equals(0)
+        .reverse()
+        .sortBy("createdDate");
+      return media.map((item) => {
+        const m = {
+          ...item,
+          content: item.content ? JSON.parse(item.content) : null,
+        };
+        return m;
+      });
+    } catch (error) {
+      console.error("Error getting media:", error);
+      throw error;
+    }
+  },
+
+  getMediaById: async (id) => {
+    try {
+      const res = await db.medias.get(id);
+
+      if (!res) return null;
+
+      const media = {
+        ...res,
+        content: item.content ? JSON.parse(item.content) : null,
+      };
+
+      if (media && media.deleted === 0) {
+        return media;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error getting media by id:", error);
+      throw error;
+    }
+  },
+
+  getMediasByNodeId: async (nodeId) => {
+    try {
+      const media = await db.medias
+        .where("nodeId")
+        .equals(nodeId)
+        .and((item) => item.deleted === 0)
+        .reverse()
+        .sortBy("createdDate");
+
+      return media.map((item) => {
+        const m = {
+          ...item,
+          content: item.content ? JSON.parse(item.content) : null,
+        };
+        return m;
+      });
+    } catch (error) {
+      console.error("Error getting media by nodeId:", error);
+      throw error;
+    }
+  },
+
+  createMedia: async (data) => {
+    try {
+      const now = new Date().toISOString();
+      const strContent = data.content ? JSON.stringify(data.content) : "";
+      const mediaData = {
+        nodeId: data.nodeId,
+        label: data.label || "",
+        createdDate: now,
+        modifiedDate: now,
+        content: strContent,
+        deleted: 0,
+      };
+
+      const id = await db.medias.add(mediaData);
+      return {
+        id,
+        ...mediaData,
+        content: JSON.parse(mediaData.content),
+      };
+    } catch (error) {
+      console.error("Error creating media:", error);
+      throw error;
+    }
+  },
+
+  updateMedia: async (id, data) => {
+    try {
+      const now = new Date().toISOString();
+      const updates = {
+        modifiedDate: now,
+      };
+
+      // Solo actualizar los campos que se proporcionan
+      if (data.nodeId !== undefined) updates.nodeId = data.nodeId;
+      if (data.label !== undefined) updates.label = data.label;
+      if (data.content !== undefined)
+        updates.content = data.content ? JSON.stringify(data.content) : "";
+
+      await db.media.update(id, updates);
+
+      // Obtener el media actualizado
+      const updatedMedia = await db.media.get(id);
+      return {
+        ...updatedMedia,
+        content: JSON.parse(updatedMedia.content),
+      };
+    } catch (error) {
+      console.error("Error updating media:", error);
+      throw error;
+    }
+  },
+
+  deleteMedia: async (id) => {
+    try {
+      // Soft delete
+      await db.media.update(id, {
+        deleted: 1,
+        modifiedDate: new Date().toISOString(),
+      });
+      return { success: true };
+    } catch (error) {
+      console.error("Error deleting media:", error);
+      throw error;
+    }
+  },
+
+  hardDeleteMedia: async (id) => {
+    try {
+      // Hard delete permanente
+      await db.media.delete(id);
+      return { success: true };
+    } catch (error) {
+      console.error("Error hard deleting media:", error);
+      throw error;
+    }
+  },
 };
 
 // ============================================
@@ -480,7 +633,7 @@ export const dbUtils = {
     await db.nodes.clear();
     await db.fibers.clear();
     await db.nodes_types.clear();
-    console.log('🗑️ All data cleared');
+    console.log("🗑️ All data cleared");
   },
 
   // Obtener estadísticas
@@ -489,9 +642,9 @@ export const dbUtils = {
       projects: await db.projects.count(),
       nodes: await db.nodes.count(),
       fibers: await db.fibers.count(),
-      nodeTypes: await db.nodes_types.count()
+      nodeTypes: await db.nodes_types.count(),
     };
-    console.log('📊 Database stats:', stats);
+    console.log("📊 Database stats:", stats);
     return stats;
   },
 
@@ -501,22 +654,26 @@ export const dbUtils = {
       projects: await db.projects.toArray(),
       nodes: await db.nodes.toArray(),
       fibers: await db.fibers.toArray(),
-      nodeTypes: await db.nodes_types.toArray()
+      nodeTypes: await db.nodes_types.toArray(),
     };
-    console.log('📦 Data exported');
+    console.log("📦 Data exported");
     return data;
   },
 
   // Importar datos (para restore o migración)
   importData: async (data) => {
-    await db.transaction('rw', [db.projects, db.nodes, db.fibers, db.nodes_types], async () => {
-      if (data.projects) await db.projects.bulkAdd(data.projects);
-      if (data.nodes) await db.nodes.bulkAdd(data.nodes);
-      if (data.fibers) await db.fibers.bulkAdd(data.fibers);
-      if (data.nodeTypes) await db.nodes_types.bulkAdd(data.nodeTypes);
-    });
-    console.log('📥 Data imported');
-  }
+    await db.transaction(
+      "rw",
+      [db.projects, db.nodes, db.fibers, db.nodes_types],
+      async () => {
+        if (data.projects) await db.projects.bulkAdd(data.projects);
+        if (data.nodes) await db.nodes.bulkAdd(data.nodes);
+        if (data.fibers) await db.fibers.bulkAdd(data.fibers);
+        if (data.nodeTypes) await db.nodes_types.bulkAdd(data.nodeTypes);
+      }
+    );
+    console.log("📥 Data imported");
+  },
 };
 
 // Exportar instancia de DB por si se necesita acceso directo

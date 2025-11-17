@@ -24,12 +24,13 @@ import NodeLinks from "../screens/NodeLinks";
 import FusionLink from "../screens/FusionLink";
 import DeviceLinks from "../screens/DeviceLinks";
 import NodePath from "../screens/NodePath";
+import NodeMedia from "../screens/NodeMedia";
 
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
   const { isAuthenticated, isLoading } = useApp();
-  
+
   // console.log('AppNavigator - isAuthenticated:', isAuthenticated);
   // console.log('AppNavigator - isLoading:', isLoading);
 
@@ -56,8 +57,8 @@ const AppNavigator = () => {
           <Stack.Screen name="Settings" component={Settings} />
           <Stack.Screen name="CreateProject" component={CreateProject} />
           <Stack.Screen name="ScanQr" component={ScanQr} />
-          <Stack.Screen 
-            name="MacAddressScanner" 
+          <Stack.Screen
+            name="MacAddressScanner"
             component={MacAddressScanner}
             options={{ title: "Escanear MAC" }}
           />
@@ -120,6 +121,11 @@ const AppNavigator = () => {
             name="NodePath"
             component={NodePath}
             options={{ title: "Node Path" }}
+          />
+          <Stack.Screen
+            name="NodeMedia"
+            component={NodeMedia}
+            options={{ title: "Node Media" }}
           />
           {/* otras pantallas protegidas */}
         </>
