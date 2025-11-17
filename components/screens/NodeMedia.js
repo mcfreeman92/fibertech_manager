@@ -29,6 +29,8 @@ import { useFiberPath, formatPathForDisplay } from "../hooks/useFiberPath";
 import TimelineVertical from "@/utils/TimelineVertical";
 import { Button, Input } from "native-base";
 
+import useFilePicker from "../hooks/useFilePicker";
+
 const NodeMedia = ({ route, navigation }) => {
   const { updateNode } = useAdapter()();
 
@@ -43,6 +45,8 @@ const NodeMedia = ({ route, navigation }) => {
 
   const [selectedMedia, setSelectedMedia] = useState(null);
   const [mediaData, setMediaData] = useState(media);
+
+  const { loading, showFilePicker } = useFilePicker();
 
   const colors = {
     primary: "#3498db",
@@ -535,6 +539,30 @@ const NodeMedia = ({ route, navigation }) => {
     }
   };
 
+  const handleAttachFile = async () => {
+    try {
+      const file = await showFilePicker();
+
+      if (file) {
+        // Verificar tipo permitido
+        if (
+          !allowedTypes.includes(file.type) &&
+          !allowedTypes.includes("all")
+        ) {
+          Alert.alert("Error", "Tipo de archivo no permitido");
+          return;
+        }
+
+        if (onFileSelected) {
+          onFileSelected(file);
+        }
+      }
+    } catch (error) {
+      console.error("Error in file picker:", error);
+      Alert.alert("Error", "No se pudo seleccionar el archivo");
+    }
+  };
+
   const onItemPress = (item, index) => {
     setSelectedMedia(item);
     setShowAttachModal(true);
@@ -595,7 +623,7 @@ const NodeMedia = ({ route, navigation }) => {
       let upd = [...mediaData];
       upd[index] = {
         ...mediaData[index],
-        deleted : true
+        deleted: true,
       };
       setMediaData(upd);
     }
@@ -756,9 +784,10 @@ const NodeMedia = ({ route, navigation }) => {
 
         <View style={{ flexDirection: "row" }}>
           <View style={styles.headerActions}>
-            <TouchableOpacity onPress={handleSave} style={styles.mapButton}>
+            <TouchableOpacity onPress={handleAttachFile} style={styles.mapButton}>
               <Ionicons name="attach" size={24} color="#3498db" />
             </TouchableOpacity>
+            
             <TouchableOpacity onPress={handleSave} style={styles.mapButton}>
               <Ionicons name="save" size={24} color="#3498db" />
             </TouchableOpacity>
@@ -769,7 +798,7 @@ const NodeMedia = ({ route, navigation }) => {
       {/* Contenido */}
       <ScrollView style={styles.content}>
         <FlatList
-          data={mediaData.filter(x => !x.deleted)}
+          data={mediaData.filter((x) => !x.deleted)}
           renderItem={renderMediaItem}
           keyExtractor={(item, index) =>
             item.id?.toString() || index.toString()

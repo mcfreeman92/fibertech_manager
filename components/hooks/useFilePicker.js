@@ -1,11 +1,10 @@
 // hooks/useFilePicker.js
 import { useState } from 'react';
-import { Platform, Alert } from 'react-native';
+import { Platform, Alert, Linking } from 'react-native';
 import {
   launchImageLibrary,
   launchCamera,
 } from 'react-native-image-picker';
-import DocumentPicker from 'react-native-document-picker';
 
 const useFilePicker = () => {
   const [loading, setLoading] = useState(false);
@@ -18,7 +17,7 @@ const useFilePicker = () => {
     maxHeight: 2048,
     includeBase64: true,
     videoQuality: 'high',
-    durationLimit: 60, // Para videos (segundos)
+    durationLimit: 60,
   };
 
   // Seleccionar desde galería
@@ -81,34 +80,34 @@ const useFilePicker = () => {
     }
   };
 
-  // Seleccionar documentos
+  // Función simplificada para documentos usando image picker
   const pickDocument = async () => {
     try {
       setLoading(true);
-      const result = await DocumentPicker.pick({
-        type: [
-          DocumentPicker.types.pdf,
-          DocumentPicker.types.doc,
-          DocumentPicker.types.docx,
-          DocumentPicker.types.xls,
-          DocumentPicker.types.xlsx,
-          DocumentPicker.types.ppt,
-          DocumentPicker.types.pptx,
-          DocumentPicker.types.plainText,
-        ],
-        allowMultiSelection: false,
+      const result = await launchImageLibrary({
+        mediaType: 'mixed',
+        includeBase64: true,
       });
 
-      if (result && result.length > 0) {
-        return processDocument(result[0]);
+      if (result.didCancel) {
+        return null;
+      }
+
+      if (result.errorCode) {
+        throw new Error(`Error: ${result.errorCode} - ${result.errorMessage}`);
+      }
+
+      if (result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        // Si es un documento (no imagen/video), procesar como documento
+        if (!asset.type?.startsWith('image/') && !asset.type?.startsWith('video/')) {
+          return processDocument(asset);
+        }
+        return processAsset(asset);
       }
 
       return null;
     } catch (error) {
-      if (DocumentPicker.isCancel(error)) {
-        // Usuario canceló
-        return null;
-      }
       console.error('Error picking document:', error);
       Alert.alert('Error', 'No se pudo seleccionar el documento');
       return null;
@@ -137,15 +136,15 @@ const useFilePicker = () => {
 
   // Procesar documento
   const processDocument = (document) => {
-    const fileType = getFileTypeFromMime(document.type);
+    const fileType = 'document';
     
     return {
       uri: document.uri,
-      name: document.name,
+      name: document.fileName || 'documento.pdf',
       type: fileType,
-      mimeType: document.type,
-      size: document.size || 0,
-      data: document.uri, // Para documentos, guardamos la URI
+      mimeType: document.type || 'application/pdf',
+      size: document.fileSize || 0,
+      data: document.base64 || document.uri,
       timestamp: new Date().toISOString(),
     };
   };
@@ -158,21 +157,7 @@ const useFilePicker = () => {
     if (mimeType.startsWith('video/')) return 'video';
     if (mimeType.startsWith('audio/')) return 'audio';
     
-    // Documentos
-    const documentMimes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'text/plain',
-    ];
-    
-    if (documentMimes.includes(mimeType)) return 'document';
-    
-    return 'unknown';
+    return 'document';
   };
 
   // Generar nombre de archivo
@@ -182,7 +167,7 @@ const useFilePicker = () => {
       image: 'jpg',
       video: 'mp4',
       audio: 'mp3',
-      document: 'file',
+      document: 'pdf',
       unknown: 'file'
     };
     
