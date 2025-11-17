@@ -572,7 +572,7 @@ const FusionLink = ({ route, navigation }) => {
               return {
                 ...x,
                 value: x.number,
-                label: `${t("threadShort")}-${x.number}`,
+                label: `${t("thread")}-${x.number}`,
               };
             }),
           };
@@ -594,7 +594,7 @@ const FusionLink = ({ route, navigation }) => {
               return {
                 ...x,
                 value: x.number,
-                label: `${t("threadShort")}-${x.number}`,
+                label: `${t("thread")}-${x.number}`,
               };
             }),
           };
@@ -638,7 +638,7 @@ const FusionLink = ({ route, navigation }) => {
       return {
         ...thread,
         value: thread.number,
-        label: `${t("threadShort")}-${thread.number}`,
+        label: `${t("thread")}-${thread.number}`,
       };
     });
   };

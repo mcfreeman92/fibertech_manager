@@ -569,27 +569,126 @@ const NodePath = ({ route, navigation }) => {
       </View>
     )
   }
-  const RenderPath = () => {
-    if (finalPath != null) {
-      if (finalPath.success) {
-        return (
-          <TimelineVertical
-            data={finalPath.path}
-            circleColor={colors.primary}
-            lineColor="#E5E5EA"
-          />
-        )
+  // Renderiza un solo camino usando el timeline
+  const RenderPath = ({ pathData, pathIndex }) => {
+    if (!pathData || !pathData.path) return null;
+
+    // Convertir formato de pathData a formato para TimelineVertical
+    const timelineData = pathData.path.map((step, idx) => {
+      if (step.type === 'device-link') {
+        return {
+          title: `${step.from.nodeLabel} → ${step.to.nodeLabel}`,
+          description: `${step.from.deviceLabel} (Puerto ${step.from.port}) ➜ Fibra ${step.through.fiberLabel} Hilo ${step.through.thread} ➜ ${step.to.deviceLabel} (Puerto ${step.to.port})`,
+          date: `Salto ${idx + 1}`,
+          status: idx === 0 ? 'completed' : (idx < pathData.path.length - 1 ? 'current' : 'pending'),
+          color: step.through.threadColor
+        };
+      } else if (step.type === 'device-to-fusion-to-device') {
+        // Camino completo a través de fusión
+        return {
+          title: `${step.from.nodeLabel} → [Fusión] → ${step.to.nodeLabel}`,
+          description: `${step.from.deviceLabel} (Puerto ${step.from.port}) ➜ ${step.throughFusion.entryFiberLabel}:${step.throughFusion.entryThread} ⚡ Fusión en ${step.throughFusion.fusionNodeLabel} ⚡ ${step.throughFusion.exitFiberLabel}:${step.throughFusion.exitThread} ➜ ${step.to.deviceLabel} (Puerto ${step.to.port})`,
+          date: `Salto ${idx + 1}`,
+          status: idx === 0 ? 'completed' : (idx < pathData.path.length - 1 ? 'current' : 'pending'),
+          color: step.throughFusion.entryColor
+        };
+      } else {
+        // Fusion link directo
+        return {
+          title: `Fusión en ${step.from.nodeLabel}`,
+          description: `${step.through.fusionSrc.fiberLabel}:${step.through.fusionSrc.thread} ↔ ${step.through.fusionDst.fiberLabel}:${step.through.fusionDst.thread} ➜ ${step.to.nodeLabel}`,
+          date: `Salto ${idx + 1}`,
+          status: idx === 0 ? 'completed' : (idx < pathData.path.length - 1 ? 'current' : 'pending'),
+          color: step.through.fusionSrc.threadColor
+        };
       }
+    });
+
+    return (
+      <View style={{ marginBottom: 20 }}>
+        <Text style={[styles.sectionTitle, { fontSize: 16, color: colors.success }]}>
+          Camino {pathIndex + 1} - {pathData.hops} saltos
+        </Text>
+        <TimelineVertical
+          data={timelineData}
+          circleColor={colors.primary}
+          lineColor="#E5E5EA"
+        />
+      </View>
+    );
+  };
+
+  // Renderiza TODOS los caminos encontrados
+  const RenderAllPaths = () => {
+    if (!finalPath) {
+      return (
+        <View style={{ padding: 20, alignItems: 'center' }}>
+          <Text style={{ color: colors.subText }}>Buscando rutas...</Text>
+        </View>
+      );
     }
-  }
+
+    if (!finalPath.success) {
+      return (
+        <View style={{ padding: 20, alignItems: 'center' }}>
+          <Ionicons name="alert-circle" size={48} color={colors.warning} />
+          <Text style={[styles.sectionTitle, { marginTop: 10, color: colors.danger }]}>
+            No se encontraron rutas
+          </Text>
+          <Text style={{ color: colors.subText, textAlign: 'center', marginTop: 10 }}>
+            {finalPath.error || 'No hay conexión entre estos nodos'}
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View>
+        <View style={{ 
+          backgroundColor: colors.success, 
+          padding: 15, 
+          borderRadius: 10, 
+          marginBottom: 20,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <View>
+            <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>
+              ✓ {finalPath.totalPaths} Camino{finalPath.totalPaths > 1 ? 's' : ''} Encontrado{finalPath.totalPaths > 1 ? 's' : ''}
+            </Text>
+            <Text style={{ color: '#fff', fontSize: 14, marginTop: 5 }}>
+              Ruta más corta: {finalPath.shortestPath.hops} saltos
+            </Text>
+          </View>
+          <Ionicons name="checkmark-circle" size={40} color="#fff" />
+        </View>
+
+        {finalPath.paths.map((pathData, index) => (
+          <RenderPath key={index} pathData={pathData} pathIndex={index} />
+        ))}
+      </View>
+    );
+  };
 
   useEffect(() => {
-
     const compute = async () => {
-      const result = findPath(parseInt(node.id), parseInt(mdf.id));
-      console.log(result);
+      const sourceId = node.id || node.hash;
+      const destId = mdf.id || mdf.hash;
+      
+      console.log('🛤️ NodePath - Buscando rutas:', {
+        desde: node.label,
+        sourceId: sourceId,
+        hasta: mdf.label,
+        destId: destId,
+        totalNodes: nodes?.length,
+        totalFibers: fibers?.length
+      });
+      
+      const result = findPath(sourceId, destId);
+      console.log('🛤️ Resultado pathfinding:', result);
       setFinalPath(result);
-    }
+    };
 
     compute();
   }, []);
@@ -667,14 +766,26 @@ const NodePath = ({ route, navigation }) => {
 
       {/* Contenido */}
       <ScrollView style={styles.content}>
-        {/* Fusion links */}
-        <View style={styles.section}>
-          <View style={styles.deviceHeader}>
-            <Text style={styles.sectionTitle}>{t("")}</Text>
+        {/* Información del nodo */}
+        <View style={[styles.card, { marginBottom: 20 }]}>
+          <Text style={[styles.title, { color: colors.text }]}>
+            Rutas del Nodo al MDF
+          </Text>
+          <View style={styles.detailRow}>
+            <Ionicons name="location" size={20} color={colors.primary} />
+            <Text style={styles.detailLabel}>Origen:</Text>
+            <Text style={styles.detailValue}>{node.label}</Text>
           </View>
+          <View style={styles.detailRow}>
+            <Ionicons name="server" size={20} color={colors.success} />
+            <Text style={styles.detailLabel}>Destino:</Text>
+            <Text style={styles.detailValue}>{mdf.label}</Text>
+          </View>
+        </View>
 
-          <RenderPath />
-
+        {/* Mostrar todos los caminos */}
+        <View style={styles.section}>
+          <RenderAllPaths />
         </View>
       </ScrollView>
     </View>

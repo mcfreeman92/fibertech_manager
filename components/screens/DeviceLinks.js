@@ -771,7 +771,7 @@ const DeviceLinks = ({ route, navigation }) => {
       return {
         ...thread,
         value: thread.number,
-        label: `${t("threadShort")}-${thread.number}`,
+        label: `${t("thread")}-${thread.number}`,
       };
     });
   };
@@ -815,7 +815,9 @@ const DeviceLinks = ({ route, navigation }) => {
     let bkColor = fiberColors12Hex[0];
 
     if (link != null) {
-      bkColor = fiberColors12Hex[link.src.thread - 1].color;
+      // Verificar que thread sea válido antes de acceder al array
+      const threadIndex = link.src.thread != null && link.src.thread > 0 ? link.src.thread - 1 : 0;
+      bkColor = fiberColors12Hex[threadIndex] ? fiberColors12Hex[threadIndex].color : fiberColors12Hex[0];
       textColor = getContrastColor(bkColor);
       prop = { ...styles.link, color: textColor };
       fiberLabel = getFiberLabel(link.src.fiberId);
@@ -1101,7 +1103,7 @@ const DeviceLinks = ({ route, navigation }) => {
                           fiber: fiber,
                           thread: null,
                           threads:
-                            fiber.buffers.length == 1
+                            fiber.buffers.length <= 1
                               ? buildThreads(fiber, fiber.threads)
                               : [],
                         };
@@ -1114,7 +1116,7 @@ const DeviceLinks = ({ route, navigation }) => {
                   />
                 </View>
 
-                {/**Source Buffer*/}
+                {/**Source Buffer - Solo mostrar si hay múltiples buffers */}
                 {srcLink.fiber != null && srcLink.fiber.buffers.length > 1 && (
                   <View>
                     <Text style={styles.label}>{t("Buffer")}</Text>
@@ -1161,18 +1163,23 @@ const DeviceLinks = ({ route, navigation }) => {
                       useNativeAndroidPickerStyle={false}
                       onValueChange={(value, index) => {
                         if (index != -1 && value != null) {
-                          const { inUse } = srcLink.threads[index];
+                          // Buscar el thread por valor en lugar de usar el índice
+                          const selectedThread = srcLink.threads.find(t => t.value === value);
+                          
+                          if (selectedThread) {
+                            const { inUse } = selectedThread;
 
-                          if (inUse == false || inUse == undefined) {
-                            const tmp = {
-                              ...srcLink,
-                              thread: value,
-                            };
+                            if (inUse == false || inUse == undefined) {
+                              const tmp = {
+                                ...srcLink,
+                                thread: value,
+                              };
 
-                            setShowThreadInUse(false);
-                            setSrcLink(tmp);
-                          } else {
-                            setShowThreadInUse(true);
+                              setShowThreadInUse(false);
+                              setSrcLink(tmp);
+                            } else {
+                              setShowThreadInUse(true);
+                            }
                           }
                         }
                       }}

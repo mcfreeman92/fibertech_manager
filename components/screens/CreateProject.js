@@ -982,25 +982,22 @@ const CreateProject = ({ navigation, route, theme }) => {
       willShow: selectedNodesFilter.id === 0 || selectedNodesFilter.id === nodeType.id
     });
     
-    // Si es una UNIT, crear automáticamente la fibra DROP de 2 hilos
+    // Si es una UNIT, crear automáticamente la fibra DROP con estructura 12F pero nomenclatura 2F
     if (nodeType.id === unitType.id) {
-      const dropFiberLabel = `FIBER_${nodeLabel}`;
+      const dropFiberLabel = `2F_${nodeLabel}`;
       
-      // Crear 2 hilos azules para la fibra DROP
-      const dropThreads = [
-        {
-          number: 1,
-          color: fiberColors12Hex[0].color, // Azul
-          active: true,
+      // Crear los 12 hilos con código de colores estándar (para compatibilidad con pathfinding)
+      // pero solo los primeros 2 estarán activos para uso del técnico
+      const dropThreads = [];
+      for (let i = 0; i < 12; i++) {
+        const color = fiberColors12Hex[i];
+        dropThreads.push({
+          number: i + 1,
+          color: color.color,
+          active: i < 2, // Solo hilos 1 (Azul) y 2 (Naranja) disponibles
           inUse: false,
-        },
-        {
-          number: 2,
-          color: fiberColors12Hex[0].color, // Azul
-          active: true,
-          inUse: false,
-        }
-      ];
+        });
+      }
       
       const dropFiber = {
         hash: uuidv4(),
@@ -1008,14 +1005,14 @@ const CreateProject = ({ navigation, route, theme }) => {
         createdDate: new Date().toISOString(),
         modifiedDate: new Date().toISOString(),
         deleted: 0,
-        typeId: 2, // 2F (tipo de fibra de 2 hilos)
+        typeId: "12F", // Estructura interna 12F para compatibilidad con sistema
         threads: dropThreads,
         buffers: [],
         nodeId: newNode.hash, // Asociar la fibra con el nodo UNIT
-        isSystemFiber: true, // Marcar como fibra del sistema (no editable/eliminable)
+        isSystemFiber: true, // Fibra gestionada por el sistema (no editable por técnico)
       };
       
-      console.log('🔷 Creating DROP fiber for UNIT:', dropFiberLabel);
+      console.log('🔷 Creating DROP fiber for UNIT:', dropFiberLabel, '- 2 active threads (system managed)');
       setFibers((prev) => [...prev, dropFiber]);
     }
     
@@ -2161,8 +2158,16 @@ const CreateProject = ({ navigation, route, theme }) => {
     const mdfType = nodesTypesList().find((x) => x.type == "MDF");
     const mdf = allNodes.find(x => x.typeId == mdfType.id);
 
-    allNodes = allNodes.filter((x) => (x.id != node.id || x.hash != node.hash) && x.id != mdf.id);
+    console.log('🛤️ NodePath navigation:', {
+      sourceNode: node.label,
+      sourceId: node.id || node.hash,
+      mdfNode: mdf?.label,
+      mdfId: mdf?.id || mdf?.hash,
+      totalNodes: allNodes.length,
+      totalFibers: fibers.length
+    });
 
+    // NO filtrar nodos - el algoritmo necesita todos los nodos incluyendo origen y destino
     navigation.navigate("NodePath", {
       mdf: mdf,
       node: node,
@@ -2211,7 +2216,7 @@ const CreateProject = ({ navigation, route, theme }) => {
 
           {/**FUSION LINK - No mostrar para MDF y UNIT */}
           {(() => {
-            const unitType = nodesTypesList().find((x) => x.type === "unit");
+            const unitType = nodesTypesList().find((x) => x.type === "U");
             const showFusionLink = node.typeId != mdfType.id && node.typeId != unitType?.id;
             
             return showFusionLink && (
