@@ -741,7 +741,7 @@ const DeviceLinks = ({ route, navigation }) => {
   };
 
   const buildThreads = (fiber, threads) => {
-    let tmp = threads.filter((x) => x.active == true && x.inUse == false);
+    let tmp = threads.filter((x) => x.active == true);
 
     let result = [];
 
@@ -1093,9 +1093,7 @@ const DeviceLinks = ({ route, navigation }) => {
                     value={srcLink.fiber != null ? srcLink.fiber.value : null}
                     useNativeAndroidPickerStyle={false}
                     onValueChange={(value) => {
-                      console.log('🔧 Fiber selected, value:', value);
                       const fiber = fibersData.find((x) => x.value == value);
-                      console.log('🔧 Found fiber:', fiber);
 
                       if (fiber != undefined) {
                         const tmp = {
@@ -1163,24 +1161,11 @@ const DeviceLinks = ({ route, navigation }) => {
                       useNativeAndroidPickerStyle={false}
                       onValueChange={(value, index) => {
                         if (index != -1 && value != null) {
-                          // Buscar el thread por valor en lugar de usar el índice
-                          const selectedThread = srcLink.threads.find(t => t.value === value);
-                          
-                          if (selectedThread) {
-                            const { inUse } = selectedThread;
-
-                            if (inUse == false || inUse == undefined) {
-                              const tmp = {
-                                ...srcLink,
-                                thread: value,
-                              };
-
-                              setShowThreadInUse(false);
-                              setSrcLink(tmp);
-                            } else {
-                              setShowThreadInUse(true);
-                            }
-                          }
+                          const tmp = {
+                            ...srcLink,
+                            thread: value,
+                          };
+                          setSrcLink(tmp);
                         }
                       }}
                       itemKey={(item) => item.value}
