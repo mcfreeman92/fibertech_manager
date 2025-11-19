@@ -797,6 +797,7 @@ export const AppProvider = ({ children }) => {
       copiedToClipboard: "Copied to clipboard",
     },
     es: {
+      size: "Tamaño",
       importFile: "Importar archivo",
       comment: "Commentario",
       information: "Informacion",

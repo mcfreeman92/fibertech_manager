@@ -67,7 +67,9 @@ const CreateProject = ({ navigation, route, theme }) => {
     deleteNode,
     deleteFiber,
     getMediasByNodeId,
-    createMedia
+    createMedia,
+    deleteMedia,
+    updateMedia
   } = useAdapter()();
 
   const { topInset, isTablet, bottomInset, stylesFull } = useDevice();
@@ -552,7 +554,7 @@ const CreateProject = ({ navigation, route, theme }) => {
         .then((r) => {
           console.info("loadProjectData [OK]");
         })
-        .catch((e) => {});
+        .catch((e) => { });
     }
   }, [projectId]);
 
@@ -879,11 +881,10 @@ const CreateProject = ({ navigation, route, theme }) => {
   const shareProject = async () => {
     try {
       const result = await Share.share({
-        message: `${t("ftthProject")}: ${projectData.name}\n${t("address")}: ${
-          projectData.address
-        }\n${t("totalUnits")}: ${calculateTotalUnits()}\n\n${t(
-          "scanQRForDetails"
-        )}`,
+        message: `${t("ftthProject")}: ${projectData.name}\n${t("address")}: ${projectData.address
+          }\n${t("totalUnits")}: ${calculateTotalUnits()}\n\n${t(
+            "scanQRForDetails"
+          )}`,
         title: t("ftthProjectDetails"),
       });
     } catch (error) {
@@ -907,7 +908,7 @@ const CreateProject = ({ navigation, route, theme }) => {
     setShowAddNodeModal(true);
   };
 
-  const handleConnectionMap = () => {};
+  const handleConnectionMap = () => { };
 
   const buildFiberThreads = () => {
     let items = [];
@@ -1291,20 +1292,20 @@ const CreateProject = ({ navigation, route, theme }) => {
 
               /**Create media */
               const finalMedia = (node.media || []).filter(x => x.deleted == false);
-              for (let j = 0; j < finalMedia; j++){
-                 const item = finalMedia[j];
+              for (let j = 0; j < finalMedia; j++) {
+                const item = finalMedia[j];
 
-                 const media = {
-                  nodeId : createNode.id,
-                  label : item.label,
-                  content : {
-                    comment : item.comment,
-                    data : item.data,
-                    type : item.type
+                const media = {
+                  nodeId: createNode.id,
+                  label: item.label,
+                  content: {
+                    comment: item.comment,
+                    data: item.data,
+                    type: item.type
                   }
-                 };
+                };
 
-                 await createMedia(media);
+                await createMedia(media);
               }
             }
           } else {
@@ -2152,60 +2153,47 @@ const CreateProject = ({ navigation, route, theme }) => {
     console.log("🔄 Node updated:", node.label);
   };
 
-  const updateNodeMedia = (node) => {
-    console.log(
-      "📝 Updating node media:",
-      node.label
-    );
+  const handleNodeMedia = async (nodeId, media) => {
+    console.log("📝 Updating node media:");
 
-    console.log("🔄 Node media updated:", node.label);
-  };  
+    if (nodeId != undefined) {
+      for (let i = 0; i < media.length; i++) {
+        const item = media[i];
+        if (item.id == undefined) {
+          await createMedia({
+            ...item,
+            nodeId : nodeId
+          });
+        } else {
+          if (item.deleted){
+            await deleteMedia(item.id);
+          } else {
+            await updateMedia(item.id, item);
+          }
+        }
+      }
+    }
 
-  const findLocalNode = (id, hash) => {
-    const result =
-      allNodes.find(
-        (n) => (n.id && n.id === id) || (n.hash && n.hash === hash)
-      ) || undefined;
-
-    return result;
+    console.log("🔄 Node media updated:");
   };
+
 
   const handleSeeNodeMedia = async (node) => {
     // Buscar el nodo actualizado en allNodes para asegurar que tiene los últimos cambios
 
     const media = await getMediasByNodeId(node.id);
 
-    // const media = [
-    //   {
-    //     id: 1,
-    //     type: "video",
-    //     label: "Foto del proyecto",
-    //     comment: "Esta es una imagen de ejemplo",
-    //     data: "base64string...", // Tu base64 real aquí
-    //   },
-    //   {
-    //     id: 2,
-    //     type: "video",
-    //     label: "Video demostración",
-    //     comment: "Video explicativo del proceso",
-    //     data: "videoreference...",
-    //   },
-    //   {
-    //     id: 3,
-    //     type: "video",
-    //     label: "Especificaciones.pdf",
-    //     comment: "Documento con las especificaciones técnicas",
-    //     data: "documentdata...",
-    //   },
-    // ];
-
     const tmp = {
       nodeId: node.id,
       nodeHash: node.hash,
       media: media,
       onSaveNodeMedia: (data) => {
-        if (data.nodeId != undefined) {
-        }
+        handleNodeMedia(data.nodeId, data.media)
+          .then(r => {
+
+          }).catch(e => {
+
+          })
       },
     };
 
@@ -2285,7 +2273,7 @@ const CreateProject = ({ navigation, route, theme }) => {
       Alert.alert(
         t("warning"),
         t("fiberHasFusions", { count: fusionCount }) ||
-          `Esta fibra tiene ${fusionCount} fusión(es) activa(s). Si la eliminas, también se eliminarán todas sus fusiones. ¿Deseas continuar?`,
+        `Esta fibra tiene ${fusionCount} fusión(es) activa(s). Si la eliminas, también se eliminarán todas sus fusiones. ¿Deseas continuar?`,
         [
           {
             text: t("cancel") || "Cancelar",
@@ -2348,8 +2336,7 @@ const CreateProject = ({ navigation, route, theme }) => {
 
         if (cleanedLinks.length !== node.fusionLinks.length) {
           console.log(
-            `🧹 Cleaned ${
-              node.fusionLinks.length - cleanedLinks.length
+            `🧹 Cleaned ${node.fusionLinks.length - cleanedLinks.length
             } fusion(s) from node: ${node.label}`
           );
           return { ...node, fusionLinks: cleanedLinks };

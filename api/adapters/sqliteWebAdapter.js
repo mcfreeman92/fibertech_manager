@@ -584,7 +584,7 @@ export const sqliteWebAdapter = {
       if (data.content !== undefined)
         updates.content = data.content ? JSON.stringify(data.content) : "";
 
-      await db.media.update(id, updates);
+      await db.medias.update(id, updates);
 
       return true;
     } catch (error) {
@@ -596,7 +596,7 @@ export const sqliteWebAdapter = {
   deleteMedia: async (id) => {
     try {
       // Soft delete
-      await db.media.update(id, {
+      await db.medias.update(id, {
         deleted: 1,
         modifiedDate: new Date().toISOString(),
       });
@@ -610,7 +610,7 @@ export const sqliteWebAdapter = {
   hardDeleteMedia: async (id) => {
     try {
       // Hard delete permanente
-      await db.media.delete(id);
+      await db.medias.delete(id);
       return { success: true };
     } catch (error) {
       console.error("Error hard deleting media:", error);

@@ -583,7 +583,7 @@ const NodeMedia = ({ route, navigation }) => {
           content: {
             mimeType: file.mimeType,
             fileType: file.file.type,
-            size : file.file.size,
+            size: file.file.size,
             type: file.type,
             data: base64String
           }
@@ -635,9 +635,9 @@ const NodeMedia = ({ route, navigation }) => {
   const renderMediaItem = ({ item, index }) => {
     const meta = item.content;
 
-    const { data, label, comment } = item;
+    const { label, comment } = item;
 
-    const { type, size } = meta;
+    const { type, size, data, mimeType } = meta;
 
     const handlePress = () => {
       if (onItemPress) {
@@ -655,6 +655,91 @@ const NodeMedia = ({ route, navigation }) => {
         },
       ]);
     };
+
+    function formatBytes(bytes, decimals = 2) {
+      if (bytes === 0) return '0 B';
+
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+
+      // Para React Native, limitamos a TB ya que es más que suficiente
+      const i = Math.min(
+        Math.floor(Math.log(bytes) / Math.log(k)),
+        sizes.length - 1
+      );
+
+      // Evitar números como 1023.99 MB, mostrar 1024 MB directamente
+      let value = bytes / Math.pow(k, i);
+      if (value >= 1023.995 && i < sizes.length - 1) {
+        value = 1;
+        i = i + 1;
+      }
+
+      return `${parseFloat(value.toFixed(decimals))} ${sizes[i]}`;
+    }
+
+    const ImageRenderer = ({ source, style, resizeMode = 'cover' }) => {
+      const [imageError, setImageError] = React.useState(false);
+
+      // Si estamos en web
+      if (Platform.OS === 'web') {
+        if (imageError || !source?.uri) {
+          return (
+            <View style={[style, styles.errorContainer]}>
+              <Text>No se puede cargar la imagen</Text>
+            </View>
+          );
+        }
+
+        try {
+          return (
+            <img
+              src={source.uri}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: resizeMode,
+                borderRadius: style?.borderRadius || 0,
+              }}
+              onError={() => {
+                console.error('Failed to load image in web');
+                setImageError(true);
+              }}
+              alt="Preview"
+            />
+          );
+        } catch (error) {
+          console.error('Error rendering web image:', error);
+          return (
+            <View style={[style, styles.errorContainer]}>
+              <Text>Error cargando imagen</Text>
+            </View>
+          );
+        }
+      }
+
+      // Para mobile (iOS/Android)
+      return (
+        <RNImage
+          source={source}
+          style={style}
+          resizeMode={resizeMode}
+          onError={() => setImageError(true)}
+        />
+      );
+    };
+
+    const getImageSource = (base64Data, mimeType = 'image/jpeg') => {
+      // Si ya es un data URL completo
+      if (base64Data.startsWith('data:')) {
+        return { uri: base64Data };
+      }
+
+      // Si es solo el string base64, construir el data URL
+      return { uri: `data:${mimeType};base64,${base64Data}` };
+    };
+
+    const imageSource = getImageSource(data, mimeType);
 
     return (
       <View style={styles.itemContainer}>
@@ -675,11 +760,12 @@ const NodeMedia = ({ route, navigation }) => {
             {/* Vista previa según el tipo */}
             <View style={styles.previewContainer}>
               {type === "image" && data ? (
-                <Image
-                  source={{ uri: `data:image/jpeg;base64,${data}` }}
+                <ImageRenderer
+                  source={imageSource}
                   style={styles.imagePreview}
                   resizeMode="cover"
                 />
+
               ) : type === "image" && !data ? (
                 <View style={styles.errorPreview}>
                   <Text style={styles.errorIcon}>❌</Text>
@@ -716,7 +802,7 @@ const NodeMedia = ({ route, navigation }) => {
               </Text>
 
               <Text style={styles.type}>
-                Tipo: {type?.toUpperCase() || "DESCONOCIDO"}
+                {`${t('type')}: ${type?.toUpperCase() || "DESCONOCIDO"}`}
               </Text>
 
               {comment && (
@@ -726,7 +812,7 @@ const NodeMedia = ({ route, navigation }) => {
               )}
 
               <Text style={styles.dataSize}>
-                Tamaño: {size ? Math.ceil(size / 1024) : 0} KB
+                {`${t('size')}: ${size ? formatBytes(size) : 0}`}
               </Text>
             </View>
 
@@ -794,7 +880,7 @@ const NodeMedia = ({ route, navigation }) => {
               <Ionicons name="attach" size={24} color="#3498db" />
             </TouchableOpacity>
 
-            <TouchableOpacity disabled = {loading} onPress={handleSave} style={styles.mapButton}>
+            <TouchableOpacity disabled={loading} onPress={handleSave} style={styles.mapButton}>
               <Ionicons name="save" size={24} color="#3498db" />
             </TouchableOpacity>
           </View>
@@ -874,10 +960,10 @@ const NodeMedia = ({ route, navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>{t("importFile")}</Text>
-              <View style = {{flexDirection: 'column', alignContent: 'center', alignItems:'center', justifyContent: 'center'}}>
-                <Text style={styles.modalItem}>{t("loading")}</Text>
-                <ActivityIndicator size="large" />
-              </View>
+            <View style={{ flexDirection: 'column', alignContent: 'center', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={styles.modalItem}>{t("loading")}</Text>
+              <ActivityIndicator size="large" />
+            </View>
           </View>
         </View>
       </Modal>
