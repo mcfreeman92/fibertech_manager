@@ -10,7 +10,7 @@ db.version(1).stores({
     "++id, label, projectId, typeId, description, createdDate, modifiedDate, deleted",
   fibers:
     "++id, typeId, label, projectId, parentId, nodeId, createdDate, modifiedDate, deleted",
-  medias: "++id, nodeId, label, content, createdDate, modifiedDate, deleted",
+  medias: "++id, nodeId, label, comment, content, createdDate, modifiedDate, deleted",
 });
 
 // Inicializar base de datos
@@ -552,6 +552,7 @@ export const sqliteWebAdapter = {
       const mediaData = {
         nodeId: data.nodeId,
         label: data.label || "",
+        comment: data.comment || "",
         createdDate: now,
         modifiedDate: now,
         content: strContent,
@@ -573,24 +574,19 @@ export const sqliteWebAdapter = {
   updateMedia: async (id, data) => {
     try {
       const now = new Date().toISOString();
-      const updates = {
+      let updates = {
         modifiedDate: now,
       };
 
-      // Solo actualizar los campos que se proporcionan
-      if (data.nodeId !== undefined) updates.nodeId = data.nodeId;
       if (data.label !== undefined) updates.label = data.label;
+      if (data.comment !== undefined) updates.comment = data.comment;
+
       if (data.content !== undefined)
         updates.content = data.content ? JSON.stringify(data.content) : "";
 
       await db.media.update(id, updates);
 
-      // Obtener el media actualizado
-      const updatedMedia = await db.media.get(id);
-      return {
-        ...updatedMedia,
-        content: JSON.parse(updatedMedia.content),
-      };
+      return true;
     } catch (error) {
       console.error("Error updating media:", error);
       throw error;

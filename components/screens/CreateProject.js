@@ -2173,31 +2173,31 @@ const CreateProject = ({ navigation, route, theme }) => {
   const handleSeeNodeMedia = async (node) => {
     // Buscar el nodo actualizado en allNodes para asegurar que tiene los últimos cambios
 
-    //const media = await getMediasByNodeId(node.id);
+    const media = await getMediasByNodeId(node.id);
 
-    const media = [
-      {
-        id: 1,
-        type: "video",
-        label: "Foto del proyecto",
-        comment: "Esta es una imagen de ejemplo",
-        data: "base64string...", // Tu base64 real aquí
-      },
-      {
-        id: 2,
-        type: "video",
-        label: "Video demostración",
-        comment: "Video explicativo del proceso",
-        data: "videoreference...",
-      },
-      {
-        id: 3,
-        type: "video",
-        label: "Especificaciones.pdf",
-        comment: "Documento con las especificaciones técnicas",
-        data: "documentdata...",
-      },
-    ];
+    // const media = [
+    //   {
+    //     id: 1,
+    //     type: "video",
+    //     label: "Foto del proyecto",
+    //     comment: "Esta es una imagen de ejemplo",
+    //     data: "base64string...", // Tu base64 real aquí
+    //   },
+    //   {
+    //     id: 2,
+    //     type: "video",
+    //     label: "Video demostración",
+    //     comment: "Video explicativo del proceso",
+    //     data: "videoreference...",
+    //   },
+    //   {
+    //     id: 3,
+    //     type: "video",
+    //     label: "Especificaciones.pdf",
+    //     comment: "Documento con las especificaciones técnicas",
+    //     data: "documentdata...",
+    //   },
+    // ];
 
     const tmp = {
       nodeId: node.id,

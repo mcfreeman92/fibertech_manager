@@ -127,7 +127,7 @@ const useFilePicker = () => {
         } catch (error) {
           console.error('Error processing file:', error);
           resolve(null);
-        }
+      }
       };
 
       input.oncancel = () => {
@@ -192,7 +192,7 @@ const useFilePicker = () => {
       if (Platform.OS === 'web') {
         alert('No se pudo seleccionar el documento');
       } else {
-        Alert.alert('Error', 'No se pudo seleccionar el documento');
+      Alert.alert('Error', 'No se pudo seleccionar el documento');
       }
       return null;
     } finally {

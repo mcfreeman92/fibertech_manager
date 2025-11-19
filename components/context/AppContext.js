@@ -3,6 +3,8 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { useColorScheme, Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { mimeTypes } from "@/utils/mimeTypes";
+
 const AppContext = createContext();
 
 export const useApp = () => {
@@ -120,6 +122,7 @@ export const AppProvider = ({ children }) => {
   // Traducciones
   const translations = {
     en: {
+      importFile: "Import file",
       comment: "Comment",
       information: "Information",
       nodeMedia: "Multimedia data",
@@ -794,6 +797,7 @@ export const AppProvider = ({ children }) => {
       copiedToClipboard: "Copied to clipboard",
     },
     es: {
+      importFile: "Importar archivo",
       comment: "Commentario",
       information: "Informacion",
       nodeMedia: "Datos de multimedia",
@@ -1468,7 +1472,7 @@ export const AppProvider = ({ children }) => {
       ftthManager: "FTTH Manager",
       incorrectCredentials: "Credenciales incorrectas. Use: admin/123456",
       loginError: "Error al iniciar sesión",
-      loading: "Cargando",
+      loading: "Cargando...",
       confirmLogout: "Confirmar cierre de sesión",
       confirmLogoutMessage: "¿Estás seguro de que quieres cerrar sesión?",
       cancel: "Cancelar",
@@ -1497,6 +1501,10 @@ export const AppProvider = ({ children }) => {
       { id: 4, name: t("unit"), type: "U", visible: true, alowDevices: true },
     ];
   };
+
+  const mimeTypesList = () => {
+    return mimeTypes;
+  }
 
   const changeLanguage = async (newLanguage) => {
     try {
@@ -1532,6 +1540,7 @@ export const AppProvider = ({ children }) => {
     logout,
     login,
     nodesTypesList,
+    mimeTypesList
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

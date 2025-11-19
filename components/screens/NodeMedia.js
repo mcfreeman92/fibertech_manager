@@ -15,6 +15,7 @@ import {
   PermissionsAndroid,
   FlatList,
   TouchableWithoutFeedback,
+  ActivityIndicator
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useApp } from "../context/AppContext";
@@ -35,7 +36,7 @@ const NodeMedia = ({ route, navigation }) => {
   const { updateNode } = useAdapter()();
 
   const { topInset, bottomInset, stylesFull } = useDevice();
-  const { isDarkMode } = useApp();
+  const { isDarkMode, mimeTypesList } = useApp();
   const { t } = useTranslation();
   const { nodeId } = route.params;
   const { nodeHash } = route.params;
@@ -45,8 +46,9 @@ const NodeMedia = ({ route, navigation }) => {
 
   const [selectedMedia, setSelectedMedia] = useState(null);
   const [mediaData, setMediaData] = useState(media);
+  const [loading, setLoading] = useState(false);
 
-  const { loading, showFilePicker } = useFilePicker();
+  const { showFilePicker } = useFilePicker();
 
   const colors = {
     primary: "#3498db",
@@ -539,25 +541,60 @@ const NodeMedia = ({ route, navigation }) => {
     }
   };
 
+  const convertFileToBase64 = async (file) => {
+    try {
+      const fileUri = file.uri;
+
+      // Usando fetch
+      const response = await fetch(fileUri);
+      const blob = await response.blob();
+
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('Error converting file to base64:', error);
+      throw error;
+    }
+  };
+
   const handleAttachFile = async () => {
     try {
       const file = await showFilePicker();
 
       if (file) {
         // Verificar tipo permitido
-        if (
-          !allowedTypes.includes(file.type) &&
-          !allowedTypes.includes("all")
-        ) {
+        if (!mimeTypesList().includes(file.mimeType)) {
           Alert.alert("Error", "Tipo de archivo no permitido");
           return;
         }
 
-        if (onFileSelected) {
-          onFileSelected(file);
+        setLoading(true);
+        const base64String = await convertFileToBase64(file);
+        setLoading(false);
+
+        const media = {
+          hash: uuidv4(),
+          label: file.name,
+          comment: '',
+          content: {
+            mimeType: file.mimeType,
+            fileType: file.file.type,
+            size : file.file.size,
+            type: file.type,
+            data: base64String
+          }
         }
+
+        const upd = [...mediaData, media];
+        setMediaData(upd);
+
       }
     } catch (error) {
+      setLoading(false);
       console.error("Error in file picker:", error);
       Alert.alert("Error", "No se pudo seleccionar el archivo");
     }
@@ -566,41 +603,6 @@ const NodeMedia = ({ route, navigation }) => {
   const onItemPress = (item, index) => {
     setSelectedMedia(item);
     setShowAttachModal(true);
-  };
-
-  // Constantes para el diseño
-  const CONFIG = {
-    ICON: {
-      NAME: "link",
-      SIZE: 20,
-      COLOR: "#ffffff",
-    },
-    ICON_DEL: {
-      NAME: "link",
-      SIZE: 20,
-      COLOR: "#ffffff",
-    },
-    COLORS: {
-      PRIMARY: "#6366f1",
-      PRIMARY_DARK: "#4f46e5",
-      SECONDARY: "#8b5cf6",
-      BACKGROUND: "#f8fafc",
-      TEXT_PRIMARY: "#1e293b",
-      TEXT_SECONDARY: "#64748b",
-      BORDER: "#e2e8f0",
-      SUCCESS: "#10b981",
-    },
-    SPACING: {
-      SM: 8,
-      MD: 12,
-      LG: 10,
-      XL: 20,
-    },
-    RADIUS: {
-      SM: 8,
-      MD: 12,
-      LG: 16,
-    },
   };
 
   const handleApplyChanges = () => {
@@ -631,7 +633,11 @@ const NodeMedia = ({ route, navigation }) => {
 
   // Función para renderizar cada item según su tipo
   const renderMediaItem = ({ item, index }) => {
-    const { type, data, label, comment } = item;
+    const meta = item.content;
+
+    const { data, label, comment } = item;
+
+    const { type, size } = meta;
 
     const handlePress = () => {
       if (onItemPress) {
@@ -720,7 +726,7 @@ const NodeMedia = ({ route, navigation }) => {
               )}
 
               <Text style={styles.dataSize}>
-                Tamaño: {data ? Math.ceil(data.length / 1024) : 0} KB
+                Tamaño: {size ? Math.ceil(size / 1024) : 0} KB
               </Text>
             </View>
 
@@ -753,7 +759,7 @@ const NodeMedia = ({ route, navigation }) => {
     </View>
   );
 
-  useEffect(() => {}, []);
+  useEffect(() => { }, []);
 
   return (
     <View
@@ -787,8 +793,8 @@ const NodeMedia = ({ route, navigation }) => {
             <TouchableOpacity onPress={handleAttachFile} style={styles.mapButton}>
               <Ionicons name="attach" size={24} color="#3498db" />
             </TouchableOpacity>
-            
-            <TouchableOpacity onPress={handleSave} style={styles.mapButton}>
+
+            <TouchableOpacity disabled = {loading} onPress={handleSave} style={styles.mapButton}>
               <Ionicons name="save" size={24} color="#3498db" />
             </TouchableOpacity>
           </View>
@@ -810,6 +816,7 @@ const NodeMedia = ({ route, navigation }) => {
         />
       </ScrollView>
 
+      {/**Edit modeal */}
       <Modal
         visible={showAttachModal}
         transparent={true}
@@ -856,6 +863,26 @@ const NodeMedia = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
+
+      {/**Loading file modal  */}
+      <Modal
+        visible={loading}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setLoading(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{t("importFile")}</Text>
+              <View style = {{flexDirection: 'column', alignContent: 'center', alignItems:'center', justifyContent: 'center'}}>
+                <Text style={styles.modalItem}>{t("loading")}</Text>
+                <ActivityIndicator size="large" />
+              </View>
+          </View>
+        </View>
+      </Modal>
+
+
     </View>
   );
 };
