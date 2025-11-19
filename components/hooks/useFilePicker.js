@@ -6,6 +6,12 @@ import {
   launchCamera,
 } from 'react-native-image-picker';
 
+// Solo importar DocumentPicker en plataformas nativas
+let DocumentPicker = null;
+if (Platform.OS !== 'web') {
+  DocumentPicker = require('@react-native-documents/picker').default;
+}
+
 const useFilePicker = () => {
   const [loading, setLoading] = useState(false);
 
@@ -80,36 +86,114 @@ const useFilePicker = () => {
     }
   };
 
-  // Función simplificada para documentos usando image picker
-  const pickDocument = async () => {
+  // Seleccionar documento usando input HTML en web
+  const pickDocumentWeb = async () => {
+    return new Promise((resolve) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '*/*';
+      input.multiple = false;
+
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) {
+          resolve(null);
+          return;
+        }
+
+        try {
+          // Convertir a base64
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64 = reader.result;
+            const fileType = getFileTypeFromMime(file.type);
+            
+            resolve({
+              uri: URL.createObjectURL(file),
+              name: file.name,
+              type: fileType,
+              mimeType: file.type,
+              size: file.size,
+              data: base64,
+              timestamp: new Date().toISOString(),
+              file: file, // Guardar referencia al archivo original
+            });
+          };
+          reader.onerror = () => {
+            console.error('Error reading file:', reader.error);
+            resolve(null);
+          };
+          reader.readAsDataURL(file);
+        } catch (error) {
+          console.error('Error processing file:', error);
+          resolve(null);
+        }
+      };
+
+      input.oncancel = () => {
+        resolve(null);
+      };
+
+      input.click();
+    });
+  };
+
+  // Seleccionar documento usando react-native-document-picker en móvil
+  const pickDocumentNative = async () => {
+    if (!DocumentPicker) {
+      console.error('DocumentPicker not available on this platform');
+      Alert.alert('Error', 'Selector de documentos no disponible');
+      return null;
+    }
+
     try {
-      setLoading(true);
-      const result = await launchImageLibrary({
-        mediaType: 'mixed',
-        includeBase64: true,
+      const result = await DocumentPicker.pick({
+        type: [DocumentPicker.types.allFiles],
+        copyTo: 'cachesDirectory',
       });
 
-      if (result.didCancel) {
-        return null;
-      }
+      if (result && result.length > 0) {
+        const doc = result[0];
+        const fileType = getFileTypeFromMime(doc.type);
 
-      if (result.errorCode) {
-        throw new Error(`Error: ${result.errorCode} - ${result.errorMessage}`);
-      }
-
-      if (result.assets && result.assets.length > 0) {
-        const asset = result.assets[0];
-        // Si es un documento (no imagen/video), procesar como documento
-        if (!asset.type?.startsWith('image/') && !asset.type?.startsWith('video/')) {
-          return processDocument(asset);
-        }
-        return processAsset(asset);
+        return {
+          uri: doc.fileCopyUri || doc.uri,
+          name: doc.name,
+          type: fileType,
+          mimeType: doc.type,
+          size: doc.size,
+          data: doc.fileCopyUri || doc.uri,
+          timestamp: new Date().toISOString(),
+        };
       }
 
       return null;
     } catch (error) {
+      if (DocumentPicker.isCancel(error)) {
+        return null;
+      }
       console.error('Error picking document:', error);
-      Alert.alert('Error', 'No se pudo seleccionar el documento');
+      throw error;
+    }
+  };
+
+  // Función unificada para documentos que detecta la plataforma
+  const pickDocument = async () => {
+    try {
+      setLoading(true);
+
+      if (Platform.OS === 'web') {
+        return await pickDocumentWeb();
+      } else {
+        return await pickDocumentNative();
+      }
+    } catch (error) {
+      console.error('Error picking document:', error);
+      if (Platform.OS === 'web') {
+        alert('No se pudo seleccionar el documento');
+      } else {
+        Alert.alert('Error', 'No se pudo seleccionar el documento');
+      }
       return null;
     } finally {
       setLoading(false);
@@ -174,8 +258,13 @@ const useFilePicker = () => {
     return `${type}_${timestamp}.${extensions[type] || 'file'}`;
   };
 
-  // Función universal que muestra opciones
+  // Función universal que muestra opciones (solo en móvil, en web usar botones directos)
   const showFilePicker = () => {
+    if (Platform.OS === 'web') {
+      // En web, retornar directamente el picker de documentos
+      return pickDocument();
+    }
+
     return new Promise((resolve) => {
       Alert.alert(
         'Seleccionar archivo',
