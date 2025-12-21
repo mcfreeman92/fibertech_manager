@@ -1110,9 +1110,18 @@ const CreateProject = ({ navigation, route, theme }) => {
 
   const doCreateNode = async (node) => {
     const links = node.fusionLinks || [];
+    
+    console.log(
+      `\n${'='.repeat(60)}\n📍 [CP-001] Creating Node\n${'='.repeat(60)}`
+    );
+    console.log(`  Label: ${node.label}`);
+    console.log(`  Type: ${node.typeId} (${['?', 'MDF', 'IDF', 'Pedestal', 'Unit'][node.typeId] || 'Unknown'})`);
+    console.log(`  Hash: ${node.hash}`);
+    console.log(`  Fusion Links: ${links.length}`);
 
     for (let i = 0; i < links.length; i++) {
       const link = links[i];
+      console.log(`    [${i + 1}] Fusion: ${link.src?.labels || 'unknown'} → ${link.dst?.labels || 'unknown'}`);
 
       doUpdateFiberThread(link.src, true);
       doUpdateFiberThread(link.dst, true);
@@ -1122,6 +1131,8 @@ const CreateProject = ({ navigation, route, theme }) => {
       devices: node.devices || [],
       fusionLinks: links,
     };
+
+    console.log(`  Devices: ${meta.devices.length}`);
 
     const dbNode = await createNode({
       label: node.label,
@@ -1133,15 +1144,9 @@ const CreateProject = ({ navigation, route, theme }) => {
       modifiedDate: node.modifiedDate,
     });
 
-    console.log(
-      "✅ Created node:",
-      node.label,
-      "with ID:",
-      dbNode.id,
-      "(DB returned:",
-      JSON.stringify(dbNode),
-      ")"
-    );
+    console.log(`✅ Node persisted to DB:`);
+    console.log(`  DB ID: ${dbNode.id}`);
+    console.log(`  Object: ${JSON.stringify(dbNode)}`);
 
     // El adapter web ya retorna en camelCase, solo necesitamos agregar los campos extra
     return {
@@ -1153,6 +1158,14 @@ const CreateProject = ({ navigation, route, theme }) => {
   };
 
   const doCreateFiber = async (fiber) => {
+    console.log(
+      `\n${'='.repeat(60)}\n🌾 [CP-002] Creating Fiber\n${'='.repeat(60)}`
+    );
+    console.log(`  Label: ${fiber.label}`);
+    console.log(`  Node ID: ${fiber.nodeId || 'N/A (main line)'}`);
+    console.log(`  Buffers: ${fiber.buffers?.length || 0}`);
+    console.log(`  Threads: ${fiber.threads?.length || 0}`);
+
     const meta = JSON.stringify(fiber.threads);
 
     let dbFiber = await createFiber({
@@ -1166,28 +1179,42 @@ const CreateProject = ({ navigation, route, theme }) => {
       modifiedDate: fiber.modifiedDate,
     });
 
+    console.log(`✅ Main fiber persisted:`);
+    console.log(`  DB ID: ${dbFiber.id}`);
+    console.log(`  Label: ${dbFiber.label}`);
+
     /**Save buffers */
-    for (let j = 0; j < fiber.buffers.length; j++) {
-      const buffer = fiber.buffers[j];
+    const bufferCount = fiber.buffers?.length || 0;
+    console.log(`📦 Saving ${bufferCount} buffers...`);
+    
+    if (bufferCount > 0) {
+      for (let j = 0; j < fiber.buffers.length; j++) {
+        const buffer = fiber.buffers[j];
+        console.log(`  [Buffer ${j + 1}/${fiber.buffers.length}] ${buffer.label} (${buffer.threads?.length || 0} threads)`);
 
-      const meta2 = JSON.stringify(buffer.threads);
+        const meta2 = JSON.stringify(buffer.threads);
 
-      const dbBuffer = await createFiber({
-        label: buffer.label,
-        projectId: fiber.projectId,
-        parentId: dbFiber.id,
-        typeId: buffer.typeId || sinleFiberTpeId,
-        description: "",
-        metadata: meta2,
-        createdDate: buffer.createdDate,
-        modifiedDate: buffer.modifiedDate,
-      });
+        const dbBuffer = await createFiber({
+          label: buffer.label,
+          projectId: fiber.projectId,
+          parentId: dbFiber.id,
+          typeId: buffer.typeId || sinleFiberTpeId,
+          description: "",
+          metadata: meta2,
+          createdDate: buffer.createdDate,
+          modifiedDate: buffer.modifiedDate,
+        });
 
-      if (dbFiber.buffers == undefined) dbFiber.buffers = [];
+        console.log(`    ✓ Buffer ${buffer.label} → DB ID: ${dbBuffer.id}`);
 
-      dbFiber.buffers.push(dbBuffer);
+        if (dbFiber.buffers == undefined) dbFiber.buffers = [];
+
+        dbFiber.buffers.push(dbBuffer);
+      }
     }
 
+    if (!dbFiber.buffers) dbFiber.buffers = [];
+    console.log(`✅ Fiber ${fiber.label} fully persisted with ${dbFiber.buffers.length} buffers\n`);
     return dbFiber;
   };
 
@@ -1259,6 +1286,7 @@ const CreateProject = ({ navigation, route, theme }) => {
         await updateProject(projectId, prjData);
 
         /**Persist/Update new nodes */
+        console.log(`\n${'='.repeat(60)}\n📦 [CP-010] Persisting Nodes (${allNodes.length} total)\n${'='.repeat(60)}`);
 
         for (let i = 0; i < allNodes.length; i++) {
           const node = allNodes[i];
@@ -1411,6 +1439,8 @@ const CreateProject = ({ navigation, route, theme }) => {
         setFibers(updatedFibers);
 
         /**Persist new fibers */
+        console.log(`\n${'='.repeat(60)}\n📦 [CP-020] Persisting Fibers (${updatedFibers.length} total)\n${'='.repeat(60)}`);
+        
         for (let i = 0; i < updatedFibers.length; i++) {
           const fiber = updatedFibers[i];
           if (fiber.id == undefined) {
@@ -1426,10 +1456,7 @@ const CreateProject = ({ navigation, route, theme }) => {
 
             if (needsNodeIdUpdate) {
               console.log(
-                "🔷 Updating existing DROP fiber in DB:",
-                fiber.label,
-                "nodeId:",
-                updatedFibers[i].nodeId
+                `🔷 [CP-021] Updating DROP fiber in DB: ${fiber.label} → Node ID: ${updatedFibers[i].nodeId}`
               );
               // Actualizar con el nuevo nodeId
               await updateFiber(fiber.id, {
@@ -1443,7 +1470,7 @@ const CreateProject = ({ navigation, route, theme }) => {
                 metadata: JSON.stringify(fiber.threads),
               });
             }
-            console.log("✅ Updated fiber:", fiber.label, "ID:", fiber.id);
+            console.log(`✅ [CP-022] Updated fiber: ${fiber.label} (DB ID: ${fiber.id})`);
           }
 
           /**Save buffers */

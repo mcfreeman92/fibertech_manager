@@ -67,10 +67,11 @@ function findNodesConnectedToFiber(nodeMap, excludeNodeId, fiberInfo, fiberMap) 
     }
 
     // ============================================================
-    // BÚSQUEDA 2: Fusion Links (fusiones en el nodo)
+    // BÚSQUEDA 2: Fusion Links (fusiones en el nodo) - BIDIRECCIONAL
     // ============================================================
-    // CRÍTICO: Si este nodo tiene una fusión que involucra la fibra/hilo que buscamos,
-    // entonces este nodo es un punto de conexión (la fusión actúa como "puente")
+    // CRÍTICO: Una fusión es BIDIRECCIONAL
+    // Si llegamos por un hilo en SRC, podemos salir por DST (y vice versa)
+    // La búsqueda debe funcionar en AMBAS direcciones
     if (node.fusionLinks) {
       for (const fusionLink of node.fusionLinks) {
         const { src, dst } = fusionLink;
@@ -86,9 +87,11 @@ function findNodesConnectedToFiber(nodeMap, excludeNodeId, fiberInfo, fiberMap) 
                           dst?.thread === thread;
         
         if (matchesSrc || matchesDst) {
-          console.log(`        ✅ Fusion Link encontrado: ${node.label} | Fusión ${matchesSrc ? 'SRC' : 'DST'} → ${matchesSrc ? 'DST' : 'SRC'}`);
+          const entryPoint = matchesSrc ? 'SRC' : 'DST';
+          const exitPoint = matchesSrc ? 'DST' : 'SRC';
+          console.log(`        ✅ Fusion Link BIDIRECCIONAL encontrado: ${node.label} | Entrada: ${entryPoint} → Salida: ${exitPoint}`);
           // Este nodo tiene una fusión con la fibra que buscamos
-          // Lo agregamos como conexión para que el pathfinding explore la fusión
+          // Lo agregamos como conexión para que el pathfinding explore la fusión en ambas direcciones
           connections.push({
             nodeId: nodeId,
             nodeLabel: node.label,
@@ -130,16 +133,15 @@ function getThreadColor(fiber, threadNumber) {
  * 6. Retorna múltiples rutas ordenadas por número de saltos
  */
 export function findAllFiberPaths(graph, fibers, startNodeId, endNodeId) {
-  console.log('🔍 ==================== NUEVO PATHFINDING ====================');
-  console.log('🔍 Búsqueda de caminos:', { 
-    from: startNodeId, 
-    to: endNodeId, 
-    totalNodes: graph?.length, 
-    totalFibers: fibers?.length 
-  });
+  console.log(`\n${'='.repeat(60)}\n🔍 [FP-100] PATHFINDING INICIADO\n${'='.repeat(60)}`);
+  console.log(`  Origen: ${startNodeId}`);
+  console.log(`  Destino: ${endNodeId}`);
+  console.log(`  Grafo: ${graph?.length || 0} nodos`);
+  console.log(`  Fibras: ${fibers?.length || 0} fibras`);
 
   // Validaciones básicas
   if (!graph || !fibers || graph.length === 0 || fibers.length === 0) {
+    console.error(`❌ [FP-101] ERROR: Grafo o fibras inválidos`);
     return {
       success: false,
       paths: [],
@@ -148,6 +150,7 @@ export function findAllFiberPaths(graph, fibers, startNodeId, endNodeId) {
   }
 
   if (startNodeId === endNodeId) {
+    console.error(`❌ [FP-102] ERROR: Origen = Destino`);
     return {
       success: false,
       paths: [],
@@ -160,7 +163,8 @@ export function findAllFiberPaths(graph, fibers, startNodeId, endNodeId) {
   const fiberMap = new Map();
 
   // Indexar nodos
-  graph.forEach(node => {
+  console.log(`\n📍 [FP-110] Indexando ${graph.length} nodos...`);
+  graph.forEach((node, idx) => {
     const nodeId = normalizeId(node.id || node.hash);
     nodeMap.set(nodeId, node);
     
@@ -168,29 +172,31 @@ export function findAllFiberPaths(graph, fibers, startNodeId, endNodeId) {
     const linkCount = node.devices?.reduce((sum, d) => sum + (d.links?.length || 0), 0) || 0;
     const fusionCount = node.fusionLinks?.length || 0;
     
-    console.log(`📍 Nodo: ${node.label} [ID: ${nodeId}] | Devices: ${deviceCount} | Links: ${linkCount} | Fusions: ${fusionCount}`);
+    console.log(`  [${idx + 1}] ${node.label} [ID:${nodeId}] Devices:${deviceCount} Links:${linkCount} Fusions:${fusionCount}`);
   });
 
   // Indexar fibras
-  fibers.forEach(fiber => {
+  console.log(`\n🔷 [FP-120] Indexando ${fibers.length} fibras...`);
+  fibers.forEach((fiber, idx) => {
     const fiberId = normalizeId(fiber.id || fiber.hash);
     fiberMap.set(fiberId, fiber);
     
+    const totalThreads = fiber.threads?.length || 0;
     const activeThreads = fiber.threads?.filter(t => t.active && !t.inUse).length || 0;
-    console.log(`🔷 Fibra: ${fiber.label} [ID: ${fiberId}] | Hilos activos: ${activeThreads}`);
+    console.log(`  [${idx + 1}] ${fiber.label} [ID:${fiberId}] Threads:${totalThreads} (${activeThreads} disponibles)`);
   });
 
-  console.log('📊 Índices:', { nodos: nodeMap.size, fibras: fiberMap.size });
+  console.log(`\n✅ [FP-130] Índices creados: ${nodeMap.size} nodos, ${fiberMap.size} fibras`);
 
   // Normalizar IDs de búsqueda
   const normalizedStartId = normalizeId(startNodeId);
   const normalizedEndId = normalizeId(endNodeId);
 
-  console.log('🎯 IDs normalizados:', { start: normalizedStartId, end: normalizedEndId });
+  console.log(`\n🎯 [FP-140] IDs normalizados: ${normalizedStartId} → ${normalizedEndId}`);
 
   // Verificar existencia
   if (!nodeMap.has(normalizedStartId)) {
-    console.error('❌ Nodo de inicio no encontrado:', startNodeId);
+    console.error(`❌ [FP-141] Nodo origen NO encontrado: ${startNodeId}`);
     return {
       success: false,
       paths: [],
@@ -199,7 +205,7 @@ export function findAllFiberPaths(graph, fibers, startNodeId, endNodeId) {
   }
 
   if (!nodeMap.has(normalizedEndId)) {
-    console.error('❌ Nodo de destino no encontrado:', endNodeId);
+    console.error(`❌ [FP-142] Nodo destino NO encontrado: ${endNodeId}`);
     return {
       success: false,
       paths: [],
@@ -220,7 +226,7 @@ export function findAllFiberPaths(graph, fibers, startNodeId, endNodeId) {
   let iterations = 0;
   const MAX_ITERATIONS = 10000;
 
-  console.log('🚀 Iniciando búsqueda BFS...\n');
+  console.log(`\n🚀 [FP-150] Iniciando BFS (máx ${MAX_ITERATIONS} iteraciones)...\n`);
 
   while (queue.length > 0 && iterations < MAX_ITERATIONS) {
     iterations++;
@@ -229,7 +235,8 @@ export function findAllFiberPaths(graph, fibers, startNodeId, endNodeId) {
 
     // ¿Llegamos al destino?
     if (currentNodeId === normalizedEndId) {
-      console.log(`✅ ¡Camino encontrado! Saltos: ${path.length}`);
+      console.log(`✅ [FP-200] ¡CAMINO ENCONTRADO! Saltos: ${path.length}`);
+      console.log(`   Ruta: ${[nodeMap.get(normalizedStartId)?.label, ...path.map(p => p.node), nodeMap.get(normalizedEndId)?.label].join(' → ')}`);
       allPaths.push({
         path: [...path],
         hops: path.length,
@@ -241,7 +248,7 @@ export function findAllFiberPaths(graph, fibers, startNodeId, endNodeId) {
 
     const currentNode = nodeMap.get(currentNodeId);
     if (!currentNode) {
-      console.warn(`⚠️ Nodo ${currentNodeId} no encontrado en mapa`);
+      console.warn(`⚠️ [FP-151] Nodo ${currentNodeId} no encontrado en mapa`);
       continue;
     }
 

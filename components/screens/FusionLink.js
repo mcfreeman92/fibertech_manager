@@ -24,9 +24,10 @@ import { useAdapter } from "@/api/contexts/DatabaseContext";
 import { v4 as uuidv4 } from "uuid";
 import RNPickerSelect from "react-native-picker-select";
 import { deleteData } from "@/service/database";
+import { isBufferConsumedInNode } from "@/utils/bufferVisibilityManager";
 
 const FusionLink = ({ route, navigation }) => {
-  const { getFibers, getFiberById } = useAdapter()();
+  const { getFibers, getFiberById, getNodes } = useAdapter()();
 
   const { topInset, bottomInset, stylesFull } = useDevice();
   const { isDarkMode, language } = useApp();
@@ -499,31 +500,44 @@ const FusionLink = ({ route, navigation }) => {
 
       // Filtrar fibras según el tipo de nodo
       if (node) {
+        // NORMALIZACIÓN DE IDs: Priorizar ID de BD, sino usar hash
+        const normalizeId = (id, hash) => {
+          return id !== undefined && id !== null ? id : hash;
+        };
+        
+        const currentNodeId = normalizeId(node.id, node.hash);
+        
         if (node.typeId === 4) {
           // UNIT: Solo mostrar la fibra DROP de esta UNIT específica
-          const nodeIdentifier = node.id || node.hash; // Usar id de BD si existe, sino hash
-          console.log('🔷 FusionLink - Filtering fibers for UNIT:', node.label, 'identifier:', nodeIdentifier);
+          console.log('🔷 FusionLink - UNIT Filter:', node.label, '| Node ID (normalized):', currentNodeId);
+          console.log('🔷 Also checking for hash match:', node.hash);
           records = records.filter(f => {
-            const isUnitFiber = f.nodeId === nodeIdentifier;
-            console.log('  Fiber:', f.label, 'nodeId:', f.nodeId, 'matches:', isUnitFiber);
+            const fiberNodeId = normalizeId(f.nodeId, f.nodeHash);
+            // Match by DB ID OR by hash (for fibers not yet saved with DB ID)
+            const isUnitFiber = fiberNodeId === currentNodeId || f.nodeId === node.hash;
+            if (!isUnitFiber && f.nodeId) {
+              console.log(`  ❌ Rejecting fiber ${f.label} (nodeId: ${fiberNodeId} !== ${currentNodeId} AND nodeId !== ${node.hash})`);
+            } else if (isUnitFiber) {
+              console.log(`  ✅ Including fiber ${f.label} for UNIT (nodeId: ${fiberNodeId} OR ${f.nodeId} === ${node.hash})`);
+            }
             return isUnitFiber;
           });
-          console.log('🔷 FusionLink - Filtered fibers count:', records.length);
+          console.log(`✅ FusionLink - Showing ${records.length} fiber(s) for this UNIT`);
         } else if (node.typeId === 1) {
           // MDF (typeId===1): Excluir TODAS las fibras DROP (nunca conexión directa MDF→UNIT)
-          console.log('🔷 FusionLink - MDF: Excluding all DROP fibers');
+          console.log('🔷 FusionLink - MDF Filter: Excluding DROP fibers');
           records = records.filter(f => {
             const isNotDropFiber = !f.nodeId;
-            if (f.nodeId) {
-              console.log('  Excluding DROP fiber:', f.label);
+            if (!isNotDropFiber) {
+              console.log(`  ❌ Excluding DROP fiber: ${f.label}`);
             }
             return isNotDropFiber;
           });
-          console.log('🔷 FusionLink - Available fibers after filter:', records.length);
+          console.log(`✅ FusionLink - Showing ${records.length} main line fiber(s)`);
         } else {
           // IDF (typeId===2) y Pedestal (typeId===3): Mostrar TODAS las fibras (incluidas DROP para fusionar a UNITs)
-          console.log('🔷 FusionLink - IDF/Pedestal: Showing all fibers including DROP');
-          console.log('🔷 FusionLink - Total fibers available:', records.length);
+          console.log('🔷 FusionLink - Pedestal/IDF Filter: Showing ALL fibers (main line + DROP)');
+          console.log(`✅ FusionLink - Total ${records.length} fiber(s) available`);
         }
       }
 
@@ -552,6 +566,40 @@ const FusionLink = ({ route, navigation }) => {
         };
 
         records[i] = f;
+      }
+
+      // 🔧 INTEGRACIÓN: Filtrar buffers consumidos dinámicamente
+      // Obtener todos los nodos para revisar qué buffers fueron consumidos
+      try {
+        const allNodes = await getNodes(projectId);
+        
+        records = records.map((fiber) => {
+          // Filtrar buffers que NO han sido consumidos en ningún nodo
+          const visibleBuffers = fiber.buffers.filter((buffer) => {
+            // Si es la fibra padre (sin parentId), no filtrar
+            if (!buffer.parentId) return true;
+            
+            // Revisar si este buffer fue consumido en algún nodo
+            const isConsumed = allNodes.some((node) => 
+              isBufferConsumedInNode(buffer, node)
+            );
+            
+            if (isConsumed) {
+              console.log(`🔴 Buffer ${buffer.label} filtrado (consumido en nodo)`);
+            }
+            
+            return !isConsumed;
+          });
+          
+          return {
+            ...fiber,
+            buffers: visibleBuffers
+          };
+        });
+        
+        console.log(`✅ Buffers filtrados dinámicamente - Visibles: ${records.reduce((sum, f) => sum + f.buffers.length, 0)}`);
+      } catch (err) {
+        console.warn('⚠️ No se pudo cargar nodos para filtro de buffers:', err);
       }
 
       records = records.map((f) => {
@@ -631,13 +679,22 @@ const FusionLink = ({ route, navigation }) => {
       const number = t.number - 1;
 
       for (let i = 0; i < links.length; i++) {
-          const lx = isSource ? links[i].src : links[i].dst;
+          // CRÍTICO: Buscar en AMBOS lados de la fusión, no solo en el lado especificado
+          // Esto evita crear fusiones duplicadas independiente de la dirección
+          const src = links[i].src;
+          const dst = links[i].dst;
 
-          if (lx.fiberId == fiber.id || lx.bufferId == fiber.id) {
-            if (lx.thread == number) {
-              found = true;
-              break;
-            }
+          // Verificar si este hilo está en el lado SRC
+          const inSrc = (src?.fiberId === fiber.id || src?.bufferId === fiber.id) && src?.thread === number;
+          
+          // Verificar si este hilo está en el lado DST
+          const inDst = (dst?.fiberId === fiber.id || dst?.bufferId === fiber.id) && dst?.thread === number;
+
+          // Si el hilo está en CUALQUIERA de los dos lados, marcarlo como usado
+          if (inSrc || inDst) {
+            found = true;
+            console.log(`🔗 Hilo ${number + 1} de ${fiber.label} ya está en uso en fusión`);
+            break;
           }
       }
 

@@ -25,9 +25,10 @@ import { useAdapter } from "@/api/contexts/DatabaseContext";
 
 import { v4 as uuidv4 } from "uuid";
 import RNPickerSelect from "react-native-picker-select";
+import { isBufferConsumedInNode } from "@/utils/bufferVisibilityManager";
 
 const DeviceLinks = ({ route, navigation }) => {
-  const { updateNode, getFibers } = useAdapter()();
+  const { updateNode, getFibers, getNodes } = useAdapter()();
 
   const { topInset, bottomInset, stylesFull } = useDevice();
   const { isDarkMode, language } = useApp();
@@ -952,31 +953,44 @@ const DeviceLinks = ({ route, navigation }) => {
 
       // Filtrar fibras según el tipo de nodo
       if (node) {
+        // NORMALIZACIÓN DE IDs: Priorizar ID de BD, sino usar hash
+        const normalizeId = (id, hash) => {
+          return id !== undefined && id !== null ? id : hash;
+        };
+        
+        const currentNodeId = normalizeId(node.id, node.hash);
+        
         if (node.typeId === 4) {
           // UNIT: Solo mostrar la fibra DROP de esta UNIT específica
-          const nodeIdentifier = node.id || node.hash; // Usar id de BD si existe, sino hash
-          console.log('🔷 DeviceLinks - Filtering fibers for UNIT:', node.label, 'identifier:', nodeIdentifier);
+          console.log('🔷 DeviceLinks - UNIT Filter:', node.label, '| Node ID (normalized):', currentNodeId);
+          console.log('🔷 Also checking for hash match:', node.hash);
           records = records.filter(f => {
-            const isUnitFiber = f.nodeId === nodeIdentifier;
-            console.log('  Fiber:', f.label, 'nodeId:', f.nodeId, 'matches:', isUnitFiber);
+            const fiberNodeId = normalizeId(f.nodeId, f.nodeHash);
+            // Match by DB ID OR by hash (for fibers not yet saved with DB ID)
+            const isUnitFiber = fiberNodeId === currentNodeId || f.nodeId === node.hash;
+            if (!isUnitFiber && f.nodeId) {
+              console.log(`  ❌ Rejecting fiber ${f.label} (nodeId: ${fiberNodeId} !== ${currentNodeId} AND nodeId !== ${node.hash})`);
+            } else if (isUnitFiber) {
+              console.log(`  ✅ Including fiber ${f.label} for UNIT (nodeId: ${fiberNodeId} OR ${f.nodeId} === ${node.hash})`);
+            }
             return isUnitFiber;
           });
-          console.log('🔷 DeviceLinks - Filtered fibers count:', records.length);
+          console.log(`✅ DeviceLinks - Showing ${records.length} fiber(s) for this UNIT`);
         } else if (node.typeId === 1) {
           // MDF (typeId===1): Excluir TODAS las fibras DROP (nunca conexión directa MDF→UNIT)
-          console.log('🔷 DeviceLinks - MDF: Excluding all DROP fibers');
+          console.log('🔷 DeviceLinks - MDF Filter: Excluding DROP fibers');
           records = records.filter(f => {
             const isNotDropFiber = !f.nodeId;
-            if (f.nodeId) {
-              console.log('  Excluding DROP fiber:', f.label);
+            if (!isNotDropFiber) {
+              console.log(`  ❌ Excluding DROP fiber: ${f.label}`);
             }
             return isNotDropFiber;
           });
-          console.log('🔷 DeviceLinks - Available fibers after filter:', records.length);
+          console.log(`✅ DeviceLinks - Showing ${records.length} main line fiber(s)`);
         } else {
           // IDF (typeId===2) y Pedestal (typeId===3): Mostrar TODAS las fibras (incluidas DROP para fusionar a UNITs)
-          console.log('🔷 DeviceLinks - IDF/Pedestal: Showing all fibers including DROP');
-          console.log('🔷 DeviceLinks - Total fibers available:', records.length);
+          console.log('🔷 DeviceLinks - Pedestal/IDF Filter: Showing ALL fibers (main line + DROP)');
+          console.log(`✅ DeviceLinks - Total ${records.length} fiber(s) available`);
         }
       }
 
@@ -1007,6 +1021,40 @@ const DeviceLinks = ({ route, navigation }) => {
         records[i] = f;
       }
 
+      // 🔧 INTEGRACIÓN: Filtrar buffers consumidos dinámicamente
+      // Obtener todos los nodos para revisar qué buffers fueron consumidos
+      try {
+        const allNodes = await getNodes(projectId);
+        
+        records = records.map((fiber) => {
+          // Filtrar buffers que NO han sido consumidos en ningún nodo
+          const visibleBuffers = fiber.buffers.filter((buffer) => {
+            // Si es la fibra padre (sin parentId), no filtrar
+            if (!buffer.parentId) return true;
+            
+            // Revisar si este buffer fue consumido en algún nodo
+            const isConsumed = allNodes.some((node) => 
+              isBufferConsumedInNode(buffer, node)
+            );
+            
+            if (isConsumed) {
+              console.log(`🔴 Buffer ${buffer.label} filtrado (consumido en nodo)`);
+            }
+            
+            return !isConsumed;
+          });
+          
+          return {
+            ...fiber,
+            buffers: visibleBuffers
+          };
+        });
+        
+        console.log(`✅ Buffers filtrados dinámicamente - Visibles: ${records.reduce((sum, f) => sum + f.buffers.length, 0)}`);
+      } catch (err) {
+        console.warn('⚠️ No se pudo cargar nodos para filtro de buffers:', err);
+      }
+
       records = records.map((f) => {
         return {
           ...f,
@@ -1014,7 +1062,7 @@ const DeviceLinks = ({ route, navigation }) => {
           label: f.label, // Asegurar que tiene label para el picker
         };
       });
-      console.log('🔷 Final fibersData for picker:', records.map(f => ({ label: f.label, value: f.value })));
+      console.log('🔷 Final fibersData for picker:', records.map(f => ({ label: f.label, value: f.value, buffers: f.buffers.length })));
       setFibersData(records);
       return records;
     };

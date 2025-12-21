@@ -26,6 +26,8 @@ import RNPickerSelect from "react-native-picker-select";
 
 import { useFiberPath, formatPathForDisplay } from '../hooks/useFiberPath'
 import TimelineVertical from "@/utils/TimelineVertical";
+import { formatPathSummary, formatPathDetailed, getPathStatistics } from "@/utils/pathFormattingHelper";
+import { buildBufferConsumptionMap, getBufferConsumptionInfo } from "@/utils/bufferConsumptionTracker";
 
 const NodePath = ({ route, navigation }) => {
 
@@ -52,6 +54,9 @@ const NodePath = ({ route, navigation }) => {
   const [srcLink, setSrcLink] = useState(null);
   const [dstLink, setDstLink] = useState(null);
   const [finalPath, setFinalPath] = useState(null);
+  const [showDetailedPath, setShowDetailedPath] = useState(false);
+  const [pathSummary, setPathSummary] = useState(null);
+  const [pathStats, setPathStats] = useState(null);
 
   const fiberColors12Hex = [
     { index: 0, color: "#0000FF" },
@@ -694,27 +699,56 @@ const NodePath = ({ route, navigation }) => {
       const sourceId = node.id || node.hash;
       const destId = mdf.id || mdf.hash;
       
-      console.log('🚀 ==================== INICIANDO BÚSQUEDA DE RUTA ====================');
-      console.log('🚀 Desde:', node?.label, '(ID:', sourceId, ')');
-      console.log('🚀 Hasta:', mdf?.label, '(ID:', destId, ')');
-      console.log('🚀 Total nodos en grafo:', nodes?.length || 0);
-      console.log('🚀 Total fibras:', fibers?.length || 0);
-      console.log('🚀 ====================================================================');
+      console.log(`\n${'='.repeat(60)}\n🔍 [NP-100] BÚSQUEDA DE RUTA INICIADA\n${'='.repeat(60)}`);
+      console.log(`  Origen: ${node?.label} (ID: ${sourceId})`);
+      console.log(`  Destino: ${mdf?.label} (ID: ${destId})`);
+      console.log(`  Grafo: ${nodes?.length || 0} nodos`);
+      console.log(`  Fibras: ${fibers?.length || 0} fibras`);
+      console.log(`${'='.repeat(60)}`);
       
       const result = findPath(sourceId, destId);
       
       if (result.success) {
-        console.log('🎉 ==================== RUTA ENCONTRADA ====================');
-        console.log('🎉 Total caminos:', result.totalPaths || 1);
-        console.log('🎉 Saltos:', result.paths?.[0]?.hops || result.totalHops || 0);
-        console.log('🎉 ===========================================================');
+        console.log(`\n${'='.repeat(60)}\n✅ [NP-200] RUTA ENCONTRADA\n${'='.repeat(60)}`);
+        console.log(`  Caminos totales: ${result.totalPaths || 1}`);
+        console.log(`  Saltos (primer camino): ${result.paths?.[0]?.hops || result.totalHops || 0}`);
+        console.log(`${'='.repeat(60)}`);
+        
+        // 🔧 INTEGRACIÓN: Generar vistas dual y estadísticas
+        try {
+          const path = result.paths?.[0]?.path || result.path || [];
+          
+          // Vista resumida
+          console.log(`\n📊 [NP-201] Generando vista resumida...`);
+          const summary = formatPathSummary(path, nodes);
+          setPathSummary(summary);
+          console.log(`  Resumen: ${summary}`);
+          
+          // Estadísticas del path
+          console.log(`\n📈 [NP-202] Calculando estadísticas...`);
+          const stats = getPathStatistics(path);
+          setPathStats(stats);
+          console.log(`  Distancia: ${stats?.distance || 0} saltos`);
+          console.log(`  Nodos intermedios: ${stats?.intermediateHops || 0}`);
+          
+          // Tracking de consumo de buffers
+          console.log(`\n📍 [NP-203] Analizando consumo de buffers...`);
+          try {
+            const consumptionMap = buildBufferConsumptionMap(nodes);
+            console.log(`  Buffers rastreados: ${consumptionMap.size}`);
+          } catch (err) {
+            console.warn(`⚠️ [NP-204] Error en consumptionMap: ${err.message}`);
+          }
+        } catch (err) {
+          console.warn(`⚠️ [NP-205] Error en formateo: ${err.message}`);
+        }
       } else {
-        console.log('❌ ==================== NO SE ENCONTRÓ RUTA ====================');
-        console.log('❌ Error:', result.error);
-        console.log('❌ ===============================================================');
+        console.log(`\n${'='.repeat(60)}\n❌ [NP-300] RUTA NO ENCONTRADA\n${'='.repeat(60)}`);
+        console.log(`  Error: ${result.error}`);
+        console.log(`${'='.repeat(60)}`);
       }
       
-      console.log('🛤️ Resultado pathfinding completo:', result);
+      console.log(`\n📤 [NP-400] Resultado completo:`, result);
       setFinalPath(result);
     };
 
