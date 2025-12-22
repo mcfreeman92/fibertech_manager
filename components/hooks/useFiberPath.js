@@ -20,6 +20,15 @@ function normalizeId(id) {
 }
 
 /**
+ * Convierte número de thread a etiqueta legible
+ * Thread 1 → H1, Thread 2 → H2, etc.
+ */
+function getThreadLabel(threadNumber) {
+  if (!threadNumber && threadNumber !== 0) return 'Unknown';
+  return `H${threadNumber}`;
+}
+
+/**
  * Encuentra todos los nodos conectados a una fibra/hilo específico
  * Busca TANTO en device links COMO en fusion links
  * 
@@ -72,24 +81,29 @@ function findNodesConnectedToFiber(nodeMap, excludeNodeId, fiberInfo, fiberMap) 
     // CRÍTICO: Una fusión es BIDIRECCIONAL
     // Si llegamos por un hilo en SRC, podemos salir por DST (y vice versa)
     // La búsqueda debe funcionar en AMBAS direcciones
+    // IMPORTANTE: Los threads en devices son 1-indexed, en fusiones son 0-indexed
     if (node.fusionLinks) {
       for (const fusionLink of node.fusionLinks) {
         const { src, dst } = fusionLink;
         
+        // Normalizar: thread de device (1-indexed) a fusion (0-indexed)
+        const threadNormalized = thread ? thread - 1 : 0;
+        
         // ¿La fusión tiene este hilo en el lado SRC?
         const matchesSrc = src?.fiberId === fiberId && 
-                          src?.bufferId === bufferId && 
-                          src?.thread === thread;
+                          (src?.bufferId === bufferId || (bufferId === null && src?.bufferId === null)) &&
+                          (src?.thread === thread || src?.thread === threadNormalized);
         
         // ¿La fusión tiene este hilo en el lado DST?
         const matchesDst = dst?.fiberId === fiberId && 
-                          dst?.bufferId === bufferId && 
-                          dst?.thread === thread;
+                          (dst?.bufferId === bufferId || (bufferId === null && dst?.bufferId === null)) &&
+                          (dst?.thread === thread || dst?.thread === threadNormalized);
         
         if (matchesSrc || matchesDst) {
           const entryPoint = matchesSrc ? 'SRC' : 'DST';
           const exitPoint = matchesSrc ? 'DST' : 'SRC';
           console.log(`        ✅ Fusion Link BIDIRECCIONAL encontrado: ${node.label} | Entrada: ${entryPoint} → Salida: ${exitPoint}`);
+          console.log(`           Fibra: ${fiberId} | Buffer: ${bufferId} | Thread: ${thread} (normalized: ${threadNormalized})`);
           // Este nodo tiene una fusión con la fibra que buscamos
           // Lo agregamos como conexión para que el pathfinding explore la fusión en ambas direcciones
           connections.push({
@@ -300,13 +314,33 @@ export function findAllFiberPaths(graph, fibers, startNodeId, endNodeId) {
               console.log(`         Salida:  Fiber ${exitFiberInfo.fiberId}:${exitFiberInfo.thread} (${exitFiber?.label})`);
 
               // Ahora buscar nodos conectados al OTRO lado de la fusión (exitFiberInfo)
+              // IMPORTANTE: La fusión puede conectarse a CUALQUIER thread disponible de la fibra de salida
+              // No solo al thread específico de la fusión
               console.log(`      🔎 Buscando nodos conectados al otro lado de la fusión...`);
-              const nextConnections = findNodesConnectedToFiber(
+              
+              // IMPORTANTE: La fusión almacena threads 0-indexed, pero MDF usa 1-indexed
+              // Necesito convertir: fusion thread 0 → MDF thread 1, fusion thread 1 → MDF thread 2
+              const exitThreadForMDF = exitFiberInfo.thread ? exitFiberInfo.thread + 1 : 1;
+              
+              const threadFiberInfoForMDF = {
+                fiberId: exitFiberInfo.fiberId,
+                bufferId: exitFiberInfo.bufferId,
+                thread: exitThreadForMDF
+              };
+              
+              const connsForThread = findNodesConnectedToFiber(
                 nodeMap,
                 conn.nodeId, // Excluir el nodo de la fusión
-                exitFiberInfo,
+                threadFiberInfoForMDF,
                 fiberMap
               );
+              
+              // Guardar conexiones con el thread convertido
+              const nextConnections = connsForThread.map(c => ({
+                ...c,
+                actualThreadUsed: exitThreadForMDF,
+                actualThreadLabel: getThreadLabel(exitThreadForMDF)
+              }));
 
               console.log(`      📊 Nodos encontrados después de la fusión: ${nextConnections.length}`);
 
@@ -317,7 +351,7 @@ export function findAllFiberPaths(graph, fibers, startNodeId, endNodeId) {
                   continue;
                 }
 
-                // Crear paso que representa: Device → Fusión → Device
+                  // Crear paso que representa: Device → Fusión → Device
                 const step = {
                   type: 'device-to-fusion-to-device',
                   from: {
@@ -334,13 +368,16 @@ export function findAllFiberPaths(graph, fibers, startNodeId, endNodeId) {
                     entryFiberLabel: fiber?.label || `Fiber_${linkInfo.fiberId}`,
                     entryBufferId: linkInfo.bufferId,
                     entryThread: linkInfo.thread,
+                    entryThreadLabel: getThreadLabel(linkInfo.thread),
                     entryColor: getThreadColor(fiber, linkInfo.thread),
                     // Fibra de salida (hacia el próximo device)
+                    // IMPORTANTE: Usar el thread REAL que se encontró en MDF, no el de la fusión
                     exitFiberId: exitFiberInfo.fiberId,
                     exitFiberLabel: exitFiber?.label || `Fiber_${exitFiberInfo.fiberId}`,
                     exitBufferId: exitFiberInfo.bufferId,
-                    exitThread: exitFiberInfo.thread,
-                    exitColor: getThreadColor(exitFiber, exitFiberInfo.thread)
+                    exitThread: nextConn.actualThreadUsed || exitFiberInfo.thread,
+                    exitThreadLabel: nextConn.actualThreadLabel || getThreadLabel(exitFiberInfo.thread),
+                    exitColor: getThreadColor(exitFiber, nextConn.actualThreadUsed || exitFiberInfo.thread)
                   },
                   to: {
                     nodeId: nextConn.nodeId,

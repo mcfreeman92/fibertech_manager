@@ -1,5 +1,6 @@
 // components/DetallesProyecto.js
 import React, { useState, useEffect, useRef } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 
 import {
   View,
@@ -494,127 +495,140 @@ const FusionLink = ({ route, navigation }) => {
     );
   };
 
-  useEffect(() => {
-    const loadFibers = async () => {
-      let records = await getFibers(projectId, null);
+  // 📋 FUNCIÓN REFACTORIZADA: loadFibers - Reutilizable
+  const loadFibersForPicker = React.useCallback(async () => {
+    console.log('📋 Loading fibers for FusionLink picker...');
+    let records = await getFibers(projectId, null);
 
-      // Filtrar fibras según el tipo de nodo
-      if (node) {
-        // NORMALIZACIÓN DE IDs: Priorizar ID de BD, sino usar hash
-        const normalizeId = (id, hash) => {
-          return id !== undefined && id !== null ? id : hash;
-        };
-        
-        const currentNodeId = normalizeId(node.id, node.hash);
-        
-        if (node.typeId === 4) {
-          // UNIT: Solo mostrar la fibra DROP de esta UNIT específica
-          console.log('🔷 FusionLink - UNIT Filter:', node.label, '| Node ID (normalized):', currentNodeId);
-          console.log('🔷 Also checking for hash match:', node.hash);
-          records = records.filter(f => {
-            const fiberNodeId = normalizeId(f.nodeId, f.nodeHash);
-            // Match by DB ID OR by hash (for fibers not yet saved with DB ID)
-            const isUnitFiber = fiberNodeId === currentNodeId || f.nodeId === node.hash;
-            if (!isUnitFiber && f.nodeId) {
-              console.log(`  ❌ Rejecting fiber ${f.label} (nodeId: ${fiberNodeId} !== ${currentNodeId} AND nodeId !== ${node.hash})`);
-            } else if (isUnitFiber) {
-              console.log(`  ✅ Including fiber ${f.label} for UNIT (nodeId: ${fiberNodeId} OR ${f.nodeId} === ${node.hash})`);
-            }
-            return isUnitFiber;
-          });
-          console.log(`✅ FusionLink - Showing ${records.length} fiber(s) for this UNIT`);
-        } else if (node.typeId === 1) {
-          // MDF (typeId===1): Excluir TODAS las fibras DROP (nunca conexión directa MDF→UNIT)
-          console.log('🔷 FusionLink - MDF Filter: Excluding DROP fibers');
-          records = records.filter(f => {
-            const isNotDropFiber = !f.nodeId;
-            if (!isNotDropFiber) {
-              console.log(`  ❌ Excluding DROP fiber: ${f.label}`);
-            }
-            return isNotDropFiber;
-          });
-          console.log(`✅ FusionLink - Showing ${records.length} main line fiber(s)`);
-        } else {
-          // IDF (typeId===2) y Pedestal (typeId===3): Mostrar TODAS las fibras (incluidas DROP para fusionar a UNITs)
-          console.log('🔷 FusionLink - Pedestal/IDF Filter: Showing ALL fibers (main line + DROP)');
-          console.log(`✅ FusionLink - Total ${records.length} fiber(s) available`);
-        }
-      }
-
-      for (let i = 0; i < records.length; i++) {
-        let buffers = [
-          {
-            ...records[i],
-            value: records[i].id,
-          },
-        ];
-
-        let children = await getFibers(projectId, records[i].id);
-
-        children = children.map((b) => {
-          return {
-            ...b,
-            value: b.id,
-          };
+    // Filtrar fibras según el tipo de nodo
+    if (node) {
+      // NORMALIZACIÓN DE IDs: Priorizar ID de BD, sino usar hash
+      const normalizeId = (id, hash) => {
+        return id !== undefined && id !== null ? id : hash;
+      };
+      
+      const currentNodeId = normalizeId(node.id, node.hash);
+      
+      if (node.typeId === 4) {
+        // UNIT: Solo mostrar la fibra DROP de esta UNIT específica
+        console.log('🔷 FusionLink - UNIT Filter:', node.label, '| Node ID (normalized):', currentNodeId);
+        console.log('🔷 Also checking for hash match:', node.hash);
+        records = records.filter(f => {
+          const fiberNodeId = normalizeId(f.nodeId, f.nodeHash);
+          // Match by DB ID OR by hash (for fibers not yet saved with DB ID)
+          const isUnitFiber = fiberNodeId === currentNodeId || f.nodeId === node.hash;
+          if (!isUnitFiber && f.nodeId) {
+            console.log(`  ❌ Rejecting fiber ${f.label} (nodeId: ${fiberNodeId} !== ${currentNodeId} AND nodeId !== ${node.hash})`);
+          } else if (isUnitFiber) {
+            console.log(`  ✅ Including fiber ${f.label} for UNIT (nodeId: ${fiberNodeId} OR ${f.nodeId} === ${node.hash})`);
+          }
+          return isUnitFiber;
         });
+        console.log(`✅ FusionLink - Showing ${records.length} fiber(s) for this UNIT`);
+      } else if (node.typeId === 1) {
+        // MDF (typeId===1): Excluir TODAS las fibras DROP (nunca conexión directa MDF→UNIT)
+        console.log('🔷 FusionLink - MDF Filter: Excluding DROP fibers');
+        records = records.filter(f => {
+          const isNotDropFiber = !f.nodeId;
+          if (!isNotDropFiber) {
+            console.log(`  ❌ Excluding DROP fiber: ${f.label}`);
+          }
+          return isNotDropFiber;
+        });
+        console.log(`✅ FusionLink - Showing ${records.length} main line fiber(s)`);
+      } else {
+        // IDF (typeId===2) y Pedestal (typeId===3): Mostrar TODAS las fibras (incluidas DROP para fusionar a UNITs)
+        console.log('🔷 FusionLink - Pedestal/IDF Filter: Showing ALL fibers (main line + DROP)');
+        console.log(`✅ FusionLink - Total ${records.length} fiber(s) available`);
+      }
+    }
 
-        buffers = [...buffers, ...children];
-
-        let f = {
+    for (let i = 0; i < records.length; i++) {
+      let buffers = [
+        {
           ...records[i],
-          buffers: buffers,
-        };
+          value: records[i].id,
+        },
+      ];
 
-        records[i] = f;
-      }
+      let children = await getFibers(projectId, records[i].id);
 
-      // 🔧 INTEGRACIÓN: Filtrar buffers consumidos dinámicamente
-      // Obtener todos los nodos para revisar qué buffers fueron consumidos
-      try {
-        const allNodes = await getNodes(projectId);
-        
-        records = records.map((fiber) => {
-          // Filtrar buffers que NO han sido consumidos en ningún nodo
-          const visibleBuffers = fiber.buffers.filter((buffer) => {
-            // Si es la fibra padre (sin parentId), no filtrar
-            if (!buffer.parentId) return true;
-            
-            // Revisar si este buffer fue consumido en algún nodo
-            const isConsumed = allNodes.some((node) => 
-              isBufferConsumedInNode(buffer, node)
-            );
-            
-            if (isConsumed) {
-              console.log(`🔴 Buffer ${buffer.label} filtrado (consumido en nodo)`);
-            }
-            
-            return !isConsumed;
-          });
-          
-          return {
-            ...fiber,
-            buffers: visibleBuffers
-          };
-        });
-        
-        console.log(`✅ Buffers filtrados dinámicamente - Visibles: ${records.reduce((sum, f) => sum + f.buffers.length, 0)}`);
-      } catch (err) {
-        console.warn('⚠️ No se pudo cargar nodos para filtro de buffers:', err);
-      }
-
-      records = records.map((f) => {
+      children = children.map((b) => {
         return {
-          ...f,
-          value: f.id != undefined ? f.id : f.hash,
-          label: f.label, // Asegurar que tiene label para el picker
+          ...b,
+          value: b.id,
         };
       });
-      console.log('🔷 FusionLink - Final fibersData for picker:', records.map(f => ({ label: f.label, value: f.value })));
-      setFibersData(records);
-      return records;
-    };
 
-    loadFibers()
+      buffers = [...buffers, ...children];
+
+      let f = {
+        ...records[i],
+        buffers: buffers,
+      };
+
+      records[i] = f;
+    }
+
+    // 🔧 INTEGRACIÓN: Filtrar buffers consumidos dinámicamente
+    // Obtener todos los nodos para revisar qué buffers fueron consumidos
+    try {
+      const allNodes = await getNodes(projectId);
+      
+      records = records.map((fiber) => {
+        // Filtrar buffers que NO han sido consumidos en ningún nodo
+        const visibleBuffers = fiber.buffers.filter((buffer) => {
+          // Si es la fibra padre (sin parentId), no filtrar
+          if (!buffer.parentId) return true;
+          
+          // Revisar si este buffer fue consumido en algún nodo
+          const isConsumed = allNodes.some((node) => 
+            isBufferConsumedInNode(buffer, node)
+          );
+          
+          if (isConsumed) {
+            console.log(`🔴 Buffer ${buffer.label} filtrado (consumido en nodo)`);
+          }
+          
+          return !isConsumed;
+        });
+        
+        return {
+          ...fiber,
+          buffers: visibleBuffers
+        };
+      });
+      
+      console.log(`✅ Buffers filtrados dinámicamente - Visibles: ${records.reduce((sum, f) => sum + f.buffers.length, 0)}`);
+    } catch (err) {
+      console.warn('⚠️ No se pudo cargar nodos para filtro de buffers:', err);
+    }
+
+    records = records.map((f) => {
+      return {
+        ...f,
+        value: f.id != undefined ? f.id : f.hash,
+        label: f.label, // Asegurar que tiene label para el picker
+      };
+    });
+    console.log('🔷 FusionLink - Final fibersData for picker:', records.map(f => ({ label: f.label, value: f.value })));
+    setFibersData(records);
+    return records;
+  }, [projectId, node, getFibers, getNodes, t]);
+
+  // 🔄 FOCUS LISTENER: Recargar fibras cuando la pantalla vuelve a enfoque
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('🔄 FusionLink screen focused - reloading fibers');
+      loadFibersForPicker();
+      return () => {
+        // Cleanup si es necesario
+      };
+    }, [loadFibersForPicker])
+  );
+
+  useEffect(() => {
+    loadFibersForPicker()
       .then((fibers) => {
         if (link != undefined) {
           const srcFiber = fibers.find((x) => x.id == link.src.fiberId);
@@ -665,7 +679,7 @@ const FusionLink = ({ route, navigation }) => {
       .catch((e) => {
         console.error(e);
       });
-  }, []);
+  }, [projectId, node?.id, link, t, loadFibersForPicker]);
 
   const buildThreads = (fiber, threads, isSource) => {
     let tmp = threads.filter((x) => x.active == true && x.inUse == false);

@@ -583,16 +583,23 @@ const NodePath = ({ route, navigation }) => {
       if (step.type === 'device-link') {
         return {
           title: `${step.from.nodeLabel} → ${step.to.nodeLabel}`,
-          description: `${step.from.deviceLabel} (Puerto ${step.from.port}) ➜ Fibra ${step.through.fiberLabel} Hilo ${step.through.thread} ➜ ${step.to.deviceLabel} (Puerto ${step.to.port})`,
+          description: `${step.from.deviceLabel} (Puerto ${step.from.port}) ➜ Fibra ${step.through.fiberLabel} ${step.through.threadLabel || `Hilo ${step.through.thread}`} ➜ ${step.to.deviceLabel} (Puerto ${step.to.port})`,
           date: `Salto ${idx + 1}`,
           status: idx === 0 ? 'completed' : (idx < pathData.path.length - 1 ? 'current' : 'pending'),
           color: step.through.threadColor
         };
       } else if (step.type === 'device-to-fusion-to-device') {
         // Camino completo a través de fusión
+        const bufferInfo = step.throughFusion.entryBufferId 
+          ? ` Buffer ${step.throughFusion.entryBufferId}` 
+          : '';
+        const exitBufferInfo = step.throughFusion.exitBufferId 
+          ? ` Buffer ${step.throughFusion.exitBufferId}` 
+          : '';
+        
         return {
-          title: `${step.from.nodeLabel} → [Fusión] → ${step.to.nodeLabel}`,
-          description: `${step.from.deviceLabel} (Puerto ${step.from.port}) ➜ ${step.throughFusion.entryFiberLabel}:${step.throughFusion.entryThread} ⚡ Fusión en ${step.throughFusion.fusionNodeLabel} ⚡ ${step.throughFusion.exitFiberLabel}:${step.throughFusion.exitThread} ➜ ${step.to.deviceLabel} (Puerto ${step.to.port})`,
+          title: `${step.from.nodeLabel} → [Fusión en ${step.throughFusion.fusionNodeLabel}] → ${step.to.nodeLabel}`,
+          description: `${step.from.deviceLabel} (Puerto ${step.from.port}) ➜ ${step.throughFusion.entryFiberLabel}${bufferInfo}: ${step.throughFusion.entryThreadLabel || `Hilo ${step.throughFusion.entryThread}`} ⚡ Fusión en ${step.throughFusion.fusionNodeLabel} ⚡ ${step.throughFusion.exitFiberLabel}${exitBufferInfo}: ${step.throughFusion.exitThreadLabel || `Hilo ${step.throughFusion.exitThread}`} ➜ ${step.to.deviceLabel} (Puerto ${step.to.port})`,
           date: `Salto ${idx + 1}`,
           status: idx === 0 ? 'completed' : (idx < pathData.path.length - 1 ? 'current' : 'pending'),
           color: step.throughFusion.entryColor
@@ -601,7 +608,7 @@ const NodePath = ({ route, navigation }) => {
         // Fusion link directo
         return {
           title: `Fusión en ${step.from.nodeLabel}`,
-          description: `${step.through.fusionSrc.fiberLabel}:${step.through.fusionSrc.thread} ↔ ${step.through.fusionDst.fiberLabel}:${step.through.fusionDst.thread} ➜ ${step.to.nodeLabel}`,
+          description: `${step.through.fusionSrc.fiberLabel}:${step.through.fusionSrc.threadLabel || `Hilo ${step.through.fusionSrc.thread}`} ↔ ${step.through.fusionDst.fiberLabel}:${step.through.fusionDst.threadLabel || `Hilo ${step.through.fusionDst.thread}`} ➜ ${step.to.nodeLabel}`,
           date: `Salto ${idx + 1}`,
           status: idx === 0 ? 'completed' : (idx < pathData.path.length - 1 ? 'current' : 'pending'),
           color: step.through.fusionSrc.threadColor
