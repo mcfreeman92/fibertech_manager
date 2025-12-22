@@ -126,8 +126,10 @@ const CreateProject = ({ navigation, route, theme }) => {
   const [showAddNodeModal, setShowAddNodeModal] = useState(false);
 
   const [showFilterNodesModal, setShowFilterNodesModal] = useState(false);
+  const [showFilterFibersModal, setShowFilterFibersModal] = useState(false);
 
   const [fibers, setFibers] = useState([]);
+  const [allFibers, setAllFibers] = useState([]); // Estado completo de fibras sin filtrar
   const [deletedFiberIds, setDeletedFiberIds] = useState([]); // Track deleted fiber IDs
   const [nodes, setNodes] = useState([]);
   const [allNodes, setAllNodes] = useState([]); // Estado completo sin filtrar
@@ -232,6 +234,10 @@ const CreateProject = ({ navigation, route, theme }) => {
     nodesFiltersList[0] // Iniciar con "Todos" en lugar de MDF
   );
 
+  const [selectedFibersFilter, setSelectedFibersFilter] = useState(
+    { id: 0, name: t("allNodeFilter"), type: "ALL" } // Iniciar con "Todos"
+  );
+
   const handleNodesFilterSelect = () => {
     setShowFilterNodesModal(true);
   };
@@ -253,6 +259,77 @@ const CreateProject = ({ navigation, route, theme }) => {
     console.log(
       `🔍 Filter applied: ${filter.name}, showing ${filtered.length} nodes`
     );
+  };
+
+  const handleFibersFilterSelect = () => {
+    setShowFilterFibersModal(true);
+  };
+
+  const handleFilterFiberSelect = (filter) => {
+    // Filtrar desde allFibers
+    let filtered = [];
+
+    if (filter.id == 0 || filter.type === "ALL") {
+      filtered = allFibers; // Mostrar todas
+    } else {
+      // Filtrar por tipo de fibra (2F, 12F, 24F, etc)
+      filtered = allFibers.filter((x) => {
+        const fiberType = x.label?.split('_')?.[0] || ''; // Extrae "2F", "12F", etc
+        return fiberType === filter.type;
+      });
+    }
+
+    setFibers(filtered);
+    setSelectedFibersFilter(filter);
+    setShowFilterFibersModal(false);
+
+    console.log(
+      `🔍 Fiber filter applied: ${filter.name}, showing ${filtered.length} fibers`
+    );
+  };
+
+  // Helper para actualizar fibras manteniendo el filtro activo
+  const updateFibersData = (newFibersOrFn) => {
+    setAllFibers((prevFibers) => {
+      const newFibers = typeof newFibersOrFn === 'function' 
+        ? newFibersOrFn(prevFibers) 
+        : newFibersOrFn;
+      
+      // Aplicar el filtro actualmente seleccionado
+      if (selectedFibersFilter.type === "ALL") {
+        setFibers(newFibers);
+      } else {
+        const filtered = newFibers.filter((x) => {
+          const fiberType = x.label?.split('_')?.[0] || '';
+          return fiberType === selectedFibersFilter.type;
+        });
+        setFibers(filtered);
+      }
+      
+      return newFibers;
+    });
+  };
+
+  // Obtener tipos de fibra únicos disponibles
+  const getAvailableFiberTypes = () => {
+    const types = new Set();
+    allFibers.forEach((fiber) => {
+      const fiberType = fiber.label?.split('_')?.[0] || '';
+      if (fiberType) types.add(fiberType);
+    });
+    return Array.from(types).sort();
+  };
+
+  // Construir lista dinámica de filtros de fibras
+  const getDynamicFibersFiltersList = () => {
+    const baseFilter = { id: 0, name: t("allNodeFilter"), type: "ALL" };
+    const types = getAvailableFiberTypes();
+    const typeFilters = types.map((type, idx) => ({
+      id: idx + 1,
+      name: type,
+      type: type
+    }));
+    return [baseFilter, ...typeFilters];
   };
 
   // Estilos base (sin colores específicos para mantener la estructura)
@@ -687,6 +764,10 @@ const CreateProject = ({ navigation, route, theme }) => {
         });
       }
 
+      // Guardar TODOS las fibras
+      setAllFibers(dbFibers);
+
+      // Mostrar TODAS las fibras inicialmente (sin filtrar)
       setFibers(dbFibers);
       console.log("✅ Total fibers loaded:", dbFibers.length);
 
@@ -983,7 +1064,7 @@ const CreateProject = ({ navigation, route, theme }) => {
       buffers.length,
       "buffers"
     );
-    setFibers((prev) => [...prev, fiber]);
+    updateFibersData((prev) => [...prev, fiber]);
     setShowAddFiberModal(false);
   };
 
@@ -1080,7 +1161,7 @@ const CreateProject = ({ navigation, route, theme }) => {
         dropFiberLabel,
         "- 2 active threads (system managed)"
       );
-      setFibers((prev) => [...prev, dropFiber]);
+      updateFibersData((prev) => [...prev, dropFiber]);
     }
 
     // Actualizar TODOS los nodos
@@ -1236,7 +1317,7 @@ const CreateProject = ({ navigation, route, theme }) => {
       inUse: inUse ? t.inUse + 1 : t.inUse - 1,
     };
 
-    setFibers(items);
+    updateFibersData(items);
   };
 
   const handleSaveProject = async () => {
@@ -1436,7 +1517,7 @@ const CreateProject = ({ navigation, route, theme }) => {
           }
           return fiber;
         });
-        setFibers(updatedFibers);
+        updateFibersData(updatedFibers);
 
         /**Persist new fibers */
         console.log(`\n${'='.repeat(60)}\n📦 [CP-020] Persisting Fibers (${updatedFibers.length} total)\n${'='.repeat(60)}`);
@@ -2038,7 +2119,7 @@ const CreateProject = ({ navigation, route, theme }) => {
       if (dropFiber) {
         console.log("🔷 Removing DROP fiber for UNIT:", dropFiber.label);
         const updatedFibers = fibers.filter((f) => f.nodeId !== nodeIdentifier);
-        setFibers(updatedFibers);
+        updateFibersData(updatedFibers);
 
         // Track for deletion if it has DB id
         if (dropFiber.id) {
@@ -2263,7 +2344,7 @@ const CreateProject = ({ navigation, route, theme }) => {
     if (index != -1) {
       let tmp = [...fibers];
       tmp[index] = fiber;
-      setFibers(tmp);
+      updateFibersData(tmp);
     }
   };
 
@@ -2329,7 +2410,7 @@ const CreateProject = ({ navigation, route, theme }) => {
     console.log(
       `🗑️ Fiber deleted. Total fibers: ${fibers.length} -> ${updatedFibers.length}`
     );
-    setFibers(updatedFibers);
+    updateFibersData(updatedFibers);
 
     // Track fiber ID and buffer IDs for deletion on save (only if they have DB ids)
     const idsToDelete = [];
@@ -2470,7 +2551,7 @@ const CreateProject = ({ navigation, route, theme }) => {
 
           {/**PATH */}
 
-          {node.typeId != mdfType.id && (
+          {node.typeId != mdfType.id && node.typeId != 2 && node.typeId != 3 && (
             <TouchableOpacity
               disabled={projectId == undefined}
               style={{ marginRight: 3 }}
@@ -2808,13 +2889,23 @@ const CreateProject = ({ navigation, route, theme }) => {
         <View style={combinedStyles.section}>
           <View style={combinedStyles.deviceHeader}>
             <Text style={combinedStyles.sectionTitle}>{t("netFibers")}</Text>
-            <TouchableOpacity
-              onPress={addFiber}
-              style={styles.clearButton}
-              disabled={saving}
-            >
-              <Ionicons name="add-circle" size={24} color={colors.primary} />
-            </TouchableOpacity>
+            <View style={{ flexDirection: "row" }}>
+              <TouchableOpacity
+                onPress={handleFibersFilterSelect}
+                style={styles.clearButton}
+                disabled={saving}
+              >
+                <Ionicons name="filter" size={24} color={colors.primary} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={addFiber}
+                style={styles.clearButton}
+                disabled={saving}
+              >
+                <Ionicons name="add-circle" size={24} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {fibers.length == 0 && (
@@ -3036,6 +3127,49 @@ const CreateProject = ({ navigation, route, theme }) => {
                     }}
                   >
                     {selectedNodesFilter.id == item.id && (
+                      <Ionicons
+                        name="checkmark"
+                        size={24}
+                        color={colors.primary}
+                      />
+                    )}
+
+                    <Text style={dynamicStyles.modalItemText}>{item.name}</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Filter Fibers Modal */}
+      <Modal
+        visible={showFilterFibersModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowFilterFibersModal(false)}
+      >
+        <View style={dynamicStyles.modalOverlay}>
+          <View style={dynamicStyles.modalContent}>
+            <Text style={dynamicStyles.modalTitle}>
+              {t("filterNodesModalTitle")}
+            </Text>
+            <FlatList
+              data={getDynamicFibersFiltersList()}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={dynamicStyles.modalItem}
+                  onPress={() => handleFilterFiberSelect(item)}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      gap: 3,
+                    }}
+                  >
+                    {selectedFibersFilter.id == item.id && (
                       <Ionicons
                         name="checkmark"
                         size={24}
