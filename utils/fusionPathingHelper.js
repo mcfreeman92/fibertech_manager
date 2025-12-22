@@ -175,7 +175,9 @@ export const validateFusionIntegrity = (fusionLink) => {
  * Genera un reporte bidireccional de todas las fusiones en un nodo
  * 
  * @param {Object} node - El nodo
- * @returns {Array} Array de fusiones documentadas bidireccionalmenteexport const generateFusionReport = (node) => {
+ * @returns {Array} Array de fusiones documentadas bidireccionally
+ */
+export const generateFusionReport = (node) => {
   if (!node || !Array.isArray(node.fusionLinks)) return [];
   
   return node.fusionLinks.map(fusion => {

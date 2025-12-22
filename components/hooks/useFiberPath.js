@@ -384,8 +384,48 @@ export function findAllFiberPaths(graph, fibers, startNodeId, endNodeId) {
                     nodeLabel: nextConn.nodeLabel,
                     deviceLabel: nextConn.deviceLabel,
                     port: nextConn.port
-                  }
+                  },
+                  // Detectar pedestales intermedios de la misma fibra
+                  intermediaryPedestals: []
                 };
+
+                // Buscar pedestales intermedios: otros buffers de la misma fibra de salida en otros nodos
+                const exitFiberId = normalizeId(exitFiberInfo.fiberId);
+                const exitBufferId = parseInt(exitFiberInfo.bufferId);
+                
+                console.log(`         🔍 Buscando pedestales intermedios para fibra ${exitFiberId}, buffer ${exitBufferId}...`);
+                console.log(`         Nodes disponibles: ${nodeMap.size}`);
+                
+                for (const node of nodeMap.values()) {
+                  if (node.id === conn.nodeId) continue; // Saltar el nodo de la fusión actual
+                  if (node.typeId === 'MDF') continue; // Saltar MDF
+                  
+                  if (node.fusionLinks && Array.isArray(node.fusionLinks)) {
+                    for (const fusion of node.fusionLinks) {
+                      const fusionSrcId = normalizeId(fusion.src?.fiberId);
+                      const fusionDstId = normalizeId(fusion.dst?.fiberId);
+                      
+                      // Si esta fusión involucra la misma fibra de salida
+                      if (fusionSrcId === exitFiberId || fusionDstId === exitFiberId) {
+                        const bufferAtThisNode = fusionSrcId === exitFiberId 
+                          ? parseInt(fusion.src?.bufferId)
+                          : parseInt(fusion.dst?.bufferId);
+                        
+                        console.log(`            Nodo ${node.label}: buffer ${bufferAtThisNode}, ¿es menor que ${exitBufferId}? ${bufferAtThisNode < exitBufferId}`);
+                        
+                        // Si este buffer es anterior al que estamos usando
+                        if (bufferAtThisNode < exitBufferId && !step.intermediaryPedestals.includes(node.label)) {
+                          step.intermediaryPedestals.push(node.label);
+                          console.log(`              ✅ Agregado: ${node.label}`);
+                        }
+                      }
+                    }
+                  }
+                }
+                
+                if (step.intermediaryPedestals.length > 0) {
+                  console.log(`         📍 Pedestales intermedios: ${step.intermediaryPedestals.join(', ')}`);
+                }
 
                 console.log(`         ➕ Agregando camino completo: ${currentNode.label} → ${conn.nodeLabel} (fusión) → ${nextConn.nodeLabel}`);
 

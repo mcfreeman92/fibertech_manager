@@ -578,6 +578,27 @@ const NodePath = ({ route, navigation }) => {
   const RenderPath = ({ pathData, pathIndex }) => {
     if (!pathData || !pathData.path) return null;
 
+    // Calcular cantidad de nodos únicos en la ruta
+    const getNodeCount = () => {
+      if (!pathData.path || pathData.path.length === 0) return 1;
+      
+      const nodes = new Set();
+      
+      // Agregar nodo origen
+      if (pathData.path[0]?.from?.nodeLabel) {
+        nodes.add(pathData.path[0].from.nodeLabel);
+      }
+      
+      // Agregar todos los nodos por los que pasa
+      pathData.path.forEach((step) => {
+        if (step.from?.nodeLabel) nodes.add(step.from.nodeLabel);
+        if (step.to?.nodeLabel) nodes.add(step.to.nodeLabel);
+        if (step.throughFusion?.fusionNodeLabel) nodes.add(step.throughFusion.fusionNodeLabel);
+      });
+      
+      return nodes.size;
+    };
+
     // Convertir formato de pathData a formato para TimelineVertical
     const timelineData = pathData.path.map((step, idx) => {
       if (step.type === 'device-link') {
@@ -598,7 +619,7 @@ const NodePath = ({ route, navigation }) => {
           : '';
         
         return {
-          title: `${step.from.nodeLabel} → [Fusión en ${step.throughFusion.fusionNodeLabel}] → ${step.to.nodeLabel}`,
+          title: `${step.from.nodeLabel} → [${step.throughFusion.fusionNodeLabel}] → ${step.to.nodeLabel}`,
           description: `${step.from.deviceLabel} (Puerto ${step.from.port}) ➜ ${step.throughFusion.entryFiberLabel}${bufferInfo}: ${step.throughFusion.entryThreadLabel || `Hilo ${step.throughFusion.entryThread}`} ⚡ Fusión en ${step.throughFusion.fusionNodeLabel} ⚡ ${step.throughFusion.exitFiberLabel}${exitBufferInfo}: ${step.throughFusion.exitThreadLabel || `Hilo ${step.throughFusion.exitThread}`} ➜ ${step.to.deviceLabel} (Puerto ${step.to.port})`,
           date: `Salto ${idx + 1}`,
           status: idx === 0 ? 'completed' : (idx < pathData.path.length - 1 ? 'current' : 'pending'),
@@ -633,10 +654,12 @@ const NodePath = ({ route, navigation }) => {
       );
     };
 
+    const nodeCount = getNodeCount();
+
     return (
       <View style={{ marginBottom: 20 }}>
         <Text style={[styles.sectionTitle, { fontSize: 16, color: colors.success }]}>
-          Camino {pathIndex + 1} - {pathData.hops} saltos
+          Camino {pathIndex + 1} - {nodeCount} nodos
         </Text>
         <TimelineVertical
           data={timelineData}
@@ -674,26 +697,6 @@ const NodePath = ({ route, navigation }) => {
 
     return (
       <View>
-        <View style={{ 
-          backgroundColor: colors.success, 
-          padding: 15, 
-          borderRadius: 10, 
-          marginBottom: 20,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <View>
-            <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>
-              ✓ {finalPath.totalPaths} Camino{finalPath.totalPaths > 1 ? 's' : ''} Encontrado{finalPath.totalPaths > 1 ? 's' : ''}
-            </Text>
-            <Text style={{ color: '#fff', fontSize: 14, marginTop: 5 }}>
-              Ruta más corta: {finalPath.shortestPath.hops} saltos
-            </Text>
-          </View>
-          <Ionicons name="checkmark-circle" size={40} color="#fff" />
-        </View>
-
         {finalPath.paths.map((pathData, index) => (
           <RenderPath key={index} pathData={pathData} pathIndex={index} />
         ))}
@@ -725,9 +728,39 @@ const NodePath = ({ route, navigation }) => {
         try {
           const path = result.paths?.[0]?.path || result.path || [];
           
-          // Vista resumida
+          // Vista resumida con detección de pedestales intermedios
           console.log(`\n📊 [NP-201] Generando vista resumida...`);
-          const summary = formatPathSummary(path, nodes);
+          
+          // Extraer nodos principales del camino
+          const mainNodes = [node.label]; // Empezar con origen
+          
+          // Recorrer cada paso para extraer nodos
+          for (const step of path) {
+            if (step.type === 'device-to-fusion-to-device') {
+              // Primero, agregar el pedestal de fusión actual (CON corchetes - donde se fusiona)
+              if (!mainNodes.includes(step.throughFusion.fusionNodeLabel)) {
+                mainNodes.push(`[${step.throughFusion.fusionNodeLabel}]`);
+              }
+              
+              // Luego, agregar pedestales intermedios SIN corchetes (por los que pasa sin fusionarse)
+              if (step.intermediaryPedestals && step.intermediaryPedestals.length > 0) {
+                for (const pedalName of step.intermediaryPedestals) {
+                  if (!mainNodes.includes(pedalName)) {
+                    mainNodes.push(pedalName);
+                  }
+                }
+              }
+              
+              // Agregar destino final
+              if (!mainNodes.includes(step.to.nodeLabel)) {
+                mainNodes.push(step.to.nodeLabel);
+              }
+            } else if (step.to?.nodeLabel && !mainNodes.includes(step.to.nodeLabel)) {
+              mainNodes.push(step.to.nodeLabel);
+            }
+          }
+          
+          const summary = mainNodes.join(' → ');
           setPathSummary(summary);
           console.log(`  Resumen: ${summary}`);
           
@@ -816,6 +849,25 @@ const NodePath = ({ route, navigation }) => {
             <Text style={styles.detailLabel}>Destino:</Text>
             <Text style={styles.detailValue}>{mdf.label}</Text>
           </View>
+          
+          {/* Mostrar resumen de la ruta */}
+          {pathSummary && (
+            <View style={{ 
+              marginTop: 15, 
+              padding: 12, 
+              backgroundColor: colors.inputBackground,
+              borderRadius: 8,
+              borderLeftWidth: 4,
+              borderLeftColor: colors.success
+            }}>
+              <Text style={{ fontSize: 12, color: colors.subText, marginBottom: 5 }}>
+                Resumen de la ruta:
+              </Text>
+              <Text style={{ fontSize: 14, color: colors.text, fontWeight: '600' }}>
+                {pathSummary}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Mostrar todos los caminos */}
