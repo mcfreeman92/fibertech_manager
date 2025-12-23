@@ -1380,6 +1380,23 @@ const CreateProject = ({ navigation, route, theme }) => {
               };
               const createdNode = await doCreateNode(newObj);
 
+              // Reemplazar el nodo temporal (con hash) en allNodes con el nodo que tiene ID de BD
+              setAllNodes((prevAll) => {
+                const updated = prevAll.map((n) => {
+                  if (n.hash === node.hash) {
+                    console.log(
+                      "🔄 Replacing temp node with DB node:",
+                      node.hash,
+                      "→ ID:",
+                      createdNode.id
+                    );
+                    return createdNode;
+                  }
+                  return n;
+                });
+                return updated;
+              });
+
               // Si es una UNIT, actualizar el nodeId de su fibra DROP con el ID de BD
               if (node.typeId === 4 && createdNode.id) {
                 const dropFiberIndex = fibers.findIndex(
@@ -1392,20 +1409,52 @@ const CreateProject = ({ navigation, route, theme }) => {
                     "→",
                     createdNode.id
                   );
-                  fibers[dropFiberIndex] = {
+                  const updatedFiber = {
                     ...fibers[dropFiberIndex],
                     nodeId: createdNode.id, // Actualizar con el ID de BD
                   };
+                  fibers[dropFiberIndex] = updatedFiber;
+                  
+                  // 🔥 CRÍTICO: También actualizar en allFibers
+                  setAllFibers((prevAll) => {
+                    return prevAll.map((f) => {
+                      if (f.nodeId === node.hash && f.label.startsWith(`2F_${node.label}`)) {
+                        console.log(
+                          "🔥 Also updating DROP fiber in allFibers:",
+                          f.label,
+                          "nodeId:",
+                          node.hash,
+                          "→",
+                          createdNode.id
+                        );
+                        return {
+                          ...f,
+                          nodeId: createdNode.id,
+                        };
+                      }
+                      return f;
+                    });
+                  });
                 }
               }
 
+              // También actualizar en la vista visible (nodes)
+              setNodes((prevVisible) => {
+                return prevVisible.map((n) => {
+                  if (n.hash === node.hash) {
+                    return createdNode;
+                  }
+                  return n;
+                });
+              });
+
               /**Create media */
               const finalMedia = (node.media || []).filter(x => x.deleted == false);
-              for (let j = 0; j < finalMedia; j++) {
+              for (let j = 0; j < finalMedia.length; j++) {
                 const item = finalMedia[j];
 
                 const media = {
-                  nodeId: createNode.id,
+                  nodeId: createdNode.id,
                   label: item.label,
                   content: {
                     comment: item.comment,
@@ -1529,7 +1578,25 @@ const CreateProject = ({ navigation, route, theme }) => {
               ...fiber,
               projectId: projectId,
             };
-            await doCreateFiber(newObj);
+            const createdFiber = await doCreateFiber(newObj);
+
+            // Reemplazar la fibra temporal en allFibers con la creada que tiene ID de BD
+            if (createdFiber && createdFiber.id) {
+              setAllFibers((prevAll) => {
+                return prevAll.map((f) => {
+                  if (f.label === fiber.label && f.id === undefined) {
+                    console.log(
+                      "🔄 Replacing temp fiber with DB fiber:",
+                      fiber.label,
+                      "→ ID:",
+                      createdFiber.id
+                    );
+                    return createdFiber;
+                  }
+                  return f;
+                });
+              });
+            }
           } else {
             // Para fibras existentes, verificar si necesita actualizar nodeId
             const needsNodeIdUpdate =
@@ -1563,7 +1630,34 @@ const CreateProject = ({ navigation, route, theme }) => {
                 ...buffer,
                 projectId: projectId,
               };
-              await doCreateFiber(newObj);
+              const createdBuffer = await doCreateFiber(newObj);
+
+              // Reemplazar el buffer temporal con el creado que tiene ID de BD
+              if (createdBuffer && createdBuffer.id) {
+                setAllFibers((prevAll) => {
+                  return prevAll.map((f) => {
+                    if (f.id === updatedFibers[i].id) {
+                      // Actualizar los buffers de esa fibra
+                      return {
+                        ...f,
+                        buffers: f.buffers.map((b) => {
+                          if (b.label === buffer.label && b.id === undefined) {
+                            console.log(
+                              "🔄 Replacing temp buffer with DB buffer:",
+                              buffer.label,
+                              "→ ID:",
+                              createdBuffer.id
+                            );
+                            return createdBuffer;
+                          }
+                          return b;
+                        }),
+                      };
+                    }
+                    return f;
+                  });
+                });
+              }
             } else {
               await updateFiber(buffer.id, {
                 label: buffer.label,
@@ -2322,14 +2416,13 @@ const CreateProject = ({ navigation, route, theme }) => {
       currentNode.devices?.length || 0
     );
 
-    const tmp = {
+    // 🔥 NO pasar funciones en parámetros (causa "Non-serializable values")
+    // En su lugar, pasar datos serializables y manejar actualización en NodeDetails
+    navigation.navigate("NodeDetails", {
       node: currentNode,
-      onSaveNode: (data) => {
-        updateLocalNode(data);
-      },
-    };
-
-    navigation.navigate("NodeDetails", tmp);
+      allFibers: allFibers, // Pasar fibras completas para que DeviceLinks tenga acceso
+      projectId: projectId,
+    });
   };
 
   const updateLocalFiber = (fiber) => {
@@ -2880,7 +2973,7 @@ const CreateProject = ({ navigation, route, theme }) => {
             {nodes
               .filter((x) => (x.deleted || false) == false)
               .map((item, index) => (
-                <RenderNode key={item.id || index} node={item} />
+                <RenderNode key={item.id || item.hash || index} node={item} />
               ))}
           </View>
         </View>
@@ -2916,7 +3009,7 @@ const CreateProject = ({ navigation, route, theme }) => {
 
           <View>
             {fibers.map((item, index) => (
-              <RenderFiber key={item.id || index} fiber={item} />
+              <RenderFiber key={item.id || item.hash || index} fiber={item} />
             ))}
           </View>
         </View>

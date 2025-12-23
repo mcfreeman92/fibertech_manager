@@ -24,7 +24,7 @@ const NodeDetails = ({ route, navigation }) => {
   const { topInset, bottomInset, stylesFull } = useDevice();
   const { isDarkMode, nodesTypesList } = useApp();
   const { t } = useTranslation();
-  const { node } = route.params;
+  const { node, allFibers } = route.params;
   const { devices } = node;
 
   const [nodeData, setNodeData] = React.useState(node);
@@ -303,8 +303,12 @@ const NodeDetails = ({ route, navigation }) => {
     }
     console.log('✅ ===========================================================');
 
-    route.params.onSaveNode(savedNode);
-    console.log('✅ Node saved via callback');
+    // 🔥 No pasar callbacks en parámetros de navegación (causa warnings)
+    // El padre (CreateProject) detectará el retorno via useFocusEffect
+    if (route.params?.onSaveNode) {
+      route.params.onSaveNode(savedNode);
+    }
+    console.log('✅ Node saved');
     navigation.goBack();
   };
 
@@ -348,7 +352,10 @@ const NodeDetails = ({ route, navigation }) => {
         ...nodeData,
         devices: tmp,
       };
-      route.params.onSaveNode(updatedNode);
+      // 🔥 Callback opcional para actualización inmediata
+      if (route.params?.onSaveNode) {
+        route.params.onSaveNode(updatedNode);
+      }
       console.log('✅ Node updated in CreateProject with new device data');
     }
   };
@@ -400,6 +407,7 @@ const NodeDetails = ({ route, navigation }) => {
     navigation.navigate("DeviceLinks", {
       device: device,
       node: nodeData,
+      allFibers: allFibers, // Pasar fibers completas incluyendo DROP fibers nuevas
       projectId: node.projectId != undefined ? node.projectId : 0,
       onSaveDeviceData: (data) => {
         updateDevice(data);

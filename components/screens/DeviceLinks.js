@@ -37,6 +37,7 @@ const DeviceLinks = ({ route, navigation }) => {
   const { device } = route.params;
   const { node } = route.params;
   const { projectId } = route.params;
+  const { allFibers } = route.params; // Recibir fibras completas incluyendo DROP fibers
 
   const [fibersData, setFibersData] = useState([]);
 
@@ -951,7 +952,14 @@ const DeviceLinks = ({ route, navigation }) => {
   // � FUNCIÓN REFACTORIZADA: loadFibers - Reutilizable
   const loadFibersForPicker = React.useCallback(async () => {
     console.log('📋 Loading fibers for DeviceLinks picker...');
-    let records = await getFibers(projectId, null);
+    // 🔥 Si tenemos allFibers (fibras locales completas incluyendo DROP fibers nuevas), usarlas
+    // Sino, cargar desde BD (puede no tener DROP fibers nuevas creadas aún)
+    let records = allFibers && allFibers.length > 0 
+      ? allFibers 
+      : await getFibers(projectId, null);
+
+    console.log('📦 Using fibers from:', allFibers && allFibers.length > 0 ? 'allFibers (LOCAL)' : 'getFibers (DATABASE)');
+    console.log('📊 Total fibers available:', records.length);
 
     // Filtrar fibras según el tipo de nodo
     if (node) {
@@ -1067,7 +1075,7 @@ const DeviceLinks = ({ route, navigation }) => {
     console.log('🔷 Final fibersData for picker:', records.map(f => ({ label: f.label, value: f.value, buffers: f.buffers.length })));
     setFibersData(records);
     return records;
-  }, [projectId, node, getFibers, getNodes]);
+  }, [projectId, node, getFibers, getNodes, allFibers]);
 
   // 🔄 FOCUS LISTENER: Recargar fibras cuando la pantalla vuelve a enfoque
   useFocusEffect(

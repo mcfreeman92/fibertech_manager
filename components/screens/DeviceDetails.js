@@ -421,7 +421,7 @@ const DeviceDetails = ({ route, navigation }) => {
             <Text style={styles.label} >{t('type')}</Text>
             <RNPickerSelect
               style={pickerSelectStyles}
-              value={data.type}
+              value={data.type || ''} // 🔥 Usar string vacío en lugar de null/undefined
               useNativeAndroidPickerStyle={false}
               onValueChange={(value) => {
                 setData(prev => ({
