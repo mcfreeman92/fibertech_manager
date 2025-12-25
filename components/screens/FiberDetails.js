@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { useTranslation } from '../hooks/useTranslation';
 import { useDevice } from '../context/DeviceContext';
-import RNPickerSelect from 'react-native-picker-select';
+import PickerModal from '../context/PickerModal';
 import { number } from 'yup';
 
 
@@ -30,8 +30,8 @@ const FiberDetails = ({ route, navigation }) => {
 
   const [threadsData, setThreadsData] = useState([]);
   const [buffersData, setBuffersData] = useState(buffers);
-
   const [selectedBuffer, setSelectedBuffer] = useState(null);
+  const [showBufferModal, setShowBufferModal] = useState(false);
 
   const { updateFiber } = useAdapter()();
 
@@ -354,8 +354,21 @@ const FiberDetails = ({ route, navigation }) => {
       fontSize: 16,
       marginLeft: 8,
     },
+    pickerButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 8,
+      borderWidth: 1,
+      marginVertical: 8,
+    },
+    pickerButtonText: {
+      fontSize: 16,
+      flex: 1,
+    },
   });
-
 
   const handleSave = () => {
     // Ejecutar el callback si existe
@@ -521,20 +534,30 @@ const FiberDetails = ({ route, navigation }) => {
           <View>
             <Text style={styles.label2} >{'Buffers'}</Text>
 
-            <RNPickerSelect
-              style={pickerSelectStyles}
-              value={selectedBuffer != null ? selectedBuffer.value : 0}
-              useNativeAndroidPickerStyle={false}
-              onValueChange={(value) => {
-                if (value != null) {
-                  const buffer = buffersData.find(x => x.value == value);
-                  setSelectedBuffer(buffer);
-                  setThreadsData(buffer.threads);
-                }
-              }}
-              itemKey={item => item.id}
+            <TouchableOpacity
+              style={[styles.pickerButton, { borderColor: colors.border, backgroundColor: colors.inputBackground }]}
+              onPress={() => setShowBufferModal(true)}
+            >
+              <Text style={[styles.pickerButtonText, { color: selectedBuffer ? colors.text : colors.placeholder }]}>
+                {selectedBuffer ? selectedBuffer.label : t('selectAnOption')}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color={colors.text} />
+            </TouchableOpacity>
+
+            <PickerModal
+              visible={showBufferModal}
+              title="Buffer"
               items={buffersData}
-              placeholder={{ label: t('selectAnOption'), value: null }}
+              selectedValue={selectedBuffer?.value}
+              onClose={() => setShowBufferModal(false)}
+              onSelect={(value) => {
+                const buffer = buffersData.find(x => x.value === value);
+                setSelectedBuffer(buffer);
+                setThreadsData(buffer.threads);
+                setShowBufferModal(false);
+              }}
+              isDarkMode={isDarkMode}
+              colors={colors}
             />
           </View>
         )}
