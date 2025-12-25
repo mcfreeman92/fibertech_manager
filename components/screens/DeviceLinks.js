@@ -453,7 +453,7 @@ const DeviceLinks = ({ route, navigation }) => {
     },
   });
 
-
+  const formatDate = (dateString) => {
     if (!dateString) return "Unknown date";
     const date = new Date(dateString);
     return date.toLocaleDateString() + " " + date.toLocaleTimeString();
