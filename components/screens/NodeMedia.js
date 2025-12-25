@@ -24,7 +24,7 @@ import { useDevice } from "../context/DeviceContext";
 import { useAdapter } from "@/api/contexts/DatabaseContext";
 
 import { v4 as uuidv4 } from "uuid";
-import RNPickerSelect from "react-native-picker-select";
+import PickerModal from '../context/PickerModal';
 
 import { useFiberPath, formatPathForDisplay } from "../hooks/useFiberPath";
 import TimelineVertical from "@/utils/TimelineVertical";
