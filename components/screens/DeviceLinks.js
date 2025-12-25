@@ -381,19 +381,6 @@ const DeviceLinks = ({ route, navigation }) => {
     },
   });
 
-  // Colores dinámicos basados en el tema
-  const colors = {
-    primary: "#3498db",
-    success: "#2ecc71",
-    warning: "#f39c12",
-    danger: "#e74c3c",
-    card: isDarkMode ? "#1e1e1e" : "#ffffff",
-    text: isDarkMode ? "#ffffff" : "#2c3e50",
-    subText: isDarkMode ? "#b0b0b0" : "#7f8c8d",
-    border: isDarkMode ? "#333" : "#ecf0f1",
-    placeholder: isDarkMode ? "#888888" : "#a0a0a0",
-  };
-
   const formatDate = (dateString) => {
     if (!dateString) return "Unknown date";
     const date = new Date(dateString);
