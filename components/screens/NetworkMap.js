@@ -776,7 +776,7 @@ const addNode = async () => {
     };
 
     const savedNode = await NodeService.createNode(newNode);
-    const newNodeWithId = { ...newNode, id: savedNode.insertId };
+    const newNodeWithId = { ...newNode, id: savedNode.id || savedNode.insertId };
     
     // Agregar el nuevo nodo al estado
     setNodes(prev => [...prev, newNodeWithId]);

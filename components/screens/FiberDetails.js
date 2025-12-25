@@ -9,13 +9,13 @@ import {
   TextInput,
   Alert,
   Switch,
-  FlatList
+  FlatList,
+  Modal
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { useTranslation } from '../hooks/useTranslation';
 import { useDevice } from '../context/DeviceContext';
-import RNPickerSelect from 'react-native-picker-select';
 import { number } from 'yup';
 
 
@@ -30,7 +30,7 @@ const FiberDetails = ({ route, navigation }) => {
 
   const [threadsData, setThreadsData] = useState([]);
   const [buffersData, setBuffersData] = useState(buffers);
-
+  const [showFiberTypeModal, setShowFiberTypeModal] = useState(false);
   const [selectedBuffer, setSelectedBuffer] = useState(null);
 
   const { updateFiber } = useAdapter()();
@@ -44,62 +44,7 @@ const FiberDetails = ({ route, navigation }) => {
     { typeId: '192F', name: '192F', description: 'fiber192FDescription', buffersCount: 16 }
   ];
 
-  const pickerSelectStyles = StyleSheet.create({
-    inputWeb: {
-      fontSize: 16,
-      paddingVertical: 15,
-      paddingHorizontal: 20,
-      borderWidth: 2,
-      borderColor: '#E5E7EB',
-      borderRadius: 12,
-      color: '#1F2937',
-      backgroundColor: '#F9FAFB',
-      paddingRight: 50,
-      marginVertical: 8,
-      outline: 'none', // Importante para web
-      cursor: 'pointer',
-    },
-    inputIOS: {
-      fontSize: 16,
-      paddingVertical: 15,
-      paddingHorizontal: 20,
-      borderWidth: 2,
-      borderColor: '#E5E7EB',
-      borderRadius: 12,
-      color: '#1F2937',
-      backgroundColor: '#F9FAFB',
-      paddingRight: 50,
-      marginVertical: 8,
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 3,
-    },
-    inputAndroid: {
-      fontSize: 16,
-      paddingHorizontal: 20,
-      paddingVertical: 15,
-      borderWidth: 2,
-      borderColor: '#E5E7EB',
-      borderRadius: 12,
-      color: '#1F2937',
-      backgroundColor: '#197ee2ff',
-      paddingRight: 50,
-      marginVertical: 8,
-      elevation: 3,
-    },
-    placeholder: {
-      color: '#6B7280',
-    },
-    iconContainer: {
-      top: 18,
-      right: 15,
-    }
-  });
+  // Removido: RNPickerSelect reemplazado con Modal personalizado
 
 
   const colors = {
@@ -354,6 +299,33 @@ const FiberDetails = ({ route, navigation }) => {
       fontSize: 16,
       marginLeft: 8,
     },
+    modalContent: {
+      borderRadius: 12,
+      padding: 0,
+      maxHeight: '80%',
+      elevation: 5,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      padding: 16,
+      borderBottomWidth: 1,
+      textAlign: 'center',
+    },
+    modalItem: {
+      padding: 16,
+      borderBottomWidth: 1,
+      minHeight: 50,
+      justifyContent: 'center',
+    },
+    modalItemText: {
+      fontSize: 16,
+      fontWeight: '500',
+    },
   });
 
 
@@ -521,21 +493,56 @@ const FiberDetails = ({ route, navigation }) => {
           <View>
             <Text style={styles.label2} >{'Buffers'}</Text>
 
-            <RNPickerSelect
-              style={pickerSelectStyles}
-              value={selectedBuffer != null ? selectedBuffer.value : 0}
-              useNativeAndroidPickerStyle={false}
-              onValueChange={(value) => {
-                if (value != null) {
-                  const buffer = buffersData.find(x => x.value == value);
-                  setSelectedBuffer(buffer);
-                  setThreadsData(buffer.threads);
-                }
-              }}
-              itemKey={item => item.id}
-              items={buffersData}
-              placeholder={{ label: t('selectAnOption'), value: null }}
-            />
+            {/* Custom Modal Picker para buffers */}
+            <TouchableOpacity
+              style={[styles.input, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}
+              onPress={() => setShowFiberTypeModal(true)}
+            >
+              <Text style={{ color: selectedBuffer ? colors.text : colors.placeholder }}>
+                {selectedBuffer 
+                  ? selectedBuffer.label 
+                  : t('selectAnOption')}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color={colors.primary} />
+            </TouchableOpacity>
+
+            {/* Modal para seleccionar buffer */}
+            <Modal
+              visible={showFiberTypeModal}
+              transparent={true}
+              animationType="fade"
+              onRequestClose={() => setShowFiberTypeModal(false)}
+            >
+              <TouchableOpacity
+                style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}
+                onPress={() => setShowFiberTypeModal(false)}
+              >
+                <View style={[styles.modalContent, { backgroundColor: colors.card, maxWidth: '90%' }]}>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>{'Select Buffer'}</Text>
+                  
+                  <FlatList
+                    data={buffersData}
+                    keyExtractor={(item) => item.value.toString()}
+                    scrollEnabled={true}
+                    nestedScrollEnabled={true}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={[styles.modalItem, { borderBottomColor: colors.border }]}
+                        onPress={() => {
+                          setSelectedBuffer(item);
+                          setThreadsData(item.threads);
+                          setShowFiberTypeModal(false);
+                        }}
+                      >
+                        <Text style={[styles.modalItemText, { color: colors.text }]}>
+                          {item.label}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  />
+                </View>
+              </TouchableOpacity>
+            </Modal>
           </View>
         )}
 
@@ -545,29 +552,24 @@ const FiberDetails = ({ route, navigation }) => {
 
         <View style={[styles.card, { backgroundColor: colors.card }]}>
           {threadsData.length > 0 && (
-
-            <FlatList
-              data={threadsData}
-              keyExtractor={item => item.number}
-              renderItem={({ item }) => (
-                <View>
-                  <View style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}>
-                    <RenderThread item={item}> </RenderThread>
-                    <Switch
-                      trackColor={{ false: "#767577", true: "#81b0ff" }}
-                      value={item.active}
-                      onValueChange={(value) => {
-                        handleChangeThreadState(item.number, value);
-                      }}
-                    />
-                  </View>
+            threadsData.map((item, index) => (
+              <View key={item.number || index}>
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}>
+                  <RenderThread item={item}> </RenderThread>
+                  <Switch
+                    trackColor={{ false: "#767577", true: "#81b0ff" }}
+                    value={item.active}
+                    onValueChange={(value) => {
+                      handleChangeThreadState(item.number, value);
+                    }}
+                  />
                 </View>
-              )}
-            />
+              </View>
+            ))
           )}
         </View>
 

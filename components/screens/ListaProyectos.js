@@ -204,7 +204,9 @@ const ListaProyectos = ({ navigation }) => {
   };
 
   const renderProyectoItem = ({ item }) => {
-    const meta = item.meta;
+    // Manejar tanto item.meta como item directamente (para compatibilidad SQLite)
+    const meta = item.meta || item;
+    
     return (
 
       <TouchableOpacity
@@ -238,7 +240,7 @@ const ListaProyectos = ({ navigation }) => {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={(e) => {
-              console.log('\ud83d\udc40 Delete button pressed for project:', item.id);
+              console.log('🗑 Delete button pressed for project:', item.id);
               if (e && e.stopPropagation) {
                 e.stopPropagation();
               }
@@ -250,7 +252,7 @@ const ListaProyectos = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {meta.description && (
+        {meta && meta.description && (
           <Text style={[styles.proyectoDescription, { color: colors.subText }]}>
             {meta.description}
           </Text>
@@ -260,11 +262,11 @@ const ListaProyectos = ({ navigation }) => {
           <View style={styles.proyectoItemDetail}>
             <Ionicons name="calendar" size={16} color="#7f8c8d" />
             <Text style={[styles.proyectoItemText, { color: colors.subText }]}>
-              {formatDate(meta.createdAt)}
+              {formatDate(meta && meta.createdAt)}
             </Text>
           </View>
 
-          {meta.status && (
+          {meta && meta.status && (
             <View style={styles.proyectoItemDetail}>
               <Ionicons name="information-circle" size={16} color="#7f8c8d" />
               <Text style={[styles.proyectoItemText, { color: colors.subText }]}>

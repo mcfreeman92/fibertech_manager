@@ -21,7 +21,7 @@ import { useTranslation } from "../hooks/useTranslation";
 import { useDevice } from "../context/DeviceContext";
 import { useAdapter } from "@/api/contexts/DatabaseContext";
 
-import { v4 as uuidv4 } from "uuid";
+import { uuidv4 } from "../../utils/utils";
 import RNPickerSelect from "react-native-picker-select";
 
 
@@ -797,17 +797,54 @@ const NodeLinks = ({ route, navigation }) => {
   }
 
   const handleRemoveFusionLink = (link) => {
-    const index = nodeData.fusionLinks.findIndex(x => x.hash == link.hash);
-    let items = [...nodeData.fusionLinks];
-    if (index != -1) {
-      items[index] = {...items[index], deleted: true};
-    }
+    console.log('\n' + '='.repeat(60));
+    console.log('🗑️ [DELETE-FUSION] Usuario intentó eliminar fusión');
+    console.log('='.repeat(60));
+    console.log('📊 Nodo:', nodeData?.label || 'Unknown');
+    console.log('📊 Fusión SRC:', link.src?.fiberLabel || 'unknown', 'Thread:', link.src?.thread);
+    console.log('📊 Fusión DST:', link.dst?.fiberLabel || 'unknown', 'Thread:', link.dst?.thread);
+    console.log('📊 Hash:', link.hash);
 
-    setNodeData({
-      ...nodeData,
-      fusionLinks : items
-    })
-  }
+    try {
+      const index = nodeData.fusionLinks.findIndex(x => x.hash == link.hash);
+      
+      if (index !== -1) {
+        console.log('🔷 [DELETE-FUSION-STEP-1] Fusión encontrada en índice:', index);
+        let items = [...nodeData.fusionLinks];
+        items[index] = {...items[index], deleted: true};
+        
+        setNodeData({
+          ...nodeData,
+          fusionLinks: items
+        });
+        
+        console.log('✅ [DELETE-FUSION-STEP-1] Fusión marcada como eliminada');
+        console.log('📊 Total fusiones después:', items.filter(f => !f.deleted).length);
+        
+        // Limpiar hilos en las fibras afectadas
+        if (link.src) {
+          console.log('🔷 [DELETE-FUSION-STEP-2] Limpiando hilo SRC en fibra:', link.src.fiberLabel);
+          console.log(`  Thread ${link.src.thread} será liberado`);
+        }
+        if (link.dst) {
+          console.log('🔷 [DELETE-FUSION-STEP-2] Limpiando hilo DST en fibra:', link.dst.fiberLabel);
+          console.log(`  Thread ${link.dst.thread} será liberado`);
+        }
+        
+        console.log('='.repeat(60));
+        console.log('✅ Eliminación de fusión completada');
+        console.log('='.repeat(60) + '\n');
+      } else {
+        console.warn('⚠️ [DELETE-FUSION-STEP-1] Fusión no encontrada en lista. Hash:', link.hash);
+        console.log('='.repeat(60) + '\n');
+      }
+    } catch (error) {
+      console.error('\n❌ ERROR en handleRemoveFusionLink:', error);
+      console.error('Link:', link);
+      console.error('Detalles:', error.message);
+      console.log('='.repeat(60) + '\n');
+    }
+  };
 
   return (
     <View

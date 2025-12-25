@@ -10,13 +10,14 @@ import {
   Alert,
   Switch,
   FlatList,
-  Button
+  Button,
+  Platform,
+  Modal
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { useTranslation } from '../hooks/useTranslation';
 import { useDevice } from '../context/DeviceContext';
-import RNPickerSelect from 'react-native-picker-select';
 import { number } from 'yup';
 
 
@@ -27,7 +28,14 @@ const DeviceDetails = ({ route, navigation }) => {
   const { t } = useTranslation();
   const { deviceData } = route.params;
   const [data, setData] = useState(deviceData);
+  const [showTypeModal, setShowTypeModal] = useState(false);
 
+  // 🔥 DEBUG: Log inicial
+  React.useEffect(() => {
+    console.log('📱 DeviceDetails mounted');
+    console.log('📱 deviceData:', deviceData);
+    console.log('📱 data.type:', data.type);
+  }, []);
 
   const deviceTypes = [
     { value: 'switch', label: 'Switch', description: 'ethernetSwitching', defaultPorts: 24 },
@@ -38,61 +46,14 @@ const DeviceDetails = ({ route, navigation }) => {
     { value: 'splitter', label: 'Splitter', description: 'opticalSignalSplitting', defaultPorts: 8 }
   ];
 
+  // 🔥 DEBUG: Log de deviceTypes
+  React.useEffect(() => {
+    console.log('🎯 deviceTypes loaded:', deviceTypes.length, 'items');
+    console.log('🎯 deviceTypes:', deviceTypes.map(t => t.label));
+  }, []);
+
   const pickerSelectStyles = StyleSheet.create({
-    inputWeb: {
-      fontSize: 16,
-      paddingVertical: 15,
-      paddingHorizontal: 20,
-      borderWidth: 2,
-      borderColor: '#E5E7EB',
-      borderRadius: 12,
-      color: '#1F2937',
-      backgroundColor: '#F9FAFB',
-      paddingRight: 50,
-      marginVertical: 8,
-      // outline: 'none', // No soportado en React Native - removido
-      cursor: 'pointer',
-    },
-    inputIOS: {
-      fontSize: 16,
-      paddingVertical: 15,
-      paddingHorizontal: 20,
-      borderWidth: 2,
-      borderColor: '#E5E7EB',
-      borderRadius: 12,
-      color: '#1F2937',
-      backgroundColor: '#F9FAFB',
-      paddingRight: 50,
-      marginVertical: 8,
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 3,
-    },
-    inputAndroid: {
-      fontSize: 16,
-      paddingHorizontal: 20,
-      paddingVertical: 15,
-      borderWidth: 2,
-      borderColor: '#E5E7EB',
-      borderRadius: 12,
-      color: '#1F2937',
-      backgroundColor: '#197ee2ff',
-      paddingRight: 50,
-      marginVertical: 8,
-      elevation: 3,
-    },
-    placeholder: {
-      color: '#6B7280',
-    },
-    iconContainer: {
-      top: 18,
-      right: 15,
-    }
+    // Removido: RNPickerSelect reemplazado con Modal personalizado
   });
 
 
@@ -353,6 +314,33 @@ const DeviceDetails = ({ route, navigation }) => {
       fontSize: 16,
       marginLeft: 8,
     },
+    modalContent: {
+      borderRadius: 12,
+      padding: 0,
+      maxHeight: '80%',
+      elevation: 5,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      padding: 16,
+      borderBottomWidth: 1,
+      textAlign: 'center',
+    },
+    modalItem: {
+      padding: 16,
+      borderBottomWidth: 1,
+      minHeight: 50,
+      justifyContent: 'center',
+    },
+    modalItemText: {
+      fontSize: 16,
+      fontWeight: '500',
+    },
   });
 
   const formatDate = (dateString) => {
@@ -374,9 +362,22 @@ const DeviceDetails = ({ route, navigation }) => {
   };
 
   const handleSave = () => {
+    console.log('💾 DeviceDetails.handleSave triggered');
+    console.log('📦 Device data to save:', {
+      hash: data.hash,
+      label: data.label,
+      type: data.type,
+      portsCount: data.portsCount,
+      ports: data.ports?.length || 0
+    });
+    
     // Ejecutar el callback si existe
     if (route.params?.onSaveDevice) {
+      console.log('🎯 Calling onSaveDevice callback...');
       route.params.onSaveDevice(data);
+      console.log('✅ onSaveDevice callback executed');
+    } else {
+      console.warn('⚠️ No onSaveDevice callback provided in route.params');
     }
 
     navigation.goBack();
@@ -417,27 +418,79 @@ const DeviceDetails = ({ route, navigation }) => {
 
         <View style={[styles.card, { backgroundColor: colors.card }]}>
 
-          <View >
-            <Text style={styles.label} >{t('type')}</Text>
-            <RNPickerSelect
-              style={pickerSelectStyles}
-              value={data.type || ''} // 🔥 Usar string vacío en lugar de null/undefined
-              useNativeAndroidPickerStyle={false}
-              onValueChange={(value) => {
-                setData(prev => ({
-                  ...prev,
-                  type: value,
-                  label: deviceTypes.find(x => x.value == value).label
-                }));
+          <View>
+            <Text style={styles.label}>{t('type')}</Text>
+            
+            {/* Custom Modal Picker para dispositivos */}
+            <TouchableOpacity
+              style={[styles.input, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}
+              onPress={() => setShowTypeModal(true)}
+            >
+              <Text style={{ color: data.type ? colors.text : colors.placeholder }}>
+                {data.type 
+                  ? deviceTypes.find(x => x.value === data.type)?.label 
+                  : t('selectAnOption')}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color={colors.primary} />
+            </TouchableOpacity>
 
-              }}
-              itemKey={item => item.id}
-              items={deviceTypes}
-              placeholder={{ label: t('selectAnOption'), value: null }}
-            />
+            {/* Modal para seleccionar tipo de dispositivo */}
+            <Modal
+              visible={showTypeModal}
+              transparent={true}
+              animationType="fade"
+              onRequestClose={() => setShowTypeModal(false)}
+            >
+              <TouchableOpacity
+                style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}
+                onPress={() => setShowTypeModal(false)}
+              >
+                <View style={[styles.modalContent, { backgroundColor: colors.card, maxWidth: '90%' }]}>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>{t('selectDeviceType')}</Text>
+                  
+                  <FlatList
+                    data={deviceTypes}
+                    keyExtractor={(item) => item.value}
+                    scrollEnabled={true}
+                    nestedScrollEnabled={true}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={[styles.modalItem, { borderBottomColor: colors.border }]}
+                        onPress={() => {
+                          console.log('✅ Selected device type:', item.value);
+                          
+                          // Generar puertos basado en defaultPorts
+                          const ports = [];
+                          for (let i = 0; i < item.defaultPorts; i++) {
+                            ports.push({
+                              enabled: true,
+                              number: i + 1
+                            });
+                          }
+                          
+                          setData(prev => ({
+                            ...prev,
+                            type: item.value,
+                            label: item.label,
+                            portsCount: item.defaultPorts.toString(),
+                            ports: ports
+                          }));
+                          setShowTypeModal(false);
+                        }}
+                      >
+                        <Text style={[styles.modalItemText, { color: colors.text }]}>
+                          {item.label}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  />
+                </View>
+              </TouchableOpacity>
+            </Modal>
           </View>
-          <View >
-            <Text style={styles.label} >{t('description')}</Text>
+
+          <View>
+            <Text style={styles.label}>{t('description')}</Text>
             <TextInput
               style={styles.input}
               value={data.description || ''}
@@ -447,7 +500,6 @@ const DeviceDetails = ({ route, navigation }) => {
                   description: text
                 }));
               }}
-
             />
           </View>
 

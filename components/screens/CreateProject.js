@@ -36,13 +36,11 @@ import { useDevice } from "../context/DeviceContext";
 /** ADAPTER PARA LOS DATOS */
 import { useAdapter } from "@/api/contexts/DatabaseContext";
 
-import { generateHash } from "../../utils/utils";
+import { generateHash, uuidv4 } from "../../utils/utils";
 import {
   checkDataConsistency,
   checkDatabaseParsing,
 } from "../../utils/dataConsistencyChecker";
-
-import { v4 as uuidv4 } from "uuid";
 
 // import ViewShot from 'react-native-view-shot';
 // import CameraRoll from '@react-native-cameraroll/cameraroll';
@@ -673,8 +671,11 @@ const CreateProject = ({ navigation, route, theme }) => {
 
       // Cargar datos del proyecto
       const data = await getProjectById(id);
-      const project = data.meta;
-      if (project) {
+      console.log("📦 Project data returned:", data);
+      
+      // Manejar data null o data.meta null
+      if (data && (data.meta || data.name)) {
+        const project = data.meta || data; // Intentar ambos formatos
         setProjectData({
           name: project.name || "",
           address: project.address || "",
@@ -684,6 +685,16 @@ const CreateProject = ({ navigation, route, theme }) => {
           description: project.description || "",
           status: project.status || "active",
         });
+        
+        // Cargar información de unidades si existe
+        const units = project.unitsInfo;
+        if (units) {
+          setUnitsInfo({
+            living_unit: units.living_unit?.toString() || "0",
+            office_amenities: units.office_amenities?.toString() || "0",
+            commercial_unit: units.commercial_unit?.toString() || "0",
+          });
+        }
       }
 
       /**Load nodes and fibers */
@@ -697,24 +708,29 @@ const CreateProject = ({ navigation, route, theme }) => {
       // Mapear campos de DB - el adapter web ya retorna en camelCase
       // pero el adapter REST retorna PascalCase, por eso chequeamos ambos
       const mappedNodes = dbNodes.map((node) => {
-        // Parsear metadata si es string
+        // Handle metadata - can be string, object, or null
         let parsedMetadata = null;
-        const metadataStr = node.metadata || node.Metadata;
+        const metadataData = node.metadata || node.Metadata;
 
-        if (metadataStr && typeof metadataStr === "string") {
-          try {
-            parsedMetadata = JSON.parse(metadataStr);
-            console.log(
-              `✅ Parsed metadata for node ${node.label || node.Label}`
-            );
-          } catch (e) {
-            console.error(
-              `❌ Error parsing metadata for node ${node.label || node.Label}:`,
-              e
-            );
+        if (metadataData) {
+          if (typeof metadataData === "string") {
+            try {
+              parsedMetadata = JSON.parse(metadataData);
+              console.log(
+                `✅ Parsed metadata for node ${node.label || node.Label}`
+              );
+            } catch (e) {
+              console.error(
+                `❌ Error parsing metadata for node ${node.label || node.Label}:`,
+                e
+              );
+              parsedMetadata = null;
+            }
+          } else if (typeof metadataData === "object") {
+            // Already parsed object (from SQLite adapter)
+            parsedMetadata = metadataData;
+            console.log(`✅ Metadata already parsed for node ${node.label || node.Label}`);
           }
-        } else if (metadataStr && typeof metadataStr === "object") {
-          parsedMetadata = metadataStr;
         }
 
         return {
@@ -779,25 +795,6 @@ const CreateProject = ({ navigation, route, theme }) => {
         );
       }
 
-      // Cargar información de unidades
-      const units = project.unitsInfo;
-      if (units) {
-        setUnitsInfo({
-          living_unit: units.living_unit?.toString() || "0",
-          office_amenities: units.office_amenities?.toString() || "0",
-          commercial_unit: units.commercial_unit?.toString() || "0",
-        });
-      }
-
-      // Cargar tipo de proyecto
-      // const projectTypeData = await ProjectTypeService.getProjectType(projectId);
-      // if (projectTypeData) {
-      //   setProjectType({
-      //     build_type: projectTypeData.build_type || 'MDU',
-      //     job_type: projectTypeData.job_type || 'Residential',
-      //     building_type: projectTypeData.building_type || 'Garden Style'
-      //   });
-      // }
     } catch (error) {
       console.log("Error loading project data:", error);
       Alert.alert(t("error"), t("failedToLoadProject"));
@@ -1113,6 +1110,7 @@ const CreateProject = ({ navigation, route, theme }) => {
       modifiedDate: new Date().toISOString(),
       deleted: 0,
       typeId: nodeType.id,
+      projectId: undefined, // Será asignado al guardar
       devices: [],
       fusionLinks: [],
     };
@@ -1190,6 +1188,13 @@ const CreateProject = ({ navigation, route, theme }) => {
   };
 
   const doCreateNode = async (node) => {
+    // Validación crítica: el nodo DEBE tener projectId
+    if (node.projectId === undefined || node.projectId === null) {
+      console.error('❌ CRITICAL: Attempting to create node without projectId:', node.label);
+      console.error('   Node object:', JSON.stringify(node, null, 2));
+      throw new Error(`Cannot create node "${node.label}" without projectId. projectId is required.`);
+    }
+
     const links = node.fusionLinks || [];
     
     console.log(
@@ -1359,7 +1364,13 @@ const CreateProject = ({ navigation, route, theme }) => {
       });
 
       const prjData = {
-        name: meta.name,
+        name: projectData.name.trim(),
+        address: projectData.address.trim(),
+        city: projectData.city || "",
+        country: projectData.country || "USA",
+        state: projectData.state || "",
+        description: projectData.description || "",
+        status: projectData.status || "active",
         metadata: JSON.stringify(meta),
       };
 
@@ -1670,6 +1681,16 @@ const CreateProject = ({ navigation, route, theme }) => {
       } else {
         /**Persist on db or API storage */
         const project = await createProject(prjData);
+
+        // Validación crítica
+        if (!project || !project.id) {
+          console.error('❌ ERROR: createProject did not return a valid project with ID');
+          console.error('   Response:', JSON.stringify(project, null, 2));
+          showAlert(t('error'), 'Failed to create project: Missing project ID from database');
+          return;
+        }
+
+        console.log('✅ Project created successfully with ID:', project.id);
 
         /**Prepare nodes */
         let nodesList = [...allNodes];
@@ -2413,11 +2434,13 @@ const CreateProject = ({ navigation, route, theme }) => {
       "🔍 Opening node details:",
       currentNode.label,
       "Devices:",
-      currentNode.devices?.length || 0
+      currentNode.devices?.length || 0,
+      "Node ID:",
+      currentNode.id || "UNDEFINED"
     );
 
-    // 🔥 NO pasar funciones en parámetros (causa "Non-serializable values")
-    // En su lugar, pasar datos serializables y manejar actualización en NodeDetails
+    // NO pasar funciones en parámetros (causa "Non-serializable values")
+    // NodeDetails debe guardar cambios en BD cuando se modifica
     navigation.navigate("NodeDetails", {
       node: currentNode,
       allFibers: allFibers, // Pasar fibras completas para que DeviceLinks tenga acceso
@@ -2578,14 +2601,8 @@ const CreateProject = ({ navigation, route, theme }) => {
 
     const tmp = {
       buffers: buffers,
-      onSaveFiber: (data) => {
-        /**Build updated fiber */
-        const update = {
-          ...data[0],
-          buffers: data.slice(1),
-        };
-        updateLocalFiber(update);
-      },
+      // NO pasar funciones en parámetros de navegación (causa "Non-serializable values")
+      // FiberDetails debe guardar cambios en BD cuando se modifica
     };
 
     navigation.navigate("FiberDetails", tmp);
@@ -2594,9 +2611,8 @@ const CreateProject = ({ navigation, route, theme }) => {
   const handleSeeNodeLinks = (node) => {
     navigation.navigate("NodeLinks", {
       node: node,
-      onSaveNode: (data) => {
-        updateLocalNode(data);
-      },
+      // NO pasar funciones en parámetros (causa "Non-serializable values")
+      // NodeLinks debe guardar cambios en BD cuando se modifica
     });
   };
 
@@ -2650,22 +2666,11 @@ const CreateProject = ({ navigation, route, theme }) => {
               style={{ marginRight: 3 }}
               onPress={() => handleSeeNodePath(node)}
             >
-              <svg
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#666261ff"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M3 17h4v4h-4z" />
-                <path d="M17 3h4v4h-4z" />
-                <path d="M11 19h5.5a3.5 3.5 0 0 0 0 -7h-8a3.5 3.5 0 0 1 0 -7h4.5" />
-              </svg>
+              <Ionicons
+                name="git-network"
+                size={24}
+                color="#666261ff"
+              />
             </TouchableOpacity>
           )}
 

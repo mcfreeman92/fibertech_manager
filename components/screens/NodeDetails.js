@@ -10,16 +10,17 @@ import {
   Alert,
   FlatList,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useApp } from "../context/AppContext";
 import { useTranslation } from "../hooks/useTranslation";
 import { useDevice } from "../context/DeviceContext";
 import { useAdapter } from "@/api/contexts/DatabaseContext";
 
-import { v4 as uuidv4 } from "uuid";
+import { uuidv4 } from "../../utils/utils";
 
 const NodeDetails = ({ route, navigation }) => {
-  const { updateNode, updateFiberThread } = useAdapter()();
+  const { updateNode, updateFiberThread, getNodeById } = useAdapter()();
 
   const { topInset, bottomInset, stylesFull } = useDevice();
   const { isDarkMode, nodesTypesList } = useApp();
@@ -27,8 +28,153 @@ const NodeDetails = ({ route, navigation }) => {
   const { node, allFibers } = route.params;
   const { devices } = node;
 
+  console.log('🔍 NodeDetails.js - Received node:', {
+    label: node?.label,
+    id: node?.id,
+    hash: node?.hash,
+    devices: node?.devices?.length || 0
+  });
+
   const [nodeData, setNodeData] = React.useState(node);
   const [devicesData, setDevicesData] = React.useState(devices);
+  const [isLoadedFromDB, setIsLoadedFromDB] = React.useState(false); // Flag to skip auto-save during mount-load
+
+  // Cargar nodo desde BD cuando el componente se monta
+  React.useEffect(() => {
+    setIsLoadedFromDB(false); // Reset flag when component mounts or node changes
+    
+    const loadNodeFromDB = async () => {
+      try {
+        // If node has an ID, load fresh data from BD
+        if (node?.id) {
+          console.log('📥 Loading node from database on mount (by ID):', node.label);
+          const freshNode = await getNodeById(node.id);
+          if (freshNode) {
+            console.log('✅ Node loaded from DB:', freshNode.label, 'Devices:', freshNode.devices?.length || 0);
+            setNodeData(freshNode);
+            setDevicesData(freshNode.devices || []);
+          } else {
+            console.log('⚠️ Node not found by ID, using route.params:', node.label);
+            setNodeData(node);
+            setDevicesData(devices || []);
+          }
+        } else {
+          // Node doesn't have an ID yet (newly created), use route.params
+          console.log('📝 Node has no ID yet, using route.params:', node.label);
+          setNodeData(node);
+          setDevicesData(devices || []);
+        }
+      } catch (error) {
+        console.error('❌ Error loading node from DB:', error);
+        // Fallback a lo que viene en route.params
+        setNodeData(node);
+        setDevicesData(devices || []);
+      } finally {
+        // ALWAYS mark as loaded so auto-save can run
+        setIsLoadedFromDB(true);
+      }
+    };
+
+    loadNodeFromDB();
+  }, [node?.id]); // Solo ejecutar cuando cambia el node.id
+
+  // Guardar en BD cuando hay cambios en devicesData (auto-save con debounce)
+  const [saveTimeout, setSaveTimeout] = React.useState(null);
+  
+  // Guardar cambios cuando el usuario intenta irse (presiona atrás)
+  React.useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', async (e) => {
+      // Si hay cambios sin guardar y el usuario intenta navegar away
+      if ((devicesData.length > 0 || nodeData.fusionLinks?.length > 0) && nodeData.id) {
+        console.log('⚠️ User is navigating away - Ensuring all changes are saved');
+        
+        // Guardar antes de permitir la navegación
+        try {
+          const meta = {
+            devices: devicesData,
+            fusionLinks: nodeData.fusionLinks || [],
+          };
+          
+          await updateNode(nodeData.id, {
+            label: nodeData.label,
+            typeId: nodeData.typeId,
+            description: nodeData.description || '',
+            metadata: JSON.stringify(meta),
+          });
+          console.log('✅ Final save completed before navigation');
+        } catch (error) {
+          console.error('❌ Error in final save:', error);
+        }
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, devicesData, nodeData]);
+  
+  React.useEffect(() => {
+    // SKIP auto-save until mount-load is complete
+    if (!isLoadedFromDB) {
+      console.log('⏳ Skipping auto-save - still loading from DB on mount');
+      return;
+    }
+
+    // For temporary nodes (without ID), sync devices back to the node object for CreateProject
+    if (nodeData.id == undefined) {
+      console.log('🔄 Syncing devices to temporary node:', nodeData.label);
+      setNodeData(prev => ({
+        ...prev,
+        devices: devicesData,
+      }));
+      return; // Don't try to save to DB
+    }
+
+    // Limpiar timeout anterior
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+    }
+
+    // Auto-save INMEDIATAMENTE sin debounce para evitar race conditions (only for persisted nodes)
+    const saveNow = async () => {
+      if (nodeData.id != undefined) {
+        try {
+          const meta = {
+            devices: devicesData,
+            fusionLinks: nodeData.fusionLinks || [],
+          };
+          
+          console.log('💾 Auto-saving node with', devicesData.length, 'devices to BD');
+          const success = await updateNode(nodeData.id, {
+            label: nodeData.label,
+            typeId: nodeData.typeId,
+            description: nodeData.description || '',
+            metadata: JSON.stringify(meta),
+          });
+          console.log('✅ Node auto-saved successfully:', success);
+        } catch (error) {
+          console.error('❌ Error auto-saving node:', error);
+        }
+      }
+    };
+
+    // Ejecutar inmediatamente si hay cambios
+    saveNow();
+
+    setSaveTimeout(null);
+
+    return () => {
+      // Limpieza
+    };
+  }, [devicesData, nodeData, isLoadedFromDB]); // Include isLoadedFromDB in dependencies
+
+  // No recargar desde BD en useFocusEffect - confiar en local state + auto-save
+  // El auto-save inmediato se encarga de persistir los cambios
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('👁️ NodeDetails received focus. Using local state with auto-save.');
+      // No hacer nada - los datos ya están en local state
+      // El auto-save se encargará de persistir
+    }, [])
+  );
 
   const colors = {
     primary: "#3498db",
@@ -271,7 +417,7 @@ const NodeDetails = ({ route, navigation }) => {
     //navigation.navigate('ViewOnMap', { selectedProject: proyecto });
   };
 
-  const saveAndGoBack = () => {
+  const saveAndGoBack = async () => {
     const savedNode = {
       ...nodeData,
       devices: devicesData,
@@ -303,32 +449,42 @@ const NodeDetails = ({ route, navigation }) => {
     }
     console.log('✅ ===========================================================');
 
-    // 🔥 No pasar callbacks en parámetros de navegación (causa warnings)
-    // El padre (CreateProject) detectará el retorno via useFocusEffect
-    if (route.params?.onSaveNode) {
-      route.params.onSaveNode(savedNode);
+    // ✅ Si el nodo ya tiene ID (no es nuevo), guardar en BD
+    if (nodeData.id != undefined) {
+      try {
+        const meta = {
+          devices: devicesData,
+          fusionLinks: nodeData.fusionLinks || [],
+        };
+        
+        await updateNode(nodeData.id, {
+          label: nodeData.label,
+          typeId: nodeData.typeId,
+          description: nodeData.description || '',
+          metadata: JSON.stringify(meta),
+        });
+        
+        console.log('✅ Node persisted to database');
+      } catch (error) {
+        console.error('❌ Error saving node to database:', error);
+        Alert.alert('Error', 'No se pudo guardar el nodo');
+        return;
+      }
+    } else {
+      // Node doesn't have an ID yet (temporary node in CreateProject)
+      // Update nodeData with latest devices so CreateProject picks up the changes
+      console.log('📝 Node has no DB ID yet - updating local state for CreateProject');
+      // nodeData is already updated with devicesData via setDevicesData
+      // The caller (CreateProject) will see the updated state when we goBack
     }
-    console.log('✅ Node saved');
+
     navigation.goBack();
   };
 
   const handleSave = () => {
-    // Ejecutar el callback si existe
-    if (route.params?.onSaveNode) {
-      if (node.id != undefined) {
-        // const upd = { ...nodeData, metadata: JSON.stringify(devicesData) };
-
-        // updateNode(node.id, upd)
-        //   .then((r) => {
-        //     saveAndGoBack();
-        //   })
-        //   .catch((e) => { });
-
-        saveAndGoBack();
-      } else {
-        saveAndGoBack();
-      }
-    }
+    // Guardar siempre (no depender de callback)
+    console.log('💾 Save button pressed - Saving node');
+    saveAndGoBack();
   };
 
   const updateDevice = (device) => {
@@ -372,6 +528,7 @@ const NodeDetails = ({ route, navigation }) => {
   };
 
   const handleAddDevice = () => {
+    console.log('🆕 handleAddDevice: Opening DeviceDetails with new device');
     navigation.navigate("DeviceDetails", {
       deviceData: {
         hash: uuidv4(),
@@ -385,21 +542,25 @@ const NodeDetails = ({ route, navigation }) => {
         portsCount: "",
         ports: [],
       },
+      // ✅ Pasar callback para agregar nuevo dispositivo
       onSaveDevice: (data) => {
-        console.log('➕ Adding new device:', data.label || data.name);
-        let devs = [...devicesData];
-        devs.push(data);
-        setDevicesData(devs);
-        console.log('✅ New device added to devicesData. Total devices:', devs.length);
+        console.log('🎯 onSaveDevice callback triggered in NodeDetails');
+        console.log('📦 Device data received:', {
+          hash: data.hash,
+          label: data.label,
+          type: data.type,
+          portsCount: data.portsCount,
+          ports: data.ports?.length || 0
+        });
         
-        // Actualizar inmediatamente el nodo en CreateProject
-        const updatedNode = {
-          ...nodeData,
-          devices: devs,
-        };
-        route.params.onSaveNode(updatedNode);
-        console.log('✅ Node updated in CreateProject with new device');
-      },
+        // Agregar nuevo dispositivo al array
+        const newDevices = [...devicesData, data];
+        setDevicesData(newDevices);
+        
+        console.log('✅ New device added to devicesData');
+        console.log('📊 Total devices now:', newDevices.length);
+        console.log('📋 Devices list:', newDevices.map(d => ({ label: d.label, type: d.type })));
+      }
     });
   };
 
@@ -424,38 +585,33 @@ const NodeDetails = ({ route, navigation }) => {
 
     return (
       <View>
-        <View>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 1,
-            }}
-          >
-            <Text style={[styles.title, { color: colors.text }]}>
-              {t("devicesLabel")}
-            </Text>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 1,
+          }}
+        >
+          <Text style={[styles.title, { color: colors.text }]}>
+            {t("devicesLabel")}
+          </Text>
 
-            <TouchableOpacity
-              onPress={() => {
-                handleAddDevice();
-              }}
-              style={styles.clearButton}
-            >
-              <Ionicons name="add-circle" size={24} color={colors.primary} />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={() => {
+              handleAddDevice();
+            }}
+            style={styles.clearButton}
+          >
+            <Ionicons name="add-circle" size={24} color={colors.primary} />
+          </TouchableOpacity>
         </View>
         
-        {devicesData == undefined ||
-          (devicesData.length == 0 && (
-            <Text style={styles.label}>{t("devicesEmpty")}</Text>
-          ))}
-        <FlatList
-          data={devicesData}
-          renderItem={({ item }) => (
-            <View style={[styles.card, { backgroundColor: colors.card }]}>
+        {devicesData == undefined || devicesData.length == 0 ? (
+          <Text style={styles.label}>{t("devicesEmpty")}</Text>
+        ) : (
+          devicesData.map((item, index) => (
+            <View key={item.id || item.hash || index} style={[styles.card, { backgroundColor: colors.card }]}>
               <View style={styles.deviceHeader}>
                 <View style={styles.deviceInfo}>
                   <Text
@@ -512,8 +668,8 @@ const NodeDetails = ({ route, navigation }) => {
                 <Text style={styles.configLabel}>{item.mac}</Text>
               </View>
             </View>
-          )}
-        />
+          ))
+        )}
       </View>
     );
   };

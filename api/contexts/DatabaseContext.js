@@ -4,6 +4,43 @@ import { AdapterInitializator, getAdapter } from '../config/dataSource';
 
 const DatabaseContext = createContext();
 
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 20,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#d32f2f',
+  },
+  errorText: {
+    fontSize: 14,
+    marginBottom: 10,
+    color: '#666',
+    textAlign: 'center',
+  },
+  errorHelp: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#333',
+  },
+  platformText: {
+    marginTop: 5,
+    fontSize: 12,
+    color: '#666',
+  },
+});
+
 export const DatabaseProvider = ({ children }) => {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState(null);

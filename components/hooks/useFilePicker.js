@@ -1,16 +1,11 @@
 // hooks/useFilePicker.js
 import { useState } from 'react';
-import { Platform, Alert, Linking } from 'react-native';
+import { Platform, Alert } from 'react-native';
 import {
   launchImageLibrary,
   launchCamera,
 } from 'react-native-image-picker';
-
-// Solo importar DocumentPicker en plataformas nativas
-let DocumentPicker = null;
-if (Platform.OS !== 'web') {
-  DocumentPicker = require('@react-native-documents/picker').default;
-}
+import * as DocumentPicker from 'expo-document-picker';
 
 const useFilePicker = () => {
   const [loading, setLoading] = useState(false);
@@ -138,42 +133,37 @@ const useFilePicker = () => {
     });
   };
 
-  // Seleccionar documento usando react-native-document-picker en móvil
+  // Seleccionar documento usando expo-document-picker (funciona en Expo Go)
   const pickDocumentNative = async () => {
-    if (!DocumentPicker) {
-      console.error('DocumentPicker not available on this platform');
-      Alert.alert('Error', 'Selector de documentos no disponible');
-      return null;
-    }
-
     try {
-      const result = await DocumentPicker.pick({
-        type: [DocumentPicker.types.allFiles],
-        copyTo: 'cachesDirectory',
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
       });
 
-      if (result && result.length > 0) {
-        const doc = result[0];
-        const fileType = getFileTypeFromMime(doc.type);
+      if (result.canceled) {
+        return null;
+      }
+
+      if (result.assets && result.assets.length > 0) {
+        const doc = result.assets[0];
+        const fileType = getFileTypeFromMime(doc.mimeType || '');
 
         return {
-          uri: doc.fileCopyUri || doc.uri,
+          uri: doc.uri,
           name: doc.name,
           type: fileType,
-          mimeType: doc.type,
+          mimeType: doc.mimeType || 'application/octet-stream',
           size: doc.size,
-          data: doc.fileCopyUri || doc.uri,
+          data: doc.uri,
           timestamp: new Date().toISOString(),
         };
       }
 
       return null;
     } catch (error) {
-      if (DocumentPicker.isCancel(error)) {
-        return null;
-      }
       console.error('Error picking document:', error);
-      throw error;
+      Alert.alert('Error', 'No se pudo seleccionar el documento');
+      return null;
     }
   };
 
