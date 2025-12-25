@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { useTranslation } from '../hooks/useTranslation';
 import { useDevice } from '../context/DeviceContext';
-import RNPickerSelect from 'react-native-picker-select';
+import PickerModal from '../context/PickerModal';
 import { number } from 'yup';
 
 
@@ -27,6 +27,7 @@ const DeviceDetails = ({ route, navigation }) => {
   const { t } = useTranslation();
   const { deviceData } = route.params;
   const [data, setData] = useState(deviceData);
+  const [showTypeModal, setShowTypeModal] = useState(false);
 
 
   const deviceTypes = [
@@ -37,64 +38,6 @@ const DeviceDetails = ({ route, navigation }) => {
     { value: 'ont', label: 'ONT', description: 'opticalNetworkTerminal', defaultPorts: 1 },
     { value: 'splitter', label: 'Splitter', description: 'opticalSignalSplitting', defaultPorts: 8 }
   ];
-
-  const pickerSelectStyles = StyleSheet.create({
-    inputWeb: {
-      fontSize: 16,
-      paddingVertical: 15,
-      paddingHorizontal: 20,
-      borderWidth: 2,
-      borderColor: '#E5E7EB',
-      borderRadius: 12,
-      color: '#1F2937',
-      backgroundColor: '#F9FAFB',
-      paddingRight: 50,
-      marginVertical: 8,
-      // outline: 'none', // No soportado en React Native - removido
-      cursor: 'pointer',
-    },
-    inputIOS: {
-      fontSize: 16,
-      paddingVertical: 15,
-      paddingHorizontal: 20,
-      borderWidth: 2,
-      borderColor: '#E5E7EB',
-      borderRadius: 12,
-      color: '#1F2937',
-      backgroundColor: '#F9FAFB',
-      paddingRight: 50,
-      marginVertical: 8,
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 3,
-    },
-    inputAndroid: {
-      fontSize: 16,
-      paddingHorizontal: 20,
-      paddingVertical: 15,
-      borderWidth: 2,
-      borderColor: '#E5E7EB',
-      borderRadius: 12,
-      color: '#1F2937',
-      backgroundColor: '#197ee2ff',
-      paddingRight: 50,
-      marginVertical: 8,
-      elevation: 3,
-    },
-    placeholder: {
-      color: '#6B7280',
-    },
-    iconContainer: {
-      top: 18,
-      right: 15,
-    }
-  });
-
 
   const colors = {
     primary: '#3498db',
@@ -419,21 +362,31 @@ const DeviceDetails = ({ route, navigation }) => {
 
           <View >
             <Text style={styles.label} >{t('type')}</Text>
-            <RNPickerSelect
-              style={pickerSelectStyles}
-              value={data.type || ''} // 🔥 Usar string vacío en lugar de null/undefined
-              useNativeAndroidPickerStyle={false}
-              onValueChange={(value) => {
+            <TouchableOpacity
+              style={[styles.input, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}
+              onPress={() => setShowTypeModal(true)}
+            >
+              <Text style={{ color: data.type ? colors.text : colors.placeholder }}>
+                {data.type ? deviceTypes.find(x => x.value === data.type)?.label : t('selectAnOption')}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color={colors.primary} />
+            </TouchableOpacity>
+            <PickerModal
+              visible={showTypeModal}
+              onClose={() => setShowTypeModal(false)}
+              onSelect={(value) => {
                 setData(prev => ({
                   ...prev,
                   type: value,
                   label: deviceTypes.find(x => x.value == value).label
                 }));
-
+                setShowTypeModal(false);
               }}
-              itemKey={item => item.id}
               items={deviceTypes}
-              placeholder={{ label: t('selectAnOption'), value: null }}
+              selectedValue={data.type || ''}
+              title={t('type')}
+              isDarkMode={isDarkMode}
+              colors={colors}
             />
           </View>
           <View >
