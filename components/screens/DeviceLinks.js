@@ -23,9 +23,9 @@ import { useApp } from "../context/AppContext";
 import { useTranslation } from "../hooks/useTranslation";
 import { useDevice } from "../context/DeviceContext";
 import { useAdapter } from "@/api/contexts/DatabaseContext";
+import { PickerModal } from "../context/PickerModal";
 
 import { v4 as uuidv4 } from "uuid";
-import RNPickerSelect from "react-native-picker-select";
 import { isBufferConsumedInNode } from "@/utils/bufferVisibilityManager";
 
 const DeviceLinks = ({ route, navigation }) => {
@@ -43,6 +43,11 @@ const DeviceLinks = ({ route, navigation }) => {
 
   const [showLinkSetupModal, setShowLinkSetupModal] = useState(false);
   const [showThreadInUse, setShowThreadInUse] = useState(false);
+  
+  // Estados para los PickerModals
+  const [showFiberModal, setShowFiberModal] = useState(false);
+  const [showBufferModal, setShowBufferModal] = useState(false);
+  const [showThreadModal, setShowThreadModal] = useState(false);
 
   const [selectedPort, setSelectedPort] = useState(null);
   const [deviceData, setDeviceData] = useState(device);
@@ -377,62 +382,18 @@ const DeviceLinks = ({ route, navigation }) => {
     },
   });
 
-  const pickerSelectStyles = StyleSheet.create({
-    inputWeb: {
-      fontSize: 16,
-      paddingVertical: 15,
-      paddingHorizontal: 20,
-      borderWidth: 2,
-      borderColor: "#E5E7EB",
-      borderRadius: 12,
-      color: "#1F2937",
-      backgroundColor: "#F9FAFB",
-      paddingRight: 50,
-      marginVertical: 8,
-      // outline: "none", // No soportado en React Native - removido
-      cursor: "pointer",
-    },
-    inputIOS: {
-      fontSize: 16,
-      paddingVertical: 15,
-      paddingHorizontal: 20,
-      borderWidth: 2,
-      borderColor: "#E5E7EB",
-      borderRadius: 12,
-      color: "#1F2937",
-      backgroundColor: "#F9FAFB",
-      paddingRight: 50,
-      marginVertical: 8,
-      shadowColor: "#000",
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 3,
-    },
-    inputAndroid: {
-      fontSize: 16,
-      paddingHorizontal: 20,
-      paddingVertical: 15,
-      borderWidth: 2,
-      borderColor: "#E5E7EB",
-      borderRadius: 12,
-      color: "#1F2937",
-      backgroundColor: "#197ee2ff",
-      paddingRight: 50,
-      marginVertical: 8,
-      elevation: 3,
-    },
-    placeholder: {
-      color: "#6B7280",
-    },
-    iconContainer: {
-      top: 18,
-      right: 15,
-    },
-  });
+  // Colores dinámicos basados en el tema
+  const colors = {
+    primary: "#3498db",
+    success: "#2ecc71",
+    warning: "#f39c12",
+    danger: "#e74c3c",
+    card: isDarkMode ? "#1e1e1e" : "#ffffff",
+    text: isDarkMode ? "#ffffff" : "#2c3e50",
+    subText: isDarkMode ? "#b0b0b0" : "#7f8c8d",
+    border: isDarkMode ? "#333" : "#ecf0f1",
+    placeholder: isDarkMode ? "#888888" : "#a0a0a0",
+  };
 
   const formatDate = (dateString) => {
     if (!dateString) return "Unknown date";
@@ -1196,13 +1157,21 @@ const DeviceLinks = ({ route, navigation }) => {
                 {/**Source */}
                 <View>
                   <Text style={styles.label}>{t("Source")}</Text>
-                  <RNPickerSelect
-                    style={pickerSelectStyles}
-                    value={srcLink.fiber != null ? srcLink.fiber.value : null}
-                    useNativeAndroidPickerStyle={false}
-                    onValueChange={(value) => {
-                      const fiber = fibersData.find((x) => x.value == value);
+                  <TouchableOpacity
+                    style={[styles.input, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}
+                    onPress={() => setShowFiberModal(true)}
+                  >
+                    <Text style={{ color: srcLink.fiber ? colors.text : colors.placeholder }}>
+                      {srcLink.fiber ? srcLink.fiber.label : t('selectAnOption')}
+                    </Text>
+                    <Ionicons name="chevron-down" size={20} color={colors.primary} />
+                  </TouchableOpacity>
 
+                  <PickerModal
+                    visible={showFiberModal}
+                    onClose={() => setShowFiberModal(false)}
+                    onSelect={(value) => {
+                      const fiber = fibersData.find((x) => x.value == value);
                       if (fiber != undefined) {
                         const tmp = {
                           ...srcLink,
@@ -1213,12 +1182,15 @@ const DeviceLinks = ({ route, navigation }) => {
                               ? buildThreads(fiber, fiber.threads)
                               : [],
                         };
-
                         setSrcLink(tmp);
                       }
+                      setShowFiberModal(false);
                     }}
                     items={fibersData}
-                    placeholder={{ label: t("selectAnOption"), value: null }}
+                    selectedValue={srcLink.fiber?.value}
+                    title={t("Source")}
+                    isDarkMode={isDarkMode}
+                    colors={colors}
                   />
                 </View>
 
@@ -1226,17 +1198,25 @@ const DeviceLinks = ({ route, navigation }) => {
                 {srcLink.fiber != null && srcLink.fiber.buffers.length > 1 && (
                   <View>
                     <Text style={styles.label}>{t("Buffer")}</Text>
-                    <RNPickerSelect
-                      style={pickerSelectStyles}
-                      value={
-                        srcLink.buffer != null ? srcLink.buffer.value : null
-                      }
-                      useNativeAndroidPickerStyle={false}
-                      onValueChange={(value) => {
+                    <TouchableOpacity
+                      style={[styles.input, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}
+                      onPress={() => setShowBufferModal(true)}
+                    >
+                      <Text style={{ color: srcLink.buffer ? colors.text : colors.placeholder }}>
+                        {srcLink.buffer 
+                          ? (srcLink.fiber.buffers.find(b => b.value === srcLink.buffer)?.label || t('selectAnOption'))
+                          : t('selectAnOption')}
+                      </Text>
+                      <Ionicons name="chevron-down" size={20} color={colors.primary} />
+                    </TouchableOpacity>
+
+                    <PickerModal
+                      visible={showBufferModal}
+                      onClose={() => setShowBufferModal(false)}
+                      onSelect={(value) => {
                         const buffer = srcLink.fiber.buffers.find(
                           (x) => x.value == value
                         );
-
                         const tmp = {
                           ...srcLink,
                           buffer: value,
@@ -1244,10 +1224,13 @@ const DeviceLinks = ({ route, navigation }) => {
                           threads: buildThreads(buffer, buffer.threads),
                         };
                         setSrcLink(tmp);
+                        setShowBufferModal(false);
                       }}
-                      itemKey={(item) => item.value}
                       items={srcLink.fiber.buffers}
-                      placeholder={{ label: t("selectAnOption"), value: null }}
+                      selectedValue={srcLink.buffer}
+                      title={t("Buffer")}
+                      isDarkMode={isDarkMode}
+                      colors={colors}
                     />
                   </View>
                 )}
@@ -1263,22 +1246,31 @@ const DeviceLinks = ({ route, navigation }) => {
                       alignItems: "center",
                     }}
                   >
-                    <RNPickerSelect
-                      style={pickerSelectStyles}
-                      value={srcLink.thread != null ? srcLink.thread : null}
-                      useNativeAndroidPickerStyle={false}
-                      onValueChange={(value, index) => {
-                        if (index != -1 && value != null) {
-                          const tmp = {
-                            ...srcLink,
-                            thread: value,
-                          };
-                          setSrcLink(tmp);
-                        }
+                    <TouchableOpacity
+                      style={[styles.input, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}
+                      onPress={() => setShowThreadModal(true)}
+                    >
+                      <Text style={{ color: srcLink.thread ? colors.text : colors.placeholder }}>
+                        {srcLink.thread ? `${t("thread")}-${srcLink.thread}` : t('selectAnOption')}
+                      </Text>
+                      <Ionicons name="chevron-down" size={20} color={colors.primary} />
+                    </TouchableOpacity>
+
+                    <PickerModal
+                      visible={showThreadModal}
+                      onClose={() => setShowThreadModal(false)}
+                      onSelect={(value) => {
+                        setSrcLink({
+                          ...srcLink,
+                          thread: value,
+                        });
+                        setShowThreadModal(false);
                       }}
-                      itemKey={(item) => item.value}
                       items={srcLink.threads}
-                      placeholder={{ label: t("selectAnOption"), value: null }}
+                      selectedValue={srcLink.thread}
+                      title={t("Thread")}
+                      isDarkMode={isDarkMode}
+                      colors={colors}
                     />
                   </View>
                 </View>
