@@ -21,9 +21,9 @@ import { useApp } from "../context/AppContext";
 import { useTranslation } from "../hooks/useTranslation";
 import { useDevice } from "../context/DeviceContext";
 import { useAdapter } from "@/api/contexts/DatabaseContext";
+import PickerModal from "../context/PickerModal";
 
 import { v4 as uuidv4 } from "uuid";
-import RNPickerSelect from "react-native-picker-select";
 import { deleteData } from "@/service/database";
 import { isBufferConsumedInNode } from "@/utils/bufferVisibilityManager";
 
@@ -41,6 +41,14 @@ const FusionLink = ({ route, navigation }) => {
 
   const [showFusionModal, setShowFusionModal] = useState(true);
   const [fibersData, setFibersData] = useState([]);
+
+  // Modal states for 6 pickers
+  const [showSrcFiberModal, setShowSrcFiberModal] = useState(false);
+  const [showSrcBufferModal, setShowSrcBufferModal] = useState(false);
+  const [showSrcThreadModal, setShowSrcThreadModal] = useState(false);
+  const [showDstFiberModal, setShowDstFiberModal] = useState(false);
+  const [showDstBufferModal, setShowDstBufferModal] = useState(false);
+  const [showDstThreadModal, setShowDstThreadModal] = useState(false);
 
   const [srcLink, setSrcLink] = useState({
     fiber: null,
