@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { useTranslation } from '../hooks/useTranslation';
 import { useDevice } from '../context/DeviceContext';
-import RNPickerSelect from 'react-native-picker-select';
+import PickerModal from '../context/PickerModal';
 import { number } from 'yup';
 
 
@@ -27,6 +27,7 @@ const DeviceDetails = ({ route, navigation }) => {
   const { t } = useTranslation();
   const { deviceData } = route.params;
   const [data, setData] = useState(deviceData);
+  const [showTypeModal, setShowTypeModal] = useState(false);
 
 
   const deviceTypes = [
@@ -353,6 +354,20 @@ const DeviceDetails = ({ route, navigation }) => {
       fontSize: 16,
       marginLeft: 8,
     },
+    pickerButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 8,
+      borderWidth: 1,
+      marginVertical: 8,
+    },
+    pickerButtonText: {
+      fontSize: 16,
+      flex: 1,
+    },
   });
 
   const formatDate = (dateString) => {
@@ -419,21 +434,32 @@ const DeviceDetails = ({ route, navigation }) => {
 
           <View >
             <Text style={styles.label} >{t('type')}</Text>
-            <RNPickerSelect
-              style={pickerSelectStyles}
-              value={data.type}
-              useNativeAndroidPickerStyle={false}
-              onValueChange={(value) => {
+            <TouchableOpacity
+              style={[styles.pickerButton, { borderColor: colors.border, backgroundColor: colors.inputBackground }]}
+              onPress={() => setShowTypeModal(true)}
+            >
+              <Text style={[styles.pickerButtonText, { color: data.type ? colors.text : colors.placeholder }]}>
+                {data.type ? deviceTypes.find(x => x.value === data.type)?.label : t('selectAnOption')}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color={colors.text} />
+            </TouchableOpacity>
+            
+            <PickerModal
+              visible={showTypeModal}
+              title={t('type')}
+              items={deviceTypes}
+              selectedValue={data.type}
+              onClose={() => setShowTypeModal(false)}
+              onSelect={(value) => {
                 setData(prev => ({
                   ...prev,
                   type: value,
-                  label: deviceTypes.find(x => x.value == value).label
+                  label: deviceTypes.find(x => x.value === value)?.label
                 }));
-
+                setShowTypeModal(false);
               }}
-              itemKey={item => item.id}
-              items={deviceTypes}
-              placeholder={{ label: t('selectAnOption'), value: null }}
+              isDarkMode={isDarkMode}
+              colors={colors}
             />
           </View>
           <View >

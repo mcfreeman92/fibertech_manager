@@ -1,0 +1,180 @@
+import React from 'react';
+
+import {
+  Modal,
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+/**
+ * Reemplaza RNPickerSelect con mejor experiencia en Android
+ */
+const PickerModal = ({
+  visible,
+  onClose,
+  onSelect,
+  items,
+  selectedValue,
+  title,
+  isDarkMode,
+  colors,
+}) => {
+  const renderItem = ({ item }) => (
+    <TouchableOpacity
+      style={[
+        styles.item,
+        {
+          backgroundColor:
+            item.value === selectedValue
+              ? colors.primary + '20'
+              : colors.card,
+          borderBottomColor: colors.border,
+        },
+      ]}
+      onPress={() => onSelect(item.value)}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+        <Text
+          style={[
+            styles.itemText,
+            {
+              color: colors.text,
+              fontWeight: item.value === selectedValue ? '600' : '400',
+            },
+          ]}
+        >
+          {item.label}
+        </Text>
+      </View>
+      {item.value === selectedValue && (
+        <Ionicons
+          name="checkmark-circle"
+          size={20}
+          color={colors.primary}
+          style={{ marginRight: 10 }}
+        />
+      )}
+    </TouchableOpacity>
+  );
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <TouchableOpacity
+        style={[
+          styles.overlay,
+          { backgroundColor: 'rgba(0, 0, 0, 0.5)' },
+        ]}
+        onPress={onClose}
+        activeOpacity={1}
+      >
+        <View
+          style={[
+            styles.container,
+            {
+              backgroundColor: colors.card,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+            },
+          ]}
+          onStartShouldSetResponder={() => true}
+        >
+          {/* Header */}
+          <View
+            style={[
+              styles.header,
+              {
+                borderBottomColor: colors.border,
+                borderBottomWidth: 1,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.title,
+                {
+                  color: colors.text,
+                  flex: 1,
+                },
+              ]}
+            >
+              {title}
+            </Text>
+            <TouchableOpacity onPress={onClose} hitSlop={10}>
+              <Ionicons
+                name="close-circle"
+                size={28}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Items List */}
+          {items && items.length > 0 ? (
+            <FlatList
+              data={items}
+              renderItem={renderItem}
+              keyExtractor={(item) => String(item.value)}
+              style={{ maxHeight: 400 }}
+            />
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={{ color: colors.placeholder }}>
+                No items available
+              </Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+};
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  container: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+    paddingBottom: 20,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  itemText: {
+    fontSize: 16,
+  },
+  emptyContainer: {
+    paddingVertical: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
+
+export default PickerModal;

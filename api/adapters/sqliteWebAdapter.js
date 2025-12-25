@@ -260,7 +260,7 @@ export const sqliteWebAdapter = {
   // ========== FIBERS ==========
   getFibers: async (projectId = null, parentId = null) => {
     try {
-      let fibers;
+      let fibers = [];
 
       if (projectId !== null) {
         fibers = await db.fibers

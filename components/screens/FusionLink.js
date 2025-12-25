@@ -346,7 +346,6 @@ const FusionLink = ({ route, navigation }) => {
       backgroundColor: "#F9FAFB",
       paddingRight: 10,
       marginVertical: 8,
-      outline: "none", // Importante para web
       cursor: "pointer",
     },
     inputIOS: {
