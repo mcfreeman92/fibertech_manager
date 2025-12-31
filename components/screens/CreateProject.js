@@ -2668,22 +2668,6 @@ const CreateProject = ({ navigation, route, theme }) => {
           {isEditMode ? t("editProject") : t("createProject")}
         </Text>
         <View style={styles.headerActions}>
-          {isEditMode && (
-            <TouchableOpacity
-              onPress={clearForm}
-              style={styles.clearButton}
-              disabled={saving}
-            >
-              <Ionicons name="add" size={24} color={colors.primary} />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            onPress={() => setProjectSelectorVisible(true)}
-            style={styles.selectProjectButton}
-            disabled={saving}
-          >
-            <Ionicons name="folder-open" size={24} color={colors.primary} />
-          </TouchableOpacity>
           <TouchableOpacity onPress={handleSaveProject} disabled={saving}>
             <Ionicons
               name="save"

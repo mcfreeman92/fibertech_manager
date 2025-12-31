@@ -21,6 +21,7 @@ const DetallesProyecto = ({ route, navigation }) => {
   const { t } = useTranslation();
   const { proyecto } = route.params;
   const { getNodes } = useAdapter()();
+  
   const [stats, setStats] = useState({
     totalDevices: 0,
     totalUnits: 0,
@@ -47,10 +48,11 @@ const DetallesProyecto = ({ route, navigation }) => {
     try {
       setStats(prev => ({ ...prev, loading: true }));
       
-      // Obtener datos de unidades del proyecto
-      const livingUnits = parseInt(proyecto.living_unit || "0");
-      const officeUnits = parseInt(proyecto.office_unit || "0");
-      const commercialUnits = parseInt(proyecto.commercial_unit || "0");
+      // Obtener datos de unidades desde meta.unitsInfo
+      const unitsInfo = proyecto.meta?.unitsInfo || {};
+      const livingUnits = parseInt(unitsInfo.living_unit || "0");
+      const officeUnits = parseInt(unitsInfo.office_amenities || "0");
+      const commercialUnits = parseInt(unitsInfo.commercial_unit || "0");
       const totalUnits = livingUnits + officeUnits + commercialUnits;
       
       // Obtener nodos del proyecto
@@ -89,7 +91,18 @@ const DetallesProyecto = ({ route, navigation }) => {
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return 'N/A';
-      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+      // Usar el mismo formato que en ListaProyectos
+      const formattedDate = date.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      const formattedTime = date.toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      return `${formattedDate} ${formattedTime}`;
     } catch (e) {
       return 'N/A';
     }
@@ -110,7 +123,7 @@ const DetallesProyecto = ({ route, navigation }) => {
           <Ionicons name="arrow-back" size={24} color="#2c3e50" />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Detalles del Proyecto
+          Project details
         </Text>
         <View style={styles.headerActions}>
           <TouchableOpacity onPress={verEnMapa} style={styles.mapButton}>
@@ -123,7 +136,7 @@ const DetallesProyecto = ({ route, navigation }) => {
       <ScrollView style={styles.content}>
         <View style={[styles.card, { backgroundColor: colors.card }]}>
           <Text style={[styles.title, { color: colors.text }]}>
-            {proyecto.name || 'Proyecto sin nombre'}
+            {proyecto.name || t('unnamedProject')}
           </Text>
           
           {proyecto.description && (
@@ -134,7 +147,7 @@ const DetallesProyecto = ({ route, navigation }) => {
 
           <View style={styles.detailRow}>
             <Ionicons name="key" size={20} color="#3498db" />
-            <Text style={[styles.detailLabel, { color: colors.subText }]}>ID:</Text>
+            <Text style={[styles.detailLabel, { color: colors.subText }]}>{t('id')}:</Text>
             <Text style={[styles.detailValue, { color: colors.text }]}>{proyecto.id}</Text>
           </View>
 
@@ -148,7 +161,7 @@ const DetallesProyecto = ({ route, navigation }) => {
 
           {/* Estadísticas */}
           <View style={[styles.statsContainer, { borderColor: colors.border }]}>
-            <Text style={[styles.statsTitle, { color: colors.text }]}>Estadísticas</Text>
+            <Text style={[styles.statsTitle, { color: colors.text }]}>{t('statistics')}</Text>
             
             {stats.loading ? (
               <ActivityIndicator size="small" color="#3498db" />
@@ -156,37 +169,37 @@ const DetallesProyecto = ({ route, navigation }) => {
               <>
                 <View style={styles.statRow}>
                   <Ionicons name="home" size={18} color="#3498db" />
-                  <Text style={[styles.statLabel, { color: colors.subText }]}>Hab.:</Text>
+                  <Text style={[styles.statLabel, { color: colors.subText }]}>{t('residential')}:</Text>
                   <Text style={[styles.statValue, { color: colors.text }]}>{stats.livingUnits}</Text>
                 </View>
                 
                 <View style={styles.statRow}>
                   <Ionicons name="briefcase" size={18} color="#3498db" />
-                  <Text style={[styles.statLabel, { color: colors.subText }]}>Oficinas:</Text>
+                  <Text style={[styles.statLabel, { color: colors.subText }]}>Offices:</Text>
                   <Text style={[styles.statValue, { color: colors.text }]}>{stats.officeUnits}</Text>
                 </View>
                 
                 <View style={styles.statRow}>
                   <Ionicons name="storefront" size={18} color="#3498db" />
-                  <Text style={[styles.statLabel, { color: colors.subText }]}>Comerciales:</Text>
+                  <Text style={[styles.statLabel, { color: colors.subText }]}>{t('commercial')}:</Text>
                   <Text style={[styles.statValue, { color: colors.text }]}>{stats.commercialUnits}</Text>
                 </View>
 
                 <View style={[styles.statRow, styles.totalUnitsRow]}>
                   <Ionicons name="building" size={18} color="#2ecc71" />
-                  <Text style={[styles.statLabel, { color: colors.subText, fontWeight: '700' }]}>Total Unidades:</Text>
+                  <Text style={[styles.statLabel, { color: colors.subText, fontWeight: '700' }]}>{t('totalUnits')}:</Text>
                   <Text style={[styles.statValue, { color: colors.text, backgroundColor: '#2ecc71', fontWeight: '700' }]}>{stats.totalUnits}</Text>
                 </View>
                 
                 <View style={styles.statRow}>
                   <Ionicons name="grid" size={18} color="#3498db" />
-                  <Text style={[styles.statLabel, { color: colors.subText }]}>Dispositivos:</Text>
+                  <Text style={[styles.statLabel, { color: colors.subText }]}>{t('devices')}:</Text>
                   <Text style={[styles.statValue, { color: colors.text }]}>{stats.totalDevices}</Text>
                 </View>
                 
                 <View style={styles.statRow}>
                   <Ionicons name="git-network" size={18} color="#3498db" />
-                  <Text style={[styles.statLabel, { color: colors.subText }]}>Nodos de Red:</Text>
+                  <Text style={[styles.statLabel, { color: colors.subText }]}>Network nodes:</Text>
                   <Text style={[styles.statValue, { color: colors.text }]}>{stats.totalNodes}</Text>
                 </View>
               </>
@@ -195,15 +208,19 @@ const DetallesProyecto = ({ route, navigation }) => {
 
           <View style={styles.detailRow}>
             <Ionicons name="calendar" size={20} color="#3498db" />
-            <Text style={[styles.detailLabel, { color: colors.subText }]}>Creado:</Text>
-            <Text style={[styles.detailValue, { color: colors.text }]}>{formatDate(proyecto.createdAt)}</Text>
+            <Text style={[styles.detailLabel, { color: colors.subText }]}>{t('created')}:</Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>
+              {formatDate(proyecto.meta?.createdAt || proyecto.createdAt)}
+            </Text>
           </View>
 
-          {proyecto.updatedAt && (
+          {(proyecto.meta?.updatedAt || proyecto.updatedAt) && (
             <View style={styles.detailRow}>
               <Ionicons name="refresh" size={20} color="#3498db" />
-              <Text style={[styles.detailLabel, { color: colors.subText }]}>Actualizado:</Text>
-              <Text style={[styles.detailValue, { color: colors.text }]}>{formatDate(proyecto.updatedAt)}</Text>
+              <Text style={[styles.detailLabel, { color: colors.subText }]}>{t('updated')}:</Text>
+              <Text style={[styles.detailValue, { color: colors.text }]}>
+                {formatDate(proyecto.meta?.updatedAt || proyecto.updatedAt)}
+              </Text>
             </View>
           )}
 
@@ -218,7 +235,7 @@ const DetallesProyecto = ({ route, navigation }) => {
           {proyecto.client && (
             <View style={styles.detailRow}>
               <Ionicons name="business" size={20} color="#3498db" />
-              <Text style={[styles.detailLabel, { color: colors.subText }]}>Cliente:</Text>
+              <Text style={[styles.detailLabel, { color: colors.subText }]}>{t('client')}:</Text>
               <Text style={[styles.detailValue, { color: colors.text }]}>{proyecto.client}</Text>
             </View>
           )}
@@ -226,7 +243,7 @@ const DetallesProyecto = ({ route, navigation }) => {
           {proyecto.status && (
             <View style={styles.detailRow}>
               <Ionicons name="information-circle" size={20} color="#3498db" />
-              <Text style={[styles.detailLabel, { color: colors.subText }]}>Estado:</Text>
+              <Text style={[styles.detailLabel, { color: colors.subText }]}>{t('status')}:</Text>
               <Text style={[styles.detailValue, { color: colors.text }]}>{proyecto.status}</Text>
             </View>
           )}
@@ -237,7 +254,7 @@ const DetallesProyecto = ({ route, navigation }) => {
           onPress={verEnMapa}
         >
           <Ionicons name="map" size={24} color="#ffffff" />
-          <Text style={styles.mapButtonText}>Ver en Mapa</Text>
+          <Text style={styles.mapButtonText}>{t('viewOnMap')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

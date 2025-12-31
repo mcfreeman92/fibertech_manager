@@ -10,6 +10,7 @@ import {
   RefreshControl,
   Platform
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from '../hooks/useTranslation';
 import { useApp } from '../context/AppContext';
@@ -69,6 +70,13 @@ const DashboardScreen = ({ navigation, theme }) => {
   useEffect(() => {
     loadAllData();
   }, []);
+
+  // Recargar datos cuando la pantalla vuelve a enfoque (después de crear/actualizar un proyecto)
+  useFocusEffect(
+    useCallback(() => {
+      loadAllData();
+    }, [])
+  );
 
   const handleLogout = () => {
     Alert.alert(

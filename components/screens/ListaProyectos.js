@@ -55,8 +55,7 @@ const ListaProyectos = ({ navigation }) => {
     if (searchQuery) {
       const filtered = proyectos.filter(proyecto =>
         (proyecto.name && proyecto.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (proyecto.id && proyecto.id.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (proyecto.createdAt && proyecto.createdAt.toLowerCase().includes(searchQuery.toLowerCase()))
+        (proyecto.id && String(proyecto.id).toLowerCase().includes(searchQuery.toLowerCase()))
       );
       setFilteredProyectos(filtered);
     } else {
