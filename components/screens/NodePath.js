@@ -823,11 +823,6 @@ const NodePath = ({ route, navigation }) => {
         </Text>
 
         <View style={{ flexDirection: "row" }}>
-          <View style={styles.headerActions}>
-            <TouchableOpacity onPress={handleSave} style={styles.mapButton}>
-              <Ionicons name="save" size={24} color="#3498db" />
-            </TouchableOpacity>
-          </View>
         </View>
       </View>
 
