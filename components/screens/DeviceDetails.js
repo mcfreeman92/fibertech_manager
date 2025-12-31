@@ -451,10 +451,15 @@ const DeviceDetails = ({ route, navigation }) => {
               selectedValue={data.type}
               onClose={() => setShowTypeModal(false)}
               onSelect={(value) => {
+                const selectedDevice = deviceTypes.find(x => x.value === value);
+                const defaultPorts = selectedDevice?.defaultPorts || 0;
                 setData(prev => ({
                   ...prev,
                   type: value,
-                  label: deviceTypes.find(x => x.value === value)?.label
+                  label: selectedDevice?.label,
+                  defaultPorts: defaultPorts,
+                  portsCount: String(defaultPorts),
+                  ports: buildPorts(defaultPorts)
                 }));
                 setShowTypeModal(false);
               }}

@@ -556,7 +556,7 @@ const NodeDetails = ({ route, navigation }) => {
       <ScrollView style={styles.content}>
         {/**Datos geenrales */}
         <Text style={[styles.title, { color: colors.text }]}>
-          {t("generalData")}
+          General data
         </Text>
 
         <View style={[styles.card, { backgroundColor: colors.card }]}>
