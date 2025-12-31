@@ -48,10 +48,17 @@ const QRGeneratorModal = ({ visible, onClose, project }) => {
   const generateQRCode = async () => {
     try {
       setLoading(true);
+      console.log('📱 Generating QR for project:', project);
+      
+      if (!project || !project.id) {
+        throw new Error('Project ID is missing');
+      }
+      
       const data = await exportProjectData(project.id);
+      console.log('✅ QR data generated:', data);
       setQrData(data);
     } catch (error) {
-      console.error('Error generating QR code:', error);
+      console.error('❌ Error generating QR code:', error);
       Alert.alert(t('error'), t('couldNotGenerateQR'));
     } finally {
       setLoading(false);

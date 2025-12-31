@@ -1,23 +1,35 @@
 // components/DetallesProyecto.js
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { useTranslation } from '../hooks/useTranslation';
 import { useDevice } from '../context/DeviceContext';
+import { useAdapter } from '@/api/contexts/DatabaseContext';
 
 const DetallesProyecto = ({ route, navigation }) => {
   const { topInset, bottomInset, stylesFull } = useDevice();
   const { isDarkMode } = useApp();
   const { t } = useTranslation();
   const { proyecto } = route.params;
+  const { getNodes } = useAdapter()();
+  const [stats, setStats] = useState({
+    totalDevices: 0,
+    totalUnits: 0,
+    livingUnits: 0,
+    officeUnits: 0,
+    commercialUnits: 0,
+    totalNodes: 0,
+    loading: true
+  });
 
   const colors = {
     background: isDarkMode ? '#121212' : '#ffffff',
@@ -27,10 +39,60 @@ const DetallesProyecto = ({ route, navigation }) => {
     border: isDarkMode ? '#333' : '#ecf0f1',
   };
 
+  useEffect(() => {
+    loadProjectStats();
+  }, [proyecto.id]);
+
+  const loadProjectStats = async () => {
+    try {
+      setStats(prev => ({ ...prev, loading: true }));
+      
+      // Obtener datos de unidades del proyecto
+      const livingUnits = parseInt(proyecto.living_unit || "0");
+      const officeUnits = parseInt(proyecto.office_unit || "0");
+      const commercialUnits = parseInt(proyecto.commercial_unit || "0");
+      const totalUnits = livingUnits + officeUnits + commercialUnits;
+      
+      // Obtener nodos del proyecto
+      const nodes = await getNodes(proyecto.id);
+      const totalNodes = nodes ? nodes.length : 0;
+      
+      // Contar dispositivos
+      let totalDevices = 0;
+      
+      if (nodes && nodes.length > 0) {
+        nodes.forEach(node => {
+          // Contar dispositivos en el nodo
+          if (node.devices && Array.isArray(node.devices)) {
+            totalDevices += node.devices.length;
+          }
+        });
+      }
+      
+      setStats({
+        totalDevices,
+        totalUnits,
+        livingUnits,
+        officeUnits,
+        commercialUnits,
+        totalNodes,
+        loading: false
+      });
+    } catch (error) {
+      console.error('Error loading project stats:', error);
+      setStats(prev => ({ ...prev, loading: false }));
+    }
+  };
+
   const formatDate = (dateString) => {
-    if (!dateString) return 'Unknown date';
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'N/A';
+      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    } catch (e) {
+      return 'N/A';
+    }
   };
 
   const verEnMapa = () => {
@@ -80,9 +142,56 @@ const DetallesProyecto = ({ route, navigation }) => {
             <View style={styles.detailRow}>
               <Ionicons name="location" size={20} color="#3498db" />
               <Text style={[styles.detailLabel, { color: colors.subText }]}>{t('address')}:</Text>
-              <Text style={[styles.detailValue, { color: colors.text }]}>{proyecto.address}, {proyecto.state}, {proyecto.country}, {proyecto.city}</Text>
+              <Text style={[styles.detailValue, { color: colors.text }]}>{proyecto.address}</Text>
             </View>
           )}
+
+          {/* Estadísticas */}
+          <View style={[styles.statsContainer, { borderColor: colors.border }]}>
+            <Text style={[styles.statsTitle, { color: colors.text }]}>Estadísticas</Text>
+            
+            {stats.loading ? (
+              <ActivityIndicator size="small" color="#3498db" />
+            ) : (
+              <>
+                <View style={styles.statRow}>
+                  <Ionicons name="home" size={18} color="#3498db" />
+                  <Text style={[styles.statLabel, { color: colors.subText }]}>Hab.:</Text>
+                  <Text style={[styles.statValue, { color: colors.text }]}>{stats.livingUnits}</Text>
+                </View>
+                
+                <View style={styles.statRow}>
+                  <Ionicons name="briefcase" size={18} color="#3498db" />
+                  <Text style={[styles.statLabel, { color: colors.subText }]}>Oficinas:</Text>
+                  <Text style={[styles.statValue, { color: colors.text }]}>{stats.officeUnits}</Text>
+                </View>
+                
+                <View style={styles.statRow}>
+                  <Ionicons name="storefront" size={18} color="#3498db" />
+                  <Text style={[styles.statLabel, { color: colors.subText }]}>Comerciales:</Text>
+                  <Text style={[styles.statValue, { color: colors.text }]}>{stats.commercialUnits}</Text>
+                </View>
+
+                <View style={[styles.statRow, styles.totalUnitsRow]}>
+                  <Ionicons name="building" size={18} color="#2ecc71" />
+                  <Text style={[styles.statLabel, { color: colors.subText, fontWeight: '700' }]}>Total Unidades:</Text>
+                  <Text style={[styles.statValue, { color: colors.text, backgroundColor: '#2ecc71', fontWeight: '700' }]}>{stats.totalUnits}</Text>
+                </View>
+                
+                <View style={styles.statRow}>
+                  <Ionicons name="grid" size={18} color="#3498db" />
+                  <Text style={[styles.statLabel, { color: colors.subText }]}>Dispositivos:</Text>
+                  <Text style={[styles.statValue, { color: colors.text }]}>{stats.totalDevices}</Text>
+                </View>
+                
+                <View style={styles.statRow}>
+                  <Ionicons name="git-network" size={18} color="#3498db" />
+                  <Text style={[styles.statLabel, { color: colors.subText }]}>Nodos de Red:</Text>
+                  <Text style={[styles.statValue, { color: colors.text }]}>{stats.totalNodes}</Text>
+                </View>
+              </>
+            )}
+          </View>
 
           <View style={styles.detailRow}>
             <Ionicons name="calendar" size={20} color="#3498db" />
@@ -221,6 +330,47 @@ const styles = StyleSheet.create({
     color: '#2c3e50',
     fontWeight: '600',
     flex: 1,
+  },
+  statsContainer: {
+    marginTop: 20,
+    marginBottom: 15,
+    paddingTop: 15,
+    paddingBottom: 15,
+    borderTopWidth: 2,
+    borderTopColor: '#ecf0f1',
+  },
+  statsTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 12,
+    color: '#2c3e50',
+  },
+  statRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+    paddingLeft: 4,
+  },
+  statLabel: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    marginLeft: 10,
+    marginRight: 6,
+    fontWeight: '500',
+    flex: 1,
+  },
+  statValue: {
+    fontSize: 16,
+    color: '#2c3e50',
+    fontWeight: '700',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    backgroundColor: '#ecf0f1',
+    borderRadius: 6,
+  },
+  totalUnitsRow: {
+    marginVertical: 8,
+    paddingVertical: 10,
   },
   mapButtonLarge: {
     flexDirection: 'row',

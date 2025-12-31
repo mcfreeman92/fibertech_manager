@@ -813,13 +813,52 @@ export const getCompleteProjectData = async (projectId) => {
   }
 };
 
-// Función para exportar todos los datos del proyecto en formato JSON
+// Función para exportar los datos del proyecto en formato QR (string claro)
 export const exportProjectData = async (projectId) => {
   try {
-    const completeData = await getCompleteProjectData(projectId);
-    return JSON.stringify(completeData);
+    console.log('📱 exportProjectData received:', typeof projectId, projectId);
+    
+    let projectId_value = null;
+    let address_value = 'N/A';
+
+    // Si es un objeto con metadata (viene del FlatList)
+    if (typeof projectId === 'object' && projectId !== null) {
+      // Intentar extraer del metadata JSON
+      if (projectId.metadata) {
+        try {
+          const metadata = JSON.parse(projectId.metadata);
+          projectId_value = metadata.id;
+          address_value = metadata.address || projectId.address || 'N/A';
+          console.log('✅ Extracted from metadata:', projectId_value, address_value);
+        } catch (e) {
+          console.warn('Could not parse metadata, using direct fields:', e);
+          projectId_value = projectId.id;
+          address_value = projectId.address || 'N/A';
+        }
+      } else {
+        // Si no tiene metadata, usar los campos directos
+        projectId_value = projectId.id;
+        address_value = projectId.address || 'N/A';
+      }
+    } else {
+      // Si es un string ID, buscar en storage
+      projectId_value = projectId;
+      const project = await ProjectService.getProjectById(projectId);
+      if (project) {
+        address_value = project.address || 'N/A';
+      }
+    }
+
+    if (!projectId_value) {
+      throw new Error('Could not extract project ID');
+    }
+
+    // Generar string claro para el QR: "PrismaSolutionsGroup, [id], [address]"
+    const qrData = `PrismaSolutionsGroup, ${projectId_value}, ${address_value}`;
+    console.log('✅ QR data generated:', qrData);
+    return qrData;
   } catch (error) {
-    console.error('Error exporting project data:', error);
+    console.error('❌ Error exporting project data:', error);
     throw error;
   }
 };
