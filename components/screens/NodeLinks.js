@@ -795,17 +795,20 @@ const NodeLinks = ({ route, navigation }) => {
   }
 
   const handleRemoveFusionLink = (link) => {
-    const index = nodeData.fusionLinks.findIndex(x => x.hash == link.hash);
-    let items = [...nodeData.fusionLinks];
-    if (index != -1) {
-      items[index] = {...items[index], deleted: true};
-    }
+    // Eliminar realmente la fusión del array en lugar de solo marcarla como deleted
+    // Esto libera los hilos para futuras fusiones
+    const filteredItems = nodeData.fusionLinks.filter(x => x.hash !== link.hash);
+
+    console.log('🔗 Removiendo fusión:');
+    console.log('   Fusión eliminada:', link.src.fiberLabel, 'thread:', link.src.thread, '->', link.dst.fiberLabel, 'thread:', link.dst.thread);
+    console.log('   Total fusiones antes:', nodeData.fusionLinks.length);
+    console.log('   Total fusiones después:', filteredItems.length);
 
     setNodeData({
       ...nodeData,
-      fusionLinks : items
-    })
-  }
+      fusionLinks: filteredItems
+    });
+  };
 
   return (
     <View

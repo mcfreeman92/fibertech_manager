@@ -1420,17 +1420,10 @@ const CreateProject = ({ navigation, route, theme }) => {
           } else {
             const links = node.fusionLinks || [];
 
-            const deletedLinks = links.filter((x) => x.deleted);
-
-            for (let i = 0; i < deletedLinks.length; i++) {
-              const link = deletedLinks[i];
-
-              doUpdateFiberThread(link.src, false);
-              doUpdateFiberThread(link.dst, false);
-            }
-
+            // Ya no hay fusiones marcadas como deleted, pues se eliminan directamente del array
+            // Pero mantenemos la lógica de marcar/desmarcar threads en uso
             if ((node.deleted || false) == false) {
-              const updateLinks = links.filter((x) => x.deleted == false);
+              const updateLinks = links; // Todas las fusiones están activas
 
               for (let i = 0; i < updateLinks.length; i++) {
                 const link = updateLinks[i];
