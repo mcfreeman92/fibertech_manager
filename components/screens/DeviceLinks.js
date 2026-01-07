@@ -968,6 +968,25 @@ const DeviceLinks = ({ route, navigation }) => {
     setShowLinkSetupModal(true);
   };
 
+  const handleRemoveDeviceLink = (portNumber) => {
+    console.log('🗑️  ==================== ELIMINANDO DEVICE LINK ====================');
+    console.log('🗑️  Nodo:', node?.label, '(ID:', node?.id, ')');
+    console.log('🗑️  Dispositivo:', deviceData?.label);
+    console.log('🗑️  Puerto:', portNumber);
+    
+    const updatedLinks = deviceData.links.filter((link) => link.port !== portNumber);
+    
+    console.log('🗑️  Links antes:', deviceData.links?.length || 0);
+    console.log('🗑️  Links después:', updatedLinks.length);
+    console.log('🗑️  ===========================================================');
+
+    setDeviceData({
+      ...deviceData,
+      links: updatedLinks,
+    });
+  };
+
+
   // � FUNCIÓN REFACTORIZADA: loadFibers - Reutilizable
   const loadFibersForPicker = React.useCallback(async () => {
     console.log('📋 Loading fibers for DeviceLinks picker...');
@@ -1041,40 +1060,6 @@ const DeviceLinks = ({ route, navigation }) => {
       };
 
       records[i] = f;
-    }
-
-    // 🔧 INTEGRACIÓN: Filtrar buffers consumidos dinámicamente
-    // Obtener todos los nodos para revisar qué buffers fueron consumidos
-    try {
-      const allNodes = await getNodes(projectId);
-      
-      records = records.map((fiber) => {
-        // Filtrar buffers que NO han sido consumidos en ningún nodo
-        const visibleBuffers = fiber.buffers.filter((buffer) => {
-          // Si es la fibra padre (sin parentId), no filtrar
-          if (!buffer.parentId) return true;
-          
-          // Revisar si este buffer fue consumido en algún nodo
-          const isConsumed = allNodes.some((node) => 
-            isBufferConsumedInNode(buffer, node)
-          );
-          
-          if (isConsumed) {
-            console.log(`🔴 Buffer ${buffer.label} filtrado (consumido en nodo)`);
-          }
-          
-          return !isConsumed;
-        });
-        
-        return {
-          ...fiber,
-          buffers: visibleBuffers
-        };
-      });
-      
-      console.log(`✅ Buffers filtrados dinámicamente - Visibles: ${records.reduce((sum, f) => sum + f.buffers.length, 0)}`);
-    } catch (err) {
-      console.warn('⚠️ No se pudo cargar nodos para filtro de buffers:', err);
     }
 
     records = records.map((f) => {
@@ -1181,7 +1166,11 @@ const DeviceLinks = ({ route, navigation }) => {
                     >
                       <Ionicons name="settings" size={24} color="#727272ff" />
                     </TouchableOpacity>
-                    <TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => {
+                        handleRemoveDeviceLink(item.number);
+                      }}
+                    >
                       <Ionicons name="trash" size={24} color="salmon" />
                     </TouchableOpacity>
                   </View>

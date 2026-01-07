@@ -25,8 +25,10 @@ export const isBufferConsumedInNode = (buffer, node) => {
       const { src, dst } = fusion;
       
       // Verificar si el buffer aparece en SRC o DST
-      const bufferInSrc = src?.bufferId === bufferId || src?.fiberId === bufferId;
-      const bufferInDst = dst?.bufferId === bufferId || dst?.fiberId === bufferId;
+      // ⚠️ IMPORTANTE: Comparar SOLO bufferId, NO con fiberId
+      // Los buffers son elementos hijos de las fibras
+      const bufferInSrc = src?.bufferId === bufferId;
+      const bufferInDst = dst?.bufferId === bufferId;
       
       return bufferInSrc || bufferInDst;
     });

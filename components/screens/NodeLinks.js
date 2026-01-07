@@ -335,7 +335,8 @@ const NodeLinks = ({ route, navigation }) => {
       backgroundColor: "#F9FAFB",
       paddingRight: 50,
       marginVertical: 8,
-      outline: "none", // Importante para web
+      outlineWidth: 0,
+      outlineStyle: "none",
       cursor: "pointer",
     },
     inputIOS: {
