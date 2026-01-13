@@ -467,7 +467,7 @@ export const AppProvider = ({ children }) => {
       configureAll: "Configure all",
       fibers: "fibers",
       addNode: "Add Node",
-      pedestal: "Pereston",
+      pedestal: "Pedestal",
       unit: "Unit",
       saveNetwork: "Save Network",
       clearAll: "Clear all",
